@@ -31,6 +31,9 @@
            // Admin can update any user doc (grant/revoke isModerator, ban, etc)
            allow update: if request.auth != null
              && request.auth.token.email == 'YOUR_ADMIN_EMAIL';
+           // Admin can delete any user doc
+           allow delete: if request.auth != null
+             && request.auth.token.email == 'YOUR_ADMIN_EMAIL';
          }
          // Comments: any auth user can create; only owner or admin can delete/update
          match /comments/{commentId} {
@@ -7682,21 +7685,35 @@ async function _adminToggleModerator(uid, email, isModerator){
 
 async function _adminDeleteUser(uid, name){
   if(!uid) return;
-  if(!confirm(`⚠️ DELETE USER\n\nAre you sure you want to permanently delete "${name}"?\n\nThis will remove their Firestore data. This action cannot be undone.`)) return;
+  if(!_isAdmin(currentUser)){ showToast('Access denied'); return; }
+  var msg = 'DELETE USER\n\nDelete "' + name + '"?\n\n';
+  msg += 'This removes their Firestore record and prevents future login.\n';
+  msg += 'IMPORTANT: Also delete from Firebase Console > Authentication > Users.\n\n';
+  msg += 'Cannot be undone.';
+  if(!confirm(msg)) return;
   try{
-    const {doc, deleteDoc, collection, getDocs, query, where} = window._fbFns;
-    const db = window._fbDb;
-    // Delete user's Firestore doc
-    await deleteDoc(doc(db,'users',uid));
-    // Delete user's comments
+    var fns = window._fbFns;
+    var db = window._fbDb;
+    var docFn = fns.doc, deleteDocFn = fns.deleteDoc, updateDocFn = fns.updateDoc;
+    var collFn = fns.collection, getDocsFn = fns.getDocs, queryFn = fns.query, whereFn = fns.where;
+    // Step 1: Ban so user cannot login even if Auth record stays
+    try{ await updateDocFn(docFn(db,'users',uid), { banned: true, deletedAt: new Date().toISOString() }); }catch(e){ console.warn(e); }
+    // Step 2: Delete Firestore user doc
+    await deleteDocFn(docFn(db,'users',uid));
+    // Step 3: Delete user comments
     try{
-      const cSnap = await getDocs(query(collection(db,'comments'), where('userId','==',uid)));
-      for(const d of cSnap.docs) await deleteDoc(d.ref);
-    }catch(e){}
-    showToast('🗑️ User deleted from database.');
+      var cSnap = await getDocsFn(queryFn(collFn(db,'comments'), whereFn('userId','==',uid)));
+      for(var d of cSnap.docs) await deleteDocFn(d.ref);
+    }catch(e){ console.warn('Comment delete error:',e); }
+    showToast('User deleted from database. Remember to delete from Firebase Console > Authentication too.');
     _renderAdminUsers();
   }catch(err){
-    showToast('Error: ' + err.message);
+    console.error('Delete user error:', err);
+    if(err.code==='permission-denied'||err.message.includes('permission')){
+      showToast('PERMISSION DENIED: Add "allow delete" for users collection in Firestore rules (Firebase Console).');
+    } else {
+      showToast('Error: ' + err.message);
+    }
   }
 }
 
