@@ -7705,6 +7705,18 @@ async function _adminDeleteUser(uid, name){
       var cSnap = await getDocsFn(queryFn(collFn(db,'comments'), whereFn('userId','==',uid)));
       for(var d of cSnap.docs) await deleteDocFn(d.ref);
     }catch(e){ console.warn('Comment delete error:',e); }
+    // Step 4: Remove from localStorage fallback (fn_users) by uid or email
+    try{
+      var lsUsers = getUsers();
+      var filtered = lsUsers.filter(function(u){ return u.id !== uid && u.uid !== uid; });
+      saveUsers(filtered);
+      // Also clear current session if same user
+      var cur = getCurrentUser();
+      if(cur && (cur.id === uid || cur.uid === uid)){
+        localStorage.removeItem('fn_current_user');
+        localStorage.setItem('tv_liked','[]');
+      }
+    }catch(e){ console.warn('localStorage user remove error:',e); }
     showToast('User deleted from database. Remember to delete from Firebase Console > Authentication too.');
     _renderAdminUsers();
   }catch(err){
