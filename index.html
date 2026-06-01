@@ -3233,7 +3233,7 @@ input[type=range]::-moz-range-progress {
         <span class="size-num" id="sizeNum">100</span>
       </div>
     </div>
-    <select class="sort-sel" id="sortSel" onchange="currentPage=1;renderFonts()">
+    <select class="sort-sel" id="sortSel" onchange="onSortChange()">
       <option value="popular">Popular</option>
       <option value="newest">Newest</option>
       <option value="alpha">A → Z</option>
@@ -3241,7 +3241,7 @@ input[type=range]::-moz-range-progress {
       <option value="downloads">Most Downloaded</option>
       <option value="top-rated">Top Rated</option>
     </select>
-    <button class="sort-sel" id="freeToggle" onclick="freeOnly=!freeOnly;currentPage=1;this.classList.toggle('free-active',freeOnly);renderFonts()" title="Show only free fonts" style="cursor:pointer;border:none;padding:0 12px;font-size:11px;font-weight:500;letter-spacing:.02em">🏷 Free only</button>
+    <button class="sort-sel" id="freeToggle" onclick="toggleFreeOnly(this)" title="Show only free fonts" style="cursor:pointer;border:none;padding:0 12px;font-size:11px;font-weight:500;letter-spacing:.02em">🏷 Free only</button>
 
     <select class="sort-sel" id="perPageSel" onchange="perPage=this.value;currentPage=1;renderFonts()" title="Fonts per page">
       <option value="20">20 / page</option>
@@ -5103,8 +5103,10 @@ function toggleShortcuts(){
 // LICENSE FILTER
 function filterLicense(lic){
   activeLicenseFilter=activeLicenseFilter===lic?null:lic;
+  currentPage=1;
   renderFonts();
   showToast(activeLicenseFilter?`Showing ${LICENSE_META[lic]?.label} fonts`:'Filter cleared');
+  syncUrl();
 }
 
 // RECENTLY VIEWED
@@ -5351,11 +5353,73 @@ function renderPagination(total,page,pp){
   h+=`<button class="pg-btn" ${page>=pages?'disabled':''} onclick="goPage(${page+1})">></button>`;
   h+=`</div>`;el.innerHTML=h;
 }
-function goPage(p){currentPage=p;renderFonts();window.scrollTo({top:0,behavior:'smooth'});}
+function goPage(p){currentPage=p;renderFonts();syncUrl();window.scrollTo({top:0,behavior:'smooth'});}
+
+// ── Mərkəzləşdirilmiş URL sync ───────────────────────────────────────────────
+function syncUrl(){
+  // Yalnız grid görünüşündə işlə (font detail, author, profile, admin-də yox)
+  const path=location.pathname;
+  if(path.startsWith('/font/')||path.startsWith('/author/')||path.startsWith('/profile')||path==='/admin') return;
+  const p=new URLSearchParams();
+  if(activeCategory && activeCategory!=='all') p.set('cat',activeCategory);
+  if(searchTerm) p.set('q',searchTerm);
+  if(alphaFilter) p.set('alpha',alphaFilter);
+  if(freeOnly) p.set('free','1');
+  if(activeLicenseFilter) p.set('license',activeLicenseFilter);
+  const sort=document.getElementById('sortSel');
+  if(sort && sort.value && sort.value!=='popular') p.set('sort',sort.value);
+  if(currentPage>1) p.set('page',currentPage);
+  const qs=p.toString();
+  const newUrl=qs?'/?'+qs:'/';
+  history.replaceState({page:'grid'},'',newUrl);
+  // Title
+  if(activeCategory && activeCategory!=='all'){
+    document.title=activeCategory.charAt(0).toUpperCase()+activeCategory.slice(1)+' Fonts – Font·Monster';
+  } else if(searchTerm){
+    document.title='"'+searchTerm+'" – Font·Monster';
+  } else if(alphaFilter){
+    document.title=alphaFilter+' Fonts – Font·Monster';
+  } else if(freeOnly){
+    document.title='Free Fonts – Font·Monster';
+  } else {
+    document.title='Font·Monster - Free Font Discovery';
+  }
+}
+// URL-dən state-i oxu və tətbiq et (DOMContentLoaded + popstate üçün)
+function restoreFromUrl(){
+  const p=new URLSearchParams(location.search);
+  activeCategory=p.get('cat')||'all';
+  searchTerm=p.get('q')||'';
+  alphaFilter=p.get('alpha')||'';
+  freeOnly=p.get('free')==='1';
+  activeLicenseFilter=p.get('license')||null;
+  currentPage=parseInt(p.get('page'))||1;
+  const sort=p.get('sort')||'popular';
+  // UI-ni sinxronlaşdır
+  const si=document.getElementById('searchInput'); if(si) si.value=searchTerm;
+  const ss=document.getElementById('sortSel'); if(ss){ ss.value=sort; if(typeof refreshCustomSelect==='function') refreshCustomSelect('sortSel'); }
+  const ft=document.getElementById('freeToggle'); if(ft) ft.classList.toggle('free-active',freeOnly);
+  document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===activeCategory));
+  document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===activeCategory));
+  document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(alphaFilter===''?'All':alphaFilter==='#'?'0-9':alphaFilter)));
+  if(typeof renderFonts==='function') renderFonts();
+}
+
 function setAlpha(letter){
   alphaFilter=letter;currentPage=1;
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(letter===''?'All':letter==='#'?'0-9':letter)));
   renderFonts();
+  syncUrl();
+}
+function toggleFreeOnly(btn){
+  freeOnly=!freeOnly;currentPage=1;
+  btn.classList.toggle('free-active',freeOnly);
+  renderFonts();
+  syncUrl();
+}
+function onSortChange(){
+  currentPage=1;renderFonts();
+  syncUrl();
 }
 function switchCardChar(btn,chars,fname,fw){
   const wrap=btn.closest('.card-charmap');
@@ -5560,16 +5624,16 @@ function updateSize(){
   document.querySelectorAll('.card-preview').forEach(el=>el.style.fontSize=fontSize+'px');
 }
 function setCategory(cat){
-  activeCategory=cat;activeLicenseFilter=null;
-  // toolbar pills only apply to real categories
+  activeCategory=cat;activeLicenseFilter=null;currentPage=1;
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===cat));
   renderFonts();
-  if(cat==='new')showToast('? Showing new fonts (2022+)');
+  if(cat==='new')showToast('✨ Showing new fonts (2022+)');
+  syncUrl();
 }
 function debouncedFilter(){
   clearTimeout(debounceTimer);
-  debounceTimer=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();renderFonts();},155);
+  debounceTimer=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();currentPage=1;renderFonts();syncUrl();},155);
 }
 function toggleLike(id,btn){
   if(likedFonts.has(id)){
@@ -5944,10 +6008,16 @@ function showProfile(tab){
   document.getElementById('profilePage').style.display='block';
   window.scrollTo(0,0);
   renderProfilePage();
-  if(tab) switchProfileTab(tab);
-  else switchProfileTab('myfonts');
+  const activeTab = tab || 'myfonts';
+  switchProfileTab(activeTab);
+  const newProfileUrl = '/profile/' + activeTab;
+  if(location.pathname === newProfileUrl){
+    history.replaceState({page:'profile', tab: activeTab}, '', newProfileUrl);
+  } else {
+    history.pushState({page:'profile', tab: activeTab}, '', newProfileUrl);
+  }
+  document.title = 'My Profile – Font·Monster';
 }
-
 function renderProfilePage(){
   if(!currentUser && window.currentUser) currentUser = window.currentUser;
   if(!currentUser)return;
@@ -6067,6 +6137,9 @@ function switchProfileTab(tab){
   document.getElementById('profileTabSaved').style.display=tab==='saved'?'':'none';
   document.getElementById('profileTabMyFonts').style.display=tab==='myfonts'?'':'none';
   if(tab==='myfonts') renderMyFontsTab();
+  if(location.pathname.startsWith('/profile')){
+    history.replaceState({page:'profile',tab:tab},'','/profile/'+tab);
+  }
 }
 
 function closeProfile(){
@@ -6468,6 +6541,10 @@ function openAdminPanel(){
   _updateAdminEditsBadge();
   _updateTrashBadge();
   switchAdminTab(_adminActiveTab);
+  if(location.pathname !== '/admin'){
+    history.pushState({page:'admin'}, '', '/admin');
+  }
+  document.title = 'Admin Panel – Font·Monster';
 }
 function closeAdminPanel(){
   const overlay=document.getElementById('adminPanelOverlay');
@@ -6480,6 +6557,7 @@ function closeAdminPanel(){
     overlay.style.display='none';
     document.body.style.overflow='';
   },300);
+  if(location.pathname==='/admin') history.back();
 }
 function switchAdminTab(tab){
   _adminActiveTab=tab;
@@ -8217,6 +8295,7 @@ function showGrid(){
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat==='all'));
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
   const freeBtn=document.getElementById('freeOnlyBtn');if(freeBtn)freeBtn.classList.remove('active');
+  const freeToggleBtn=document.getElementById('freeToggle');if(freeToggleBtn)freeToggleBtn.classList.remove('free-active');
   fontSize=100;
   const sr=document.getElementById('sizeRange');if(sr)sr.value=100;
   const sn=document.getElementById('sizeNum');if(sn)sn.textContent=100;
@@ -8226,7 +8305,7 @@ function showGrid(){
   document.getElementById('fontDetailPage').classList.remove('visible');
 
   // URL routing — ana səhifəyə qayıt
-  if(location.hash) history.pushState({page:'home'}, '', location.pathname);
+  history.pushState({page:'home'}, '', '/');
   document.title = 'Font·Monster - Free Font Discovery';
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
@@ -11534,22 +11613,37 @@ async function _dfSubmitToFirestore(font) {
 (function(){
   // Back / Forward düyməsi
   window.addEventListener('popstate', function(e){
-    const hash = location.hash;
     const path = location.pathname;
+    const hash = location.hash;
     if(path.startsWith('/font/')){
       const fontId = decodeURIComponent(path.slice(6));
       if(typeof openDetail === 'function') openDetail(fontId);
     } else if(path.startsWith('/author/')){
       const author = decodeURIComponent(path.slice(8));
       if(typeof openAuthorPage === 'function') openAuthorPage(author);
-    } else if(!hash || hash === '#' || (e.state && e.state.page === 'home')){
-      _showGridSilent();
+    } else if(path.startsWith('/profile')){
+      const tab = path.slice(9) || 'myfonts';
+      if(typeof showProfile === 'function') showProfile(tab);
+    } else if(path === '/admin'){
+      if(typeof openAdminPanel === 'function') openAdminPanel();
     } else if(hash.startsWith('#font/')){
       const fontId = decodeURIComponent(hash.slice(6));
       if(typeof openDetail === 'function') openDetail(fontId);
     } else if(hash.startsWith('#author/')){
       const author = decodeURIComponent(hash.slice(8));
       if(typeof openAuthorPage === 'function') openAuthorPage(author);
+    } else {
+      // Grid — query params-dan state-i bərpa et
+      _restoreMainView();
+      if(typeof restoreFromUrl === 'function') restoreFromUrl();
+      // Admin panel açıqdırsa bağla
+      var ov=document.getElementById('adminPanelOverlay');
+      if(ov && ov.style.display!=='none'){
+        var dr=document.getElementById('adminPanelDrawer');
+        ov.style.background='rgba(0,0,0,0)'; ov.style.backdropFilter='blur(0px)';
+        if(dr){ dr.style.transform='translate(-50%,-50%) scale(0.96)'; dr.style.opacity='0'; }
+        setTimeout(function(){ ov.style.display='none'; document.body.style.overflow=''; },300);
+      }
     }
   });
 
@@ -11557,45 +11651,44 @@ async function _dfSubmitToFirestore(font) {
   window.addEventListener('DOMContentLoaded', function(){
     const hash = location.hash;
     const path = location.pathname;
-    let initFontId = null, initAuthor = null;
+    // Font və ya author deep link
+    var initFontId = null, initAuthor = null;
     if(path.startsWith('/font/')) initFontId = decodeURIComponent(path.slice(6));
     else if(path.startsWith('/author/')) initAuthor = decodeURIComponent(path.slice(8));
     else if(hash.startsWith('#font/')) initFontId = decodeURIComponent(hash.slice(6));
     else if(hash.startsWith('#author/')) initAuthor = decodeURIComponent(hash.slice(8));
 
+    var waitFonts = function(cb, attempt){
+      if(typeof FONTS !== 'undefined' && FONTS && FONTS.length){ cb(); }
+      else if(attempt < 25){ setTimeout(function(){ waitFonts(cb, attempt+1); }, 150); }
+    };
+
     if(initFontId){
-      const tryOpen = function(attempt){
-        if(typeof FONTS !== 'undefined' && FONTS && FONTS.length){
-          if(typeof openDetail === 'function') openDetail(initFontId);
-        } else if(attempt < 20){
-          setTimeout(function(){ tryOpen(attempt+1); }, 150);
-        }
-      };
-      tryOpen(0);
+      waitFonts(function(){ if(typeof openDetail==='function') openDetail(initFontId); }, 0);
     } else if(initAuthor){
-      const tryOpen = function(attempt){
-        if(typeof openAuthorPage === 'function'){ openAuthorPage(initAuthor); }
-        else if(attempt < 20){ setTimeout(function(){ tryOpen(attempt+1); }, 150); }
-      };
-      tryOpen(0);
+      waitFonts(function(){ if(typeof openAuthorPage==='function') openAuthorPage(initAuthor); }, 0);
+    } else if(path === '/admin'){
+      waitFonts(function(){ if(typeof openAdminPanel==='function') openAdminPanel(); }, 0);
+    } else if(path.startsWith('/profile')){
+      var tab = path.slice(9) || 'myfonts';
+      waitFonts(function(){ if(typeof showProfile==='function') showProfile(tab); }, 0);
+    } else if(location.search){
+      // Query params varsa grid state-ini bərpa et
+      waitFonts(function(){ if(typeof restoreFromUrl==='function') restoreFromUrl(); }, 0);
     }
   });
 
-  // showGrid-in title/history dəyişdirməyən daxili versiyası (popstate üçün)
-  function _showGridSilent(){
+  function _restoreMainView(){
     if(typeof resetTxtUpload === 'function') resetTxtUpload();
-    const ids = ['profilePage','authorPage'];
-    ids.forEach(function(id){ const el=document.getElementById(id); if(el) el.style.display='none'; });
-    const grid = document.getElementById('gridLayout');
-    const fdp  = document.getElementById('fontDetailPage');
-    const tb   = document.getElementById('toolbarBar');
-    const hero = document.getElementById('heroSection');
+    ['profilePage','authorPage'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
+    var grid=document.getElementById('gridLayout');
+    var fdp=document.getElementById('fontDetailPage');
+    var tb=document.getElementById('toolbarBar');
+    var hero=document.getElementById('heroSection');
     if(grid) grid.style.display='';
     if(fdp)  fdp.classList.remove('visible');
     if(tb)   tb.style.display='';
     if(hero) hero.style.display='';
-    document.title = 'Font·Monster - Free Font Discovery';
-    if(typeof renderFonts === 'function') renderFonts();
   }
 })();
 </script>
