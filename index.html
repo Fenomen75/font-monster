@@ -5423,8 +5423,7 @@ function shareFontLink(){
 
 function syncUrl(pushNav){
   // profile və admin-də işləmə (onların öz URL məntiqi var)
-  const path=location.pathname;
-  if(path.startsWith('/profile')||path==='/admin') return;
+  // NOT: location.pathname yoxlanılmır - çünki closeDetail zamanı hələ /font/... ola bilər
   const p=new URLSearchParams();
   if(activeCategory && activeCategory!=='all') p.set('cat',activeCategory);
   if(searchTerm) p.set('q',searchTerm);
@@ -8358,6 +8357,7 @@ function closeAuthorPage(){
   document.getElementById('gridLayout').style.display='';
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
+  try{ history.replaceState({page:'grid'},'','/'); } catch(e){}
   syncUrl(true);
   renderFonts();
   if(typeof window._restoreGridScroll === 'function') window._restoreGridScroll();
@@ -8371,7 +8371,9 @@ function closeDetail(){
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
   currentDetailFont=null;
-  // Mövcud filter state-ini URL-ə yaz (filter itməsin)
+  // Əvvəlcə URL-i '/' et (syncUrl location.pathname-ə baxmasın deyə)
+  try{ history.replaceState({page:'grid'},'','/'); } catch(e){}
+  // İndi filter state-i URL-ə yaz
   syncUrl(true);
   renderFonts();
   // Əvvəlki scroll mövqeyini bərpa et
