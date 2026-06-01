@@ -6221,25 +6221,16 @@ async function saveEditFont(){
         const fd=new FormData();
         fd.append('font',efd.file);
         fd.append('id',fontId+(i>0?('_'+i):''));
-        fd.append('secret','FM_SECRET_2024_xK9p');
-        const resp=await fetch('upload.php',{method:'POST',body:fd});
-        if(!resp.ok) throw new Error('Server x?tasi: '+resp.status);
-        const text=await resp.text();
-        let res;
-        try{ res=JSON.parse(text); }
-        catch(je){ throw new Error('PHP cavabi JSON deyil: '+text.substring(0,120)); }
-        if(res.ok && res.url && !primarySet){
+        const fRef1=window._fbStorageRef(window._fbStorage,'fonts/'+(fontId+(i>0?('_'+i):'')+efd.ext));
+        await window._fbUploadBytes(fRef1, efd.file);
+        const url1=await window._fbGetDownloadURL(fRef1);
+        if(!primarySet){
           primarySet=true;
-          updates.fontUrl=res.url;
-          updates.fontExt=res.ext||efd.ext;
-          if(efd.data) updates.fontData=efd.data;
-          if(res.fontName && !document.getElementById('ef-name').value.trim()) updates.name=res.fontName;
-          const _efFontName=updates.name||document.getElementById('ef-name').value.trim()||id;
-          injectCustomFontFaceUrl(id,_efFontName,res.url,updates.fontExt||'.ttf',()=>renderFonts());
-        } else if(!primarySet && efd.data){
-          updates.fontData=efd.data;
+          updates.fontUrl=url1;
           updates.fontExt=efd.ext;
-          if(res.error) showToast('? '+res.error);
+          if(efd.data) updates.fontData=efd.data;
+          const _efFontName=updates.name||document.getElementById('ef-name').value.trim()||id;
+          injectCustomFontFaceUrl(id,_efFontName,url1,updates.fontExt||'.ttf',()=>renderFonts());
         }
       }catch(err){
         console.error('Edit upload failed:',err);
@@ -9071,7 +9062,7 @@ async function submitFont(){
     renderFonts();
   }
 
-  // Upload font file(s) - PHP upload.php istifad? et, h?r variant ayrica saxla
+  // Upload font file(s) - Firebase Storage istifade et
   if(uploadedFontFiles.length > 0){
     const submitBtn = document.querySelector('#submitModal .submit-btn');
     if(submitBtn){submitBtn.textContent='Uploading.';submitBtn.disabled=true;}
@@ -9085,29 +9076,15 @@ async function submitFont(){
         const formData=new FormData();
         formData.append('font', fd.file);
         formData.append('id', newFont.id+(i>0?('_'+i):''));
-        formData.append('secret','FM_SECRET_2024_xK9p');
-        const resp=await fetch('upload.php',{method:'POST',body:formData});
-        if(!resp.ok) throw new Error('Server x?tasi: '+resp.status);
-        const text=await resp.text();
-        let result;
-        try{ result=JSON.parse(text); }
-        catch(je){ throw new Error('PHP cavabi JSON deyil: '+text.substring(0,120)); }
-        if(result.ok && result.url){
-          console.log('? PHP upload OK:', fd.name, result.url);
-          // fd.name = orijinal fayl adi - parseVariantStyle üçün lazimdir
-          fontVariants.push({url:result.url, ext:result.ext||fd.ext, name:fd.name});
-          if(!primaryUrl){
-            primaryUrl=result.url;
-            primaryExt=result.ext||fd.ext;
-            primaryName=result.fontName||null;
-          }
-          // injectCustomFontFaceUrl BURDA ÇAGIRILMIR -
-          // _finalizeSubmit-d?ki injectVariantFaces h?r varianti öz weight/style il? inject ed?c?k
-        } else {
-          const errMsg=result.error||'Nam?lum x?ta';
-          console.error('? PHP upload error:', fd.name, errMsg);
-          showToast('? '+fd.name+': '+errMsg);
-          if(!primaryUrl && fd.dataUrl) newFont.fontData=fd.dataUrl;
+        const fRef2=window._fbStorageRef(window._fbStorage,'fonts/'+(newFont.id+(i>0?('_'+i):'')+fd.ext));
+        await window._fbUploadBytes(fRef2, fd.file);
+        const url2=await window._fbGetDownloadURL(fRef2);
+        console.log('✅ Firebase Storage OK:', fd.name, url2);
+        fontVariants.push({url:url2, ext:fd.ext, name:fd.name});
+        if(!primaryUrl){
+          primaryUrl=url2;
+          primaryExt=fd.ext;
+          primaryName=null;
         }
       }catch(e){
         console.error('Upload failed for', fd.name, e);
