@@ -4945,6 +4945,7 @@ let likedFonts=new Set(),loadedFonts=new Set(),debounceTimer,currentDetailFont=n
 let activeDetailWeight='400',pvMode='text',pvBold=false,pvItalic=false,pvAlign='left';
 let pvBgColor='#ffffff',pvTextColor='#111111',pvBgImage=null;
 let activeLicenseFilter=null,compareFonts=[],recentlyViewed=[],activeCodeTab='css';
+let activeTag='';
 let shortcutsOpen=false,darkMode=false;
 
 // ?? ADMIN helpers ??
@@ -5130,6 +5131,8 @@ function filterLicense(lic){
   activeLicenseFilter=activeLicenseFilter===lic?null:lic;
   currentPage=1;
   searchTerm='';document.getElementById('searchInput').value='';
+  activeTag='';
+  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
   renderFonts();
   showToast(activeLicenseFilter?`Showing ${LICENSE_META[lic]?.label} fonts`:'Filter cleared');
   syncUrl(true);
@@ -5519,6 +5522,8 @@ function setAlpha(letter){
   _ensureGridView();
   alphaFilter=letter;currentPage=1;
   searchTerm='';document.getElementById('searchInput').value='';
+  activeTag='';
+  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(letter===''?'All':letter==='#'?'0-9':letter)));
   renderFonts();
   syncUrl(true);
@@ -5741,6 +5746,8 @@ function setCategory(cat){
   _ensureGridView();
   activeCategory=cat;activeLicenseFilter=null;currentPage=1;
   searchTerm='';document.getElementById('searchInput').value='';
+  activeTag='';
+  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===cat));
   renderFonts();
@@ -9448,8 +9455,16 @@ document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.addEventListener('
 const allTags=[...new Set(FONTS_BASE.flatMap(f=>f.tags))].sort();
 const tagList=document.getElementById('tagList');
 allTags.slice(0,18).forEach(tag=>{
-  const d=document.createElement('div');d.className='sb-item';d.textContent=tag;
-  d.addEventListener('click',()=>{showGrid();activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));document.getElementById('searchInput').value=tag;searchTerm=tag.toLowerCase();renderFonts();showToast(`"${tag}" fonts`);});
+  const d=document.createElement('div');d.className='sb-item';d.textContent=tag;d.dataset.tag=tag;
+  d.addEventListener('click',()=>{
+    showGrid();
+    activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;
+    activeTag=tag;
+    document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.toggle('active',b.dataset.tag===tag));
+    document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));
+    document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
+    document.getElementById('searchInput').value=tag;searchTerm=tag.toLowerCase();renderFonts();showToast(`"${tag}" fonts`);
+  });
   tagList.appendChild(d);
 });
 
