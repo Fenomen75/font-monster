@@ -5613,7 +5613,7 @@ function renderFonts(){
         </div>
       </div>
       <div class="card-footer" onclick="openDetail('${font.id}')">
-        <div class="tags">${font.tags.map(t=>`<span class="tag" style="cursor:pointer" onclick="event.stopPropagation();document.getElementById('searchInput').value='${esc(t)}';searchTerm='${t.toLowerCase()}';renderFonts();showToast('&#34;${esc(t)}&#34; fonts')" title="Filter by ${esc(t)}">${esc(t)}</span>`).join('')}</div>
+        <div class="tags">${font.tags.map(t=>`<span class="tag" style="cursor:pointer" onclick="event.stopPropagation();(function(tag){activeTag=tag;searchTerm='';document.getElementById('searchInput').value='';activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;document.querySelectorAll('#tagList .sb-item').forEach(function(b){b.classList.toggle('active',b.dataset.tag===tag);});document.querySelectorAll('.cat').forEach(function(b){b.classList.toggle('active',b.dataset.cat==='all');});document.querySelectorAll('.alpha-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()==='All');});renderFonts();syncUrl(true);showToast('&#34;'+tag+'&#34; fonts');}('${esc(t)}'))" title="Filter by ${esc(t)}">${esc(t)}</span>`).join('')}</div>
         <div style="display:flex;align-items:center;gap:6px">
           ${(()=>{const r=getFontAvgRating(font.id);if(!r||r.count===0)return '';const full=Math.round(r.avg);return `<span style="color:#f5a623;font-size:10px;letter-spacing:0.5px" title="${r.avg.toFixed(1)} stars from ${r.count} review${r.count!==1?'s':''}">${'★'.repeat(full)}${'☆'.repeat(5-full)}</span><span style="font-size:10px;color:var(--text3)">${r.avg.toFixed(1)}</span>`;})()}
           ${licBadge(font.license)}
@@ -5746,7 +5746,10 @@ function updateSize(){
 function setCategory(cat){
   _ensureGridView();
   activeCategory=cat;activeLicenseFilter=null;currentPage=1;
-  searchTerm='';document.getElementById('searchInput').value='';
+  // Clear both search input and activeTag so neither interferes with category filter
+  searchTerm='';
+  const _si=document.getElementById('searchInput');
+  if(_si){_si.value='';}
   activeTag='';
   document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
@@ -8658,7 +8661,7 @@ function openDetail(fontId){
       <div class="fdp-meta-row">
         <span class="fdp-chip">${cap(font.cat)}</span>
         <span class="lic-badge ${licM.cls}" style="border-radius:100px;padding:3px 11px">${licM.label}</span>
-        ${font.tags.map(t=>`<span class="fdp-chip" style="cursor:pointer;transition:background .15s,color .15s" onclick="showGrid();document.getElementById('searchInput').value='${esc(t)}';searchTerm='${t.toLowerCase()}';renderFonts();showToast('&#34;${esc(t)}&#34; fonts')" onmouseover="this.style.background='var(--blue-dim)';this.style.color='var(--accent)'" onmouseout="this.style.background='';this.style.color=''" title="Filter by ${esc(t)}">${esc(t)}</span>`).join('')}
+        ${font.tags.map(t=>`<span class="fdp-chip" style="cursor:pointer;transition:background .15s,color .15s" onclick="showGrid();(function(tag){activeTag=tag;searchTerm='';document.getElementById('searchInput').value='';activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;document.querySelectorAll('#tagList .sb-item').forEach(function(b){b.classList.toggle('active',b.dataset.tag===tag);});document.querySelectorAll('.cat').forEach(function(b){b.classList.toggle('active',b.dataset.cat==='all');});document.querySelectorAll('.alpha-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()==='All');});renderFonts();syncUrl(true);showToast('&#34;'+tag+'&#34; fonts');}('${esc(t)}'))" onmouseover="this.style.background='var(--blue-dim)';this.style.color='var(--accent)'" onmouseout="this.style.background='';this.style.color=''" title="Filter by ${esc(t)}">${esc(t)}</span>`).join('')}
         <span class="fdp-chip" style="display:inline-flex;align-items:center;gap:4px">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           ${fmtDlCount(dlCount)} downloads
@@ -8974,9 +8977,15 @@ function openDetail(fontId){
     el.onclick=function(){
       const t=this.dataset.tag;
       showGrid();
-      document.getElementById('searchInput').value=t;
-      searchTerm=t.toLowerCase();
+      activeTag=t;
+      searchTerm='';
+      document.getElementById('searchInput').value='';
+      activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;
+      document.querySelectorAll('#tagList .sb-item').forEach(function(b){b.classList.toggle('active',b.dataset.tag===t);});
+      document.querySelectorAll('.cat').forEach(function(b){b.classList.toggle('active',b.dataset.cat==='all');});
+      document.querySelectorAll('.alpha-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()==='All');});
       renderFonts();
+      syncUrl(true);
       showToast('"'+t+'" fonts');
     };
   });
@@ -9466,6 +9475,7 @@ allTags.slice(0,18).forEach(tag=>{
     document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));
     document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
     renderFonts();showToast(`"${tag}" fonts`);
+    syncUrl(true);
   });
   tagList.appendChild(d);
 });
