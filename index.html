@@ -8243,7 +8243,7 @@ function openAuthorPage(authorName){
   document.getElementById('profilePage').style.display='none';
   currentDetailFont=null;
 
-  history.pushState({page:'author', author: authorName}, '', '#author/' + encodeURIComponent(authorName));
+  history.pushState({page:'author', author: authorName}, '', '/author/' + encodeURIComponent(authorName));
   document.title = authorName + ' — Font·Monster';
 
   // Match by exact author name OR by the submitter's user id (for user-uploaded fonts)
@@ -8586,7 +8586,7 @@ function openDetail(fontId){
 
   // URL routing + title
   const slug = font.id;
-  history.pushState({page:'font', fontId: slug}, '', '#font/' + slug);
+  history.pushState({page:'font', fontId: slug}, '', '/font/' + slug);
   document.title = font.name + ' — Font·Monster';
 
   // Quick Download Panel
@@ -11535,8 +11535,14 @@ async function _dfSubmitToFirestore(font) {
   // Back / Forward düyməsi
   window.addEventListener('popstate', function(e){
     const hash = location.hash;
-    if(!hash || hash === '#' || (e.state && e.state.page === 'home')){
-      // Ana səhifəyə qayıt — showGrid-i title/history dəyişdirmədən çağır
+    const path = location.pathname;
+    if(path.startsWith('/font/')){
+      const fontId = decodeURIComponent(path.slice(6));
+      if(typeof openDetail === 'function') openDetail(fontId);
+    } else if(path.startsWith('/author/')){
+      const author = decodeURIComponent(path.slice(8));
+      if(typeof openAuthorPage === 'function') openAuthorPage(author);
+    } else if(!hash || hash === '#' || (e.state && e.state.page === 'home')){
       _showGridSilent();
     } else if(hash.startsWith('#font/')){
       const fontId = decodeURIComponent(hash.slice(6));
@@ -11550,21 +11556,25 @@ async function _dfSubmitToFirestore(font) {
   // Birbaşa link ilə giriş (link paylaşma)
   window.addEventListener('DOMContentLoaded', function(){
     const hash = location.hash;
-    if(hash.startsWith('#font/')){
-      const fontId = decodeURIComponent(hash.slice(6));
-      // FONTS yüklənənə qədər gözlə
+    const path = location.pathname;
+    let initFontId = null, initAuthor = null;
+    if(path.startsWith('/font/')) initFontId = decodeURIComponent(path.slice(6));
+    else if(path.startsWith('/author/')) initAuthor = decodeURIComponent(path.slice(8));
+    else if(hash.startsWith('#font/')) initFontId = decodeURIComponent(hash.slice(6));
+    else if(hash.startsWith('#author/')) initAuthor = decodeURIComponent(hash.slice(8));
+
+    if(initFontId){
       const tryOpen = function(attempt){
         if(typeof FONTS !== 'undefined' && FONTS && FONTS.length){
-          if(typeof openDetail === 'function') openDetail(fontId);
+          if(typeof openDetail === 'function') openDetail(initFontId);
         } else if(attempt < 20){
           setTimeout(function(){ tryOpen(attempt+1); }, 150);
         }
       };
       tryOpen(0);
-    } else if(hash.startsWith('#author/')){
-      const author = decodeURIComponent(hash.slice(8));
+    } else if(initAuthor){
       const tryOpen = function(attempt){
-        if(typeof openAuthorPage === 'function'){ openAuthorPage(author); }
+        if(typeof openAuthorPage === 'function'){ openAuthorPage(initAuthor); }
         else if(attempt < 20){ setTimeout(function(){ tryOpen(attempt+1); }, 150); }
       };
       tryOpen(0);
