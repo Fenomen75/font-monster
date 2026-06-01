@@ -5745,6 +5745,7 @@ function updateSize(){
 }
 function setCategory(cat){
   _ensureGridView();
+  clearTimeout(debounceTimer);
   activeCategory=cat;activeLicenseFilter=null;currentPage=1;
   // Clear both search input and activeTag so neither interferes with category filter
   searchTerm='';
@@ -5752,7 +5753,6 @@ function setCategory(cat){
   if(_si){_si.value='';}
   activeTag='';
   document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('#trendingTagsWidget span[data-tag]').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===cat));
   renderFonts();
@@ -8967,7 +8967,7 @@ function openDetail(fontId){
   const allTagsW=[...new Set(FONTS.flatMap(f=>f.tags))].sort(()=>Math.random()-0.5).slice(0,16);
   const ttwEl=document.getElementById('trendingTagsWidget');
   ttwEl.innerHTML=allTagsW.map(t=>`
-    <span data-tag="${esc(t)}" onclick="(function(el){const t=el.dataset.tag;showGrid();activeTag=t;searchTerm='';document.getElementById('searchInput').value='';activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;document.querySelectorAll('#tagList .sb-item').forEach(function(b){b.classList.toggle('active',b.dataset.tag===t);});document.querySelectorAll('.cat').forEach(function(b){b.classList.toggle('active',b.dataset.cat==='all');});document.querySelectorAll('.alpha-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()==='All');});renderFonts();syncUrl(true);showToast('&quot;'+t+'&quot; fonts');})(this)"
+    <span data-tag="${esc(t)}" onclick="(function(el){const t=el.dataset.tag;showGrid();document.getElementById('searchInput').value=t;searchTerm=t.toLowerCase();renderFonts();showToast('&quot;'+t+'&quot; fonts');})(this)"
       style="padding:4px 11px;border-radius:980px;font-size:11px;font-weight:500;cursor:pointer;
       background:var(--surface3);border:1px solid var(--border2);color:var(--text2);
       transition:all .15s;letter-spacing:-0.01em;"
