@@ -5343,6 +5343,7 @@ function getFiltered(){
   if(freeOnly)list=list.filter(f=>f.license==='free'||f.license==='ofl'||f.license==='apache');
   if(alphaFilter==='#')list=list.filter(f=>/^[0-9]/.test(f.name));
   else if(alphaFilter)list=list.filter(f=>f.name.toUpperCase().startsWith(alphaFilter));
+  if(activeTag)list=list.filter(f=>f.tags.some(t=>t.toLowerCase()===activeTag.toLowerCase()));
   if(searchTerm){
     const _esc=searchTerm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     const _re=new RegExp(_esc,'i');
@@ -9459,11 +9460,12 @@ allTags.slice(0,18).forEach(tag=>{
   d.addEventListener('click',()=>{
     showGrid();
     activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;
+    searchTerm='';document.getElementById('searchInput').value='';
     activeTag=tag;
     document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.toggle('active',b.dataset.tag===tag));
     document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));
     document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
-    document.getElementById('searchInput').value=tag;searchTerm=tag.toLowerCase();renderFonts();showToast(`"${tag}" fonts`);
+    renderFonts();showToast(`"${tag}" fonts`);
   });
   tagList.appendChild(d);
 });
