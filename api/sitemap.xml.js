@@ -1,14 +1,4 @@
-const { initializeApp, getApps } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
-const { credential } = require('firebase-admin');
-
-// Firebase Admin initialization (only once)
-if (!getApps().length) {
-  initializeApp({
-    credential: credential.applicationDefault(),
-    projectId: 'fontan-7bae4'
-  });
-}
+const https = require('https');
 
 const BASE_URL = 'https://font-monster.vercel.app';
 
@@ -20,57 +10,56 @@ const STATIC_FONTS = [
   'russo-one','exo-2','dancing-script','pacifico','caveat','satisfy','great-vibes',
   'indie-flower','kalam','sacramento','jetbrains-mono','fira-code','source-code-pro',
   'space-mono','roboto-mono','inconsolata','ibm-plex-mono','dm-mono',
-  'plus-jakarta-sans','josefin-sans','work-sans','manrope','unbounded',
-  'urbanist','cabinet-grotesk','clash-display','satoshi','general-sans',
-  'switzer','geist','bricolage-grotesque','schibsted-grotesk','instrument-serif',
-  'fraunces','sentient','editorial-new','chillax','synonym','ranade',
-  'author','melodrama','cabinet-grotesk','array','nippo','telma',
-  'gambarino','boska','erode','zodiak','neulis','quincy','articulat-cf',
-  'neue-haas-grotesk','aktiv-grotesk','graphik','circular','gt-walsheim',
-  'founders-grotesk','styrene','acumin','tiempos','canela','domaine',
-  'freight-display','chronicle','hoefler-text','surveyor','guardian','lyon'
+  'plus-jakarta-sans','josefin-sans','work-sans','manrope','unbounded'
 ];
+
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch(e) { resolve(null); }
+      });
+    }).on('error', reject);
+  });
+}
 
 module.exports = async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
-  
-  let dynamicFontIds = [];
-  
+  let dynamicFonts = [];
+
   try {
-    const db = getFirestore();
-    const snap = await db.collection('submitted_fonts')
-      .where('status', '==', 'approved')
-      .get();
-    dynamicFontIds = snap.docs.map(d => d.data().id || d.id);
+    const data = await httpsGet(
+      `https://firestore.googleapis.com/v1/projects/fontan-7bae4/databases/(default)/documents/submitted_fonts?pageSize=500`
+    );
+    if (data && data.documents) {
+      dynamicFonts = data.documents
+        .map(d => {
+          const fields = d.fields || {};
+          const status = fields.status?.stringValue;
+          const id = fields.id?.stringValue || d.name.split('/').pop();
+          return status === 'approved' ? id : null;
+        })
+        .filter(Boolean);
+    }
   } catch (e) {
-    // Firestore oxunmadisa static fontlarla davam et
     console.error('Firestore error:', e.message);
   }
 
-  // Merge static + dynamic, dublikat olmasin
-  const allIds = [...new Set([...STATIC_FONTS, ...dynamicFontIds])];
+  const allIds = [...new Set([...STATIC_FONTS, ...dynamicFonts])];
 
   const urls = [
-    `  <url>
-    <loc>${BASE_URL}/</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>`,
-    ...allIds.map(id => `  <url>
-    <loc>${BASE_URL}/font/${id}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>`)
+    `  <url>\n    <loc>${BASE_URL}/</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>`,
+    ...allIds.map(id =>
+      `  <url>\n    <loc>${BASE_URL}/font/${id}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`
+    )
   ];
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join('\n')}
-</urlset>`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
 
   res.setHeader('Content-Type', 'application/xml');
-  res.setHeader('Cache-Control', 's-maxage=3600'); // 1 saat cache
+  res.setHeader('Cache-Control', 's-maxage=3600');
   res.status(200).send(xml);
 };
