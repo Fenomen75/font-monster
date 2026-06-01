@@ -69,6 +69,21 @@
      }
      ??????????????????????????????????????????????????????????????????? -->
 <title>Font·Monster - Free Font Discovery</title>
+<meta name="description" content="Discover and download thousands of free fonts. Browse by category, style, license and more.">
+<meta name="theme-color" content="#ffffff" id="metaThemeColor">
+<link rel="canonical" href="https://fontmonster.app/" id="canonicalLink">
+<!-- Open Graph -->
+<meta property="og:site_name" content="Font·Monster">
+<meta property="og:type" content="website" id="ogType">
+<meta property="og:title" content="Font·Monster - Free Font Discovery" id="ogTitle">
+<meta property="og:description" content="Discover and download thousands of free fonts." id="ogDesc">
+<meta property="og:url" content="https://fontmonster.app/" id="ogUrl">
+<meta property="og:image" content="https://fontmonster.app/og-cover.png" id="ogImage">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Font·Monster - Free Font Discovery" id="twTitle">
+<meta name="twitter:description" content="Discover and download thousands of free fonts." id="twDesc">
+<meta name="twitter:image" content="https://fontmonster.app/og-cover.png" id="twImage">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -3311,13 +3326,17 @@ input[type=range]::-moz-range-progress {
 <!-- FONT DETAIL -->
 <div id="fontDetailPage">
   <div class="fdp-header">
-    <button class="fdp-back" onclick="showGrid()">
+    <button class="fdp-back" onclick="closeDetail()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
       Back
     </button>
-    <span class="fdp-breadcrumb"><span onclick="showGrid()" style="cursor:pointer;color:var(--accent);text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Font Monster</span> > <strong id="fdpBreadcrumb">Font</strong></span>
+    <span class="fdp-breadcrumb"><span onclick="closeDetail()" style="cursor:pointer;color:var(--accent);text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Font Monster</span> > <strong id="fdpBreadcrumb">Font</strong></span>
     <div style="flex:1"></div>
-    <button class="pv-btn" style="font-size:11px;margin-left:auto" onclick="if(currentDetailFont)addToCompare(currentDetailFont.id)">
+    <button class="pv-btn" id="fdpShareBtn" style="font-size:11px;display:flex;align-items:center;gap:5px" onclick="shareFontLink()" title="Copy link to this font">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Share
+    </button>
+    <button class="pv-btn" style="font-size:11px;margin-left:6px" onclick="if(currentDetailFont)addToCompare(currentDetailFont.id)">
       + Compare
     </button>
   </div>
@@ -4491,11 +4510,11 @@ input[type=range]::-moz-range-progress {
 <div id="authorPage" style="display:none;position:relative;z-index:1;background:var(--bg);min-height:calc(100vh - 106px);animation:fadeUp .25s cubic-bezier(0.4,0,0.2,1)">
   <!-- Author Page Header bar -->
   <div class="fdp-header">
-    <button class="fdp-back" onclick="showGrid()">
+    <button class="fdp-back" onclick="closeAuthorPage()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
       Back
     </button>
-    <span class="fdp-breadcrumb"><span onclick="showGrid()" style="cursor:pointer;color:var(--accent)" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Font Monster</span> > <strong id="authorPageBreadcrumb">Designer</strong></span>
+    <span class="fdp-breadcrumb"><span onclick="closeAuthorPage()" style="cursor:pointer;color:var(--accent)" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Font Monster</span> > <strong id="authorPageBreadcrumb">Designer</strong></span>
   </div>
 
   <!-- Author Hero -->
@@ -5082,6 +5101,11 @@ function getWeights(font){
 
 // DARK MODE
 function toggleDark(){
+  // theme-color meta-sını da yenilə
+  setTimeout(function(){
+    const tc = document.getElementById('metaThemeColor');
+    if(tc){ const bg=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(); if(bg) tc.setAttribute('content',bg); }
+  }, 50);
   darkMode=!darkMode;
   document.documentElement.setAttribute('data-theme',darkMode?'dark':'');
   localStorage.setItem("tv_dark",darkMode?'1':'0');
@@ -5106,7 +5130,7 @@ function filterLicense(lic){
   currentPage=1;
   renderFonts();
   showToast(activeLicenseFilter?`Showing ${LICENSE_META[lic]?.label} fonts`:'Filter cleared');
-  syncUrl();
+  syncUrl(true);
 }
 
 // RECENTLY VIEWED
@@ -5353,10 +5377,51 @@ function renderPagination(total,page,pp){
   h+=`<button class="pg-btn" ${page>=pages?'disabled':''} onclick="goPage(${page+1})">></button>`;
   h+=`</div>`;el.innerHTML=h;
 }
-function goPage(p){currentPage=p;renderFonts();syncUrl();window.scrollTo({top:0,behavior:'smooth'});}
+function goPage(p){currentPage=p;renderFonts();syncUrl(true);window.scrollTo({top:0,behavior:'smooth'});}
 
 // ── Mərkəzləşdirilmiş URL sync ───────────────────────────────────────────────
-function syncUrl(){
+// ── Safe history wrapper (sandbox/iframe uyğunluğu üçün) ────────────────
+function _safeHistoryPush(state, title, url){
+  try{ _safeHistoryPush(state, title, url); } catch(e){ /* sandbox */ }
+}
+function _safeHistoryReplace(state, title, url){
+  try{ _safeHistoryReplace(state, title, url); } catch(e){ /* sandbox */ }
+}
+
+// ── Dynamic SEO meta update ──────────────────────────────────────────────
+function updatePageMeta(opts){
+  // opts: { title, description, url, image }
+  const base = 'https://fontmonster.app';
+  const title = opts.title || 'Font·Monster - Free Font Discovery';
+  const desc = opts.description || 'Discover and download thousands of free fonts.';
+  const url = opts.url ? (base + opts.url) : (base + location.pathname + location.search);
+  const img = opts.image || (base + '/og-cover.png');
+
+  document.title = title;
+  const set = (id, val) => { const el=document.getElementById(id); if(el) el.setAttribute('content',val); };
+  set('ogTitle', title); set('twTitle', title);
+  set('ogDesc', desc);   set('twDesc', desc);
+  set('ogUrl', url);
+  set('ogImage', img);   set('twImage', img);
+  const canon = document.getElementById('canonicalLink');
+  if(canon) canon.setAttribute('href', url);
+}
+
+// ── Share / copy link ─────────────────────────────────────────────────────
+function shareFontLink(){
+  const url = location.href;
+  if(navigator.share){
+    navigator.share({ title: document.title, url: url }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(url).then(()=>{
+      showToast('🔗 Link copied!');
+      const btn = document.getElementById('fdpShareBtn');
+      if(btn){ const orig=btn.innerHTML; btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!'; setTimeout(()=>{ btn.innerHTML=orig; },2000); }
+    }).catch(()=>{ showToast('Copy: ' + url); });
+  }
+}
+
+function syncUrl(pushNav){
   // Yalnız grid görünüşündə işlə (font detail, author, profile, admin-də yox)
   const path=location.pathname;
   if(path.startsWith('/font/')||path.startsWith('/author/')||path.startsWith('/profile')||path==='/admin') return;
@@ -5371,19 +5436,27 @@ function syncUrl(){
   if(currentPage>1) p.set('page',currentPage);
   const qs=p.toString();
   const newUrl=qs?'/?'+qs:'/';
-  history.replaceState({page:'grid'},'',newUrl);
+  if(pushNav) _safeHistoryPush({page:'grid'},'',newUrl);
+  else _safeHistoryReplace({page:'grid'},'',newUrl);
   // Title
+  let _metaTitle, _metaDesc;
   if(activeCategory && activeCategory!=='all'){
-    document.title=activeCategory.charAt(0).toUpperCase()+activeCategory.slice(1)+' Fonts – Font·Monster';
+    _metaTitle = activeCategory.charAt(0).toUpperCase()+activeCategory.slice(1)+' Fonts – Font·Monster';
+    _metaDesc = 'Browse free ' + activeCategory + ' fonts on Font·Monster.';
   } else if(searchTerm){
-    document.title='"'+searchTerm+'" – Font·Monster';
+    _metaTitle = '"'+searchTerm+'" – Font·Monster';
+    _metaDesc = 'Search results for "' + searchTerm + '" on Font·Monster.';
   } else if(alphaFilter){
-    document.title=alphaFilter+' Fonts – Font·Monster';
+    _metaTitle = alphaFilter+' Fonts – Font·Monster';
+    _metaDesc = 'Browse fonts starting with ' + alphaFilter + ' on Font·Monster.';
   } else if(freeOnly){
-    document.title='Free Fonts – Font·Monster';
+    _metaTitle = 'Free Fonts – Font·Monster';
+    _metaDesc = 'Browse 100% free fonts on Font·Monster.';
   } else {
-    document.title='Font·Monster - Free Font Discovery';
+    _metaTitle = 'Font·Monster - Free Font Discovery';
+    _metaDesc = 'Discover and download thousands of free fonts. Browse by category, style, license and more.';
   }
+  updatePageMeta({ title: _metaTitle, description: _metaDesc, url: newUrl });
 }
 // URL-dən state-i oxu və tətbiq et (DOMContentLoaded + popstate üçün)
 function restoreFromUrl(){
@@ -5409,17 +5482,17 @@ function setAlpha(letter){
   alphaFilter=letter;currentPage=1;
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(letter===''?'All':letter==='#'?'0-9':letter)));
   renderFonts();
-  syncUrl();
+  syncUrl(true);
 }
 function toggleFreeOnly(btn){
   freeOnly=!freeOnly;currentPage=1;
   btn.classList.toggle('free-active',freeOnly);
   renderFonts();
-  syncUrl();
+  syncUrl(true);
 }
 function onSortChange(){
   currentPage=1;renderFonts();
-  syncUrl();
+  syncUrl(true);
 }
 function switchCardChar(btn,chars,fname,fw){
   const wrap=btn.closest('.card-charmap');
@@ -5629,7 +5702,7 @@ function setCategory(cat){
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===cat));
   renderFonts();
   if(cat==='new')showToast('✨ Showing new fonts (2022+)');
-  syncUrl();
+  syncUrl(true);
 }
 function debouncedFilter(){
   clearTimeout(debounceTimer);
@@ -6012,11 +6085,12 @@ function showProfile(tab){
   switchProfileTab(activeTab);
   const newProfileUrl = '/profile/' + activeTab;
   if(location.pathname === newProfileUrl){
-    history.replaceState({page:'profile', tab: activeTab}, '', newProfileUrl);
+    _safeHistoryReplace({page:'profile', tab: activeTab}, '', newProfileUrl);
   } else {
-    history.pushState({page:'profile', tab: activeTab}, '', newProfileUrl);
+    _safeHistoryPush({page:'profile', tab: activeTab}, '', newProfileUrl);
   }
   document.title = 'My Profile – Font·Monster';
+  updatePageMeta({ title: 'My Profile – Font·Monster', url: '/profile' });
 }
 function renderProfilePage(){
   if(!currentUser && window.currentUser) currentUser = window.currentUser;
@@ -6138,7 +6212,7 @@ function switchProfileTab(tab){
   document.getElementById('profileTabMyFonts').style.display=tab==='myfonts'?'':'none';
   if(tab==='myfonts') renderMyFontsTab();
   if(location.pathname.startsWith('/profile')){
-    history.replaceState({page:'profile',tab:tab},'','/profile/'+tab);
+    _safeHistoryReplace({page:'profile',tab:tab},'','/profile/'+tab);
   }
 }
 
@@ -6542,7 +6616,7 @@ function openAdminPanel(){
   _updateTrashBadge();
   switchAdminTab(_adminActiveTab);
   if(location.pathname !== '/admin'){
-    history.pushState({page:'admin'}, '', '/admin');
+    _safeHistoryPush({page:'admin'}, '', '/admin');
   }
   document.title = 'Admin Panel – Font·Monster';
 }
@@ -8278,6 +8352,33 @@ function selectWeight(fontId,weight,rowEl){
 }
 
 // DETAIL PAGE
+// Detail page-dən çıx — filterləri sıfırlamadan
+function closeAuthorPage(){
+  document.getElementById('authorPage').style.display='none';
+  document.getElementById('gridLayout').style.display='';
+  document.getElementById('toolbarBar').style.display='';
+  document.getElementById('heroSection').style.display='';
+  syncUrl(true);
+  renderFonts();
+  if(typeof window._restoreGridScroll === 'function') window._restoreGridScroll();
+  else window.scrollTo(0,0);
+  updatePageMeta({ title: 'Font·Monster - Free Font Discovery', url: location.pathname + location.search });
+}
+
+function closeDetail(){
+  document.getElementById('gridLayout').style.display='';
+  document.getElementById('fontDetailPage').classList.remove('visible');
+  document.getElementById('toolbarBar').style.display='';
+  document.getElementById('heroSection').style.display='';
+  currentDetailFont=null;
+  // Mövcud filter state-ini URL-ə yaz (filter itməsin)
+  syncUrl(true);
+  renderFonts();
+  // Əvvəlki scroll mövqeyini bərpa et
+  if(typeof window._restoreGridScroll === 'function') window._restoreGridScroll();
+  else window.scrollTo(0,0);
+}
+
 function showGrid(){
   // H?r seyi sifirla
   resetTxtUpload();
@@ -8305,7 +8406,7 @@ function showGrid(){
   document.getElementById('fontDetailPage').classList.remove('visible');
 
   // URL routing — ana səhifəyə qayıt
-  history.pushState({page:'home'}, '', '/');
+  _safeHistoryPush({page:'home'}, '', '/');
   document.title = 'Font·Monster - Free Font Discovery';
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
@@ -8314,6 +8415,8 @@ function showGrid(){
 }
 
 function openAuthorPage(authorName){
+  // Grid scroll mövqeyini yadda saxla
+  if(typeof window._saveGridScroll === 'function') window._saveGridScroll();
   // Hide other views
   document.getElementById('gridLayout').style.display='none';
   document.getElementById('fontDetailPage').classList.remove('visible');
@@ -8322,8 +8425,9 @@ function openAuthorPage(authorName){
   document.getElementById('profilePage').style.display='none';
   currentDetailFont=null;
 
-  history.pushState({page:'author', author: authorName}, '', '/author/' + encodeURIComponent(authorName));
+  _safeHistoryPush({page:'author', author: authorName}, '', '/author/' + encodeURIComponent(authorName));
   document.title = authorName + ' — Font·Monster';
+  updatePageMeta({ title: authorName + ' — Font·Monster', description: 'Browse fonts by ' + authorName + ' on Font·Monster.', url: '/author/' + encodeURIComponent(authorName) });
 
   // Match by exact author name OR by the submitter's user id (for user-uploaded fonts)
   const authorUser = currentUser && (currentUser.name === authorName) ? currentUser : null;
@@ -8635,10 +8739,10 @@ function openDetail(fontId){
     </div>`;
 
   document.getElementById('fdpInfoBox').innerHTML=`
-    ${clickRow('Category', cap(font.cat), `showGrid();setCategory('${font.cat}');window.scrollTo({top:0,behavior:'smooth'})`)}
+    ${clickRow('Category', cap(font.cat), `closeDetail();setCategory('${font.cat}');window.scrollTo({top:0,behavior:'smooth'})`)}
     ${clickRow('Designer', esc(font.author), `openAuthorPage('${esc(font.author)}')`)}
-    ${clickRow('Year', font.year, `showGrid();document.getElementById('searchInput').value='${font.year}';searchTerm='${font.year}';document.getElementById('sortSel').value='newest';refreshCustomSelect('sortSel');renderFonts();window.scrollTo({top:0,behavior:'smooth'})`)}
-    ${clickRow('License', licM.label, `showGrid();filterLicense('${font.license}');window.scrollTo({top:0,behavior:'smooth'})`)}
+    ${clickRow('Year', font.year, `closeDetail();document.getElementById('searchInput').value='${font.year}';searchTerm='${font.year}';currentPage=1;document.getElementById('sortSel').value='newest';refreshCustomSelect('sortSel');renderFonts();syncUrl(true);window.scrollTo({top:0,behavior:'smooth'})`)}
+    ${clickRow('License', licM.label, `closeDetail();filterLicense('${font.license}');window.scrollTo({top:0,behavior:'smooth'})`)}
     <div class="fdp-info-row"><span class="fdp-info-key">Weights</span><span class="fdp-info-val">${weights.length} variant${weights.length!==1?'s':''}</span></div>
     <div class="fdp-info-row"><span class="fdp-info-key">Downloads</span><span class="fdp-info-val" id="fdpDlCountVal">${fmtDlCount(dlCount)}</span></div>
     <div class="fdp-info-row" style="flex-direction:column;align-items:flex-start;gap:6px;padding:10px 14px">
@@ -8658,6 +8762,8 @@ function openDetail(fontId){
     }).join('');
   });
 
+  // Grid scroll mövqeyini yadda saxla
+  if(typeof window._saveGridScroll === 'function') window._saveGridScroll();
   document.getElementById('gridLayout').style.display='none';
   document.getElementById('toolbarBar').style.display='none';
   document.getElementById('heroSection').style.display='none';
@@ -8665,8 +8771,14 @@ function openDetail(fontId){
 
   // URL routing + title
   const slug = font.id;
-  history.pushState({page:'font', fontId: slug}, '', '/font/' + slug);
+  _safeHistoryPush({page:'font', fontId: slug}, '', '/font/' + slug);
   document.title = font.name + ' — Font·Monster';
+  updatePageMeta({
+    title: font.name + ' — Font·Monster',
+    description: (font.description || ('Download ' + font.name + ' free font by ' + font.author + '. Category: ' + font.cat + '.')),
+    url: '/font/' + slug,
+    image: font.imgSrc || undefined
+  });
 
   // Quick Download Panel
   const dlPanel=document.getElementById('fdpDlPanel');
@@ -11611,6 +11723,14 @@ async function _dfSubmitToFirestore(font) {
 <script>
 // ── URL ROUTING: back/forward + deep link ────────────────────────────────────
 (function(){
+  // Browser-in öz scroll bərpasını deaktiv et - biz özümüz idarə edirik
+  if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+  // Grid scroll mövqeyini yadda saxla
+  var _savedGridScroll = 0;
+  window._saveGridScroll = function(){ _savedGridScroll = window.scrollY; };
+  window._restoreGridScroll = function(){ setTimeout(function(){ window.scrollTo(0, _savedGridScroll); }, 50); };
+
   // Back / Forward düyməsi
   window.addEventListener('popstate', function(e){
     const path = location.pathname;
@@ -11636,6 +11756,7 @@ async function _dfSubmitToFirestore(font) {
       // Grid — query params-dan state-i bərpa et
       _restoreMainView();
       if(typeof restoreFromUrl === 'function') restoreFromUrl();
+      if(typeof window._restoreGridScroll === 'function') window._restoreGridScroll();
       // Admin panel açıqdırsa bağla
       var ov=document.getElementById('adminPanelOverlay');
       if(ov && ov.style.display!=='none'){
@@ -11678,6 +11799,24 @@ async function _dfSubmitToFirestore(font) {
     }
   });
 
+  // Global keyboard shortcuts
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){
+      // Font detail açıqdırsa bağla
+      var fdp = document.getElementById('fontDetailPage');
+      if(fdp && fdp.classList.contains('visible')){
+        if(typeof closeDetail === 'function') closeDetail();
+        return;
+      }
+      // Author page açıqdırsa bağla
+      var ap = document.getElementById('authorPage');
+      if(ap && ap.style.display !== 'none' && ap.style.display !== ''){
+        if(typeof closeAuthorPage === 'function') closeAuthorPage();
+        return;
+      }
+    }
+  });
+
   function _restoreMainView(){
     if(typeof resetTxtUpload === 'function') resetTxtUpload();
     ['profilePage','authorPage'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
@@ -11689,6 +11828,9 @@ async function _dfSubmitToFirestore(font) {
     if(fdp)  fdp.classList.remove('visible');
     if(tb)   tb.style.display='';
     if(hero) hero.style.display='';
+    // Grid-i yenilə (renderFonts olmasa grid boş qalır)
+    if(typeof renderFonts === 'function') renderFonts();
+    window._restoreGridScroll();
   }
 })();
 </script>
