@@ -5382,10 +5382,10 @@ function goPage(p){currentPage=p;renderFonts();syncUrl(true);window.scrollTo({to
 // ── Mərkəzləşdirilmiş URL sync ───────────────────────────────────────────────
 // ── Safe history wrapper (sandbox/iframe uyğunluğu üçün) ────────────────
 function _safeHistoryPush(state, title, url){
-  try{ _safeHistoryPush(state, title, url); } catch(e){ /* sandbox */ }
+  try{ history.pushState(state, title, url); } catch(e){ /* sandbox/iframe */ }
 }
 function _safeHistoryReplace(state, title, url){
-  try{ _safeHistoryReplace(state, title, url); } catch(e){ /* sandbox */ }
+  try{ history.replaceState(state, title, url); } catch(e){ /* sandbox/iframe */ }
 }
 
 // ── Dynamic SEO meta update ──────────────────────────────────────────────
@@ -5422,9 +5422,9 @@ function shareFontLink(){
 }
 
 function syncUrl(pushNav){
-  // Yalnız grid görünüşündə işlə (font detail, author, profile, admin-də yox)
+  // profile və admin-də işləmə (onların öz URL məntiqi var)
   const path=location.pathname;
-  if(path.startsWith('/font/')||path.startsWith('/author/')||path.startsWith('/profile')||path==='/admin') return;
+  if(path.startsWith('/profile')||path==='/admin') return;
   const p=new URLSearchParams();
   if(activeCategory && activeCategory!=='all') p.set('cat',activeCategory);
   if(searchTerm) p.set('q',searchTerm);
