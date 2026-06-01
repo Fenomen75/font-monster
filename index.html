@@ -6209,30 +6209,41 @@ async function saveEditFont(){
     ...(_efImgData?{previewImg:_efImgData}:{})
   };
   if(!updates.name||!updates.author||!updates.cat||!updates.license){showToast('? Please fill in all required fields');return;}
-  // Font fayli varsa Firebase Storage-a yükl?
+  // Font fayli varsa PHP-y? yükl?
   if(_efFileList.length > 0){
     const saveBtn=document.querySelector('#editFontModal .submit-btn');
-    if(saveBtn){saveBtn.textContent='Uploading...';saveBtn.disabled=true;}
+    if(saveBtn){saveBtn.textContent='Uploading.';saveBtn.disabled=true;}
     const fontId=updates.name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')||id;
     let primarySet=false;
     for(let i=0;i<_efFileList.length;i++){
       const efd=_efFileList[i];
       try{
-        const fId=fontId+(i>0?('_'+i):'');
-        const fRef=window._fbStorageRef(window._fbStorage,'fonts/'+fId+efd.ext);
-        await window._fbUploadBytes(fRef,efd.file);
-        const url=await window._fbGetDownloadURL(fRef);
-        if(!primarySet){
+        const fd=new FormData();
+        fd.append('font',efd.file);
+        fd.append('id',fontId+(i>0?('_'+i):''));
+        fd.append('secret','FM_SECRET_2024_xK9p');
+        const resp=await fetch('upload.php',{method:'POST',body:fd});
+        if(!resp.ok) throw new Error('Server x?tasi: '+resp.status);
+        const text=await resp.text();
+        let res;
+        try{ res=JSON.parse(text); }
+        catch(je){ throw new Error('PHP cavabi JSON deyil: '+text.substring(0,120)); }
+        if(res.ok && res.url && !primarySet){
           primarySet=true;
-          updates.fontUrl=url;
-          updates.fontExt=efd.ext;
+          updates.fontUrl=res.url;
+          updates.fontExt=res.ext||efd.ext;
           if(efd.data) updates.fontData=efd.data;
+          if(res.fontName && !document.getElementById('ef-name').value.trim()) updates.name=res.fontName;
           const _efFontName=updates.name||document.getElementById('ef-name').value.trim()||id;
-          injectCustomFontFaceUrl(id,_efFontName,url,updates.fontExt||'.ttf',()=>renderFonts());
+          injectCustomFontFaceUrl(id,_efFontName,res.url,updates.fontExt||'.ttf',()=>renderFonts());
+        } else if(!primarySet && efd.data){
+          updates.fontData=efd.data;
+          updates.fontExt=efd.ext;
+          if(res.error) showToast('? '+res.error);
         }
       }catch(err){
         console.error('Edit upload failed:',err);
-        showToast('❌ '+err.message);
+        showToast('? '+err.message);
         if(!primarySet && efd.data){updates.fontData=efd.data;updates.fontExt=efd.ext;}
       }
     }
@@ -9060,31 +9071,47 @@ async function submitFont(){
     renderFonts();
   }
 
-  /file(s) - Firebase Storage istifade et, her variant ayrica saxla
+  // Upload font file(s) - PHP upload.php istifad? et, h?r variant ayrica saxla
   if(uploadedFontFiles.length > 0){
     const submitBtn = document.querySelector('#submitModal .submit-btn');
-    if(submitBtn){submitBtn.textContent='Uploading...';submitBtn.disabled=true;}
+    if(submitBtn){submitBtn.textContent='Uploading.';submitBtn.disabled=true;}
     let primaryUrl=null, primaryExt=null, primaryName=null;
-    const fontVariants=[]; // bütün variantlarin URL-leri
+    const fontVariants=[]; // bütün variantlarin URL-l?ri
     for(let i=0;i<uploadedFontFiles.length;i++){
       const fd=uploadedFontFiles[i];
       newFont.gfamily = null;
-      if(submitBtn) submitBtn.textContent=`Uploading ${i+1}/${uploadedFontFiles.length}...`;
+      if(submitBtn) submitBtn.textContent=`Uploading ${i+1}/${uploadedFontFiles.length}.`;
       try{
-        const fId=newFont.id+(i>0?('_'+i):'');
-        const fRef=window._fbStorageRef(window._fbStorage,'fonts/'+fId+fd.ext);
-        await window._fbUploadBytes(fRef, fd.file);
-        const url=await window._fbGetDownloadURL(fRef);
-        console.log('✅ Firebase Storage upload OK:', fd.name, url);
-        fontVariants.push({url:url, ext:fd.ext, name:fd.name});
-        if(!primaryUrl){
-          primaryUrl=url;
-          primaryExt=fd.ext;
-          primaryName=null;
+        const formData=new FormData();
+        formData.append('font', fd.file);
+        formData.append('id', newFont.id+(i>0?('_'+i):''));
+        formData.append('secret','FM_SECRET_2024_xK9p');
+        const resp=await fetch('upload.php',{method:'POST',body:formData});
+        if(!resp.ok) throw new Error('Server x?tasi: '+resp.status);
+        const text=await resp.text();
+        let result;
+        try{ result=JSON.parse(text); }
+        catch(je){ throw new Error('PHP cavabi JSON deyil: '+text.substring(0,120)); }
+        if(result.ok && result.url){
+          console.log('? PHP upload OK:', fd.name, result.url);
+          // fd.name = orijinal fayl adi - parseVariantStyle üçün lazimdir
+          fontVariants.push({url:result.url, ext:result.ext||fd.ext, name:fd.name});
+          if(!primaryUrl){
+            primaryUrl=result.url;
+            primaryExt=result.ext||fd.ext;
+            primaryName=result.fontName||null;
+          }
+          // injectCustomFontFaceUrl BURDA ÇAGIRILMIR -
+          // _finalizeSubmit-d?ki injectVariantFaces h?r varianti öz weight/style il? inject ed?c?k
+        } else {
+          const errMsg=result.error||'Nam?lum x?ta';
+          console.error('? PHP upload error:', fd.name, errMsg);
+          showToast('? '+fd.name+': '+errMsg);
+          if(!primaryUrl && fd.dataUrl) newFont.fontData=fd.dataUrl;
         }
       }catch(e){
         console.error('Upload failed for', fd.name, e);
-        showToast('❌ '+e.message);
+        showToast('? '+e.message);
         if(!primaryUrl && fd.dataUrl) newFont.fontData=fd.dataUrl;
       }
     }
