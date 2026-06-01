@@ -5126,6 +5126,7 @@ function toggleShortcuts(){
 
 // LICENSE FILTER
 function filterLicense(lic){
+  _ensureGridView();
   activeLicenseFilter=activeLicenseFilter===lic?null:lic;
   currentPage=1;
   renderFonts();
@@ -5379,6 +5380,36 @@ function renderPagination(total,page,pp){
 }
 function goPage(p){currentPage=p;renderFonts();syncUrl(true);window.scrollTo({top:0,behavior:'smooth'});}
 
+// ── Grid view-nu aktivləşdir (filter dəyişənlər üçün) ──────────────────────
+// Detail/author/profile açıqdırsa, onları silent bağla ki URL düzgün olsun
+function _ensureGridView(){
+  const fdp = document.getElementById('fontDetailPage');
+  const ap  = document.getElementById('authorPage');
+  const pp  = document.getElementById('profilePage');
+  const tb  = document.getElementById('toolbarBar');
+  const hero= document.getElementById('heroSection');
+  const grid= document.getElementById('gridLayout');
+  if(fdp && fdp.classList.contains('visible')){
+    fdp.classList.remove('visible');
+    currentDetailFont = null;
+    if(grid) grid.style.display='';
+    if(tb)   tb.style.display='';
+    if(hero) hero.style.display='';
+  }
+  if(ap && ap.style.display !== 'none' && ap.style.display !== ''){
+    ap.style.display='none';
+    if(grid) grid.style.display='';
+    if(tb)   tb.style.display='';
+    if(hero) hero.style.display='';
+  }
+  if(pp && pp.style.display !== 'none' && pp.style.display !== ''){
+    pp.style.display='none';
+    if(grid) grid.style.display='';
+    if(tb)   tb.style.display='';
+    if(hero) hero.style.display='';
+  }
+}
+
 // ── Mərkəzləşdirilmiş URL sync ───────────────────────────────────────────────
 // ── Safe history wrapper (sandbox/iframe uyğunluğu üçün) ────────────────
 function _safeHistoryPush(state, title, url){
@@ -5422,8 +5453,14 @@ function shareFontLink(){
 }
 
 function syncUrl(pushNav){
-  // profile və admin-də işləmə (onların öz URL məntiqi var)
-  // NOT: location.pathname yoxlanılmır - çünki closeDetail zamanı hələ /font/... ola bilər
+  // Yalnız grid görünüşündə işlə — font-detail, author, profile, admin-də URL-ə toxunma
+  const _fdp = document.getElementById('fontDetailPage');
+  const _ap  = document.getElementById('authorPage');
+  const _pp  = document.getElementById('profilePage');
+  if(_fdp && _fdp.classList.contains('visible')) return;
+  if(_ap  && _ap.style.display  !== 'none' && _ap.style.display  !== '') return;
+  if(_pp  && _pp.style.display  !== 'none' && _pp.style.display  !== '') return;
+  if(location.pathname === '/admin') return;
   const p=new URLSearchParams();
   if(activeCategory && activeCategory!=='all') p.set('cat',activeCategory);
   if(searchTerm) p.set('q',searchTerm);
@@ -5478,18 +5515,21 @@ function restoreFromUrl(){
 }
 
 function setAlpha(letter){
+  _ensureGridView();
   alphaFilter=letter;currentPage=1;
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(letter===''?'All':letter==='#'?'0-9':letter)));
   renderFonts();
   syncUrl(true);
 }
 function toggleFreeOnly(btn){
+  _ensureGridView();
   freeOnly=!freeOnly;currentPage=1;
   btn.classList.toggle('free-active',freeOnly);
   renderFonts();
   syncUrl(true);
 }
 function onSortChange(){
+  _ensureGridView();
   currentPage=1;renderFonts();
   syncUrl(true);
 }
@@ -5696,6 +5736,7 @@ function updateSize(){
   document.querySelectorAll('.card-preview').forEach(el=>el.style.fontSize=fontSize+'px');
 }
 function setCategory(cat){
+  _ensureGridView();
   activeCategory=cat;activeLicenseFilter=null;currentPage=1;
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===cat));
