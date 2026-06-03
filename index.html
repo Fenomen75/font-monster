@@ -209,10 +209,10 @@
         isAdmin: extra.isAdmin === true,   // set manually in Firestore - never client-side
         isModerator: extra.isModerator === true  // set by admin via Users tab
       };
-      window.currentUser = user;
       currentUser = user;
-      window.likedFonts = new Set(user.saved);
-      likedFonts = window.likedFonts;
+      window.currentUser = currentUser;
+      likedFonts = new Set(user.saved);
+      window.likedFonts = likedFonts;
       // Persist locally for offline fallback
       // isAdmin IS cached so admin panel shows immediately on mobile reload
       // Security: Firestore rules are the real enforcement - UI flag only shows/hides the button
@@ -227,10 +227,10 @@
       // Mark auth as initialized; renderFonts already ran at page load from line 9235
       _authInitialized = true;
     } else {
-      window.currentUser = null;
       currentUser = null;
-      window.likedFonts = new Set();
+      window.currentUser = null;
       likedFonts = new Set();
+      window.likedFonts = likedFonts;
       const loginBtn = document.getElementById('loginBtn');
       const avatarBtn = document.getElementById('userAvatarBtn');
       if(loginBtn) loginBtn.style.display = 'flex';
@@ -4970,6 +4970,7 @@ function fmtDlCount(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return 
 function incrementDownload(id){DL_COUNTS[id]=(DL_COUNTS[id]||0)+1;window.DL_COUNTS[id]=DL_COUNTS[id];}
 
 let FONTS=[...FONTS_BASE],activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
+let currentUser=null; // proper declaration - synced from Firebase onAuthStateChanged
 let likedFonts=new Set(),loadedFonts=new Set(),debounceTimer,currentDetailFont=null;
 let activeDetailWeight='400',pvMode='text',pvBold=false,pvItalic=false,pvAlign='left';
 let pvBgColor='#ffffff',pvTextColor='#111111',pvBgImage=null;
@@ -5825,7 +5826,7 @@ function toggleLike(id,btn){
 // ??????????????????????????????????????????
 // AUTH SYSTEM
 // ??????????????????????????????????????????
-let currentUser=null;
+// currentUser is declared at top of main globals block (line ~4973)
 
 function getUsers(){try{return JSON.parse(localStorage.getItem('fn_users')||'[]');}catch(e){return[];}}
 function saveUsers(u){try{localStorage.setItem('fn_users',JSON.stringify(u));}catch(e){}}
@@ -10087,14 +10088,17 @@ function openPairModal(){
   m.style.opacity='1';m.style.pointerEvents='all';m.style.visibility='visible';
   const hSel = document.getElementById('pairHeadingSelect');
   const bSel = document.getElementById('pairBodySelect');
-  if(!hSel.options.length){
-    FONTS_BASE.forEach(f => {
-      hSel.add(new Option(f.name, f.id));
-      bSel.add(new Option(f.name, f.id));
-    });
-    hSel.value = 'playfair-display';
-    bSel.value = 'inter';
-  }
+  // Rebuild options every time so newly submitted/approved fonts appear
+  const prevH = hSel.value || 'playfair-display';
+  const prevB = bSel.value || 'inter';
+  hSel.innerHTML = '';
+  bSel.innerHTML = '';
+  FONTS.forEach(f => {
+    hSel.add(new Option(f.name, f.id));
+    bSel.add(new Option(f.name, f.id));
+  });
+  hSel.value = prevH;
+  bSel.value = prevB;
   // Init custom selects (first time) or refresh
   if(!document.getElementById('pairHeadingSelect__csel')){
     initCustomSelect('pairHeadingSelect','pair');
@@ -10132,8 +10136,8 @@ function renderPairPreview(){
   const hId = document.getElementById('pairHeadingSelect').value;
   const bId = document.getElementById('pairBodySelect').value;
   const txt = document.getElementById('pairCustomText').value || 'The quick brown fox';
-  const hFont = FONTS_BASE.find(f=>f.id===hId);
-  const bFont = FONTS_BASE.find(f=>f.id===bId);
+  const hFont = FONTS.find(f=>f.id===hId);
+  const bFont = FONTS.find(f=>f.id===bId);
   if(hFont) loadFont(hFont);
   if(bFont) loadFont(bFont);
   const hPrev = document.getElementById('pairHeadingPreview');
@@ -11847,13 +11851,14 @@ async function _dfSubmitToFirestore(font) {
     year:      new Date().getFullYear()
   };
 
-  // Local submittedFonts massivin? ?lav? et
-  if (typeof submittedFonts !== 'undefined') {
-    if (!submittedFonts.find(f => f.id === fontObj.id)) {
-      submittedFonts.push(fontObj);
-      try { localStorage.setItem('fn_submitted', JSON.stringify(submittedFonts)); } catch(e) {}
+  // Local tv_submitted massivine elave et (correct key used everywhere else)
+  try {
+    let _sub = JSON.parse(localStorage.getItem('tv_submitted') || '[]');
+    if (!_sub.find(f => f.id === fontObj.id)) {
+      _sub.push(fontObj);
+      localStorage.setItem('tv_submitted', JSON.stringify(_sub));
     }
-  }
+  } catch(e) {}
 
   // Firestore-a da yaz (eger Firebase aktiv ise) - evvelce movcud olub olmadigi yoxla
   if (window._fbDb && window._fbFns) {
