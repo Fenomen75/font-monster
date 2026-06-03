@@ -5049,6 +5049,8 @@ async function syncSubmittedFontsFromFirestore(){
       if(!existingIds.has(f.id)){sub.push(f);existingIds.add(f.id);}
       else{ const idx=sub.findIndex(x=>x.id===f.id); if(idx>=0) sub[idx]={...sub[idx],...f}; }
     });
+    // Bug #9 fix: persist merged result to localStorage BEFORE syncSubmittedFonts reads it
+    try{ localStorage.setItem("tv_submitted", JSON.stringify(sub)); }catch(e){ console.warn('tv_submitted save failed:', e); }
     // Only re-render if new fonts were actually added that aren't already in the grid
     const prevCount = FONTS.length;
     syncSubmittedFonts();
@@ -6416,7 +6418,8 @@ function _resetEditModal(){
 // ?? EDIT FONT ??
 function openEditFont(fontId){
   const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
-  const f=sub.find(x=>x.id===fontId);
+  // Bug #11 fix: fall back to runtime FONTS if not in localStorage (Firestore-only fonts)
+  const f=sub.find(x=>x.id===fontId)||FONTS.find(x=>x.id===fontId);
   if(!f){showToast('Font not found');return;}
   _resetEditModal();
   document.getElementById('ef-id').value=f.id;
@@ -6479,8 +6482,11 @@ async function saveEditFont(){
         const dUrl = efd.dataUrl || efd.data;
         if(!primarySet){
           primarySet=true;
-          updates.fontData=dUrl;
+          // Bug #10 fix: store fontData separately (fn_fontdata_{id}) to avoid 5MB quota on tv_submitted
+          try{ localStorage.setItem('fn_fontdata_'+id, dUrl); }catch(e){ console.warn('fontData storage failed (quota?):', e); }
           updates.fontExt=efd.ext;
+          updates._hasFontData=true;
+          delete updates.fontData; // do not inline in tv_submitted
           const _efFontName=updates.name||document.getElementById('ef-name').value.trim()||id;
           injectCustomFontFace(id, _efFontName, dUrl, efd.ext||'.ttf');
         }
@@ -6489,8 +6495,11 @@ async function saveEditFont(){
     }
     if(saveBtn){saveBtn.textContent='Save Changes';saveBtn.disabled=false;}
   } else if(_efFileData && _efFileData.data){
-    updates.fontData=_efFileData.data;
+    // Bug #10 fix: same pattern for legacy _efFileData path
+    try{ localStorage.setItem('fn_fontdata_'+id, _efFileData.data); }catch(e){ console.warn('fontData storage failed:', e); }
     updates.fontExt=_efFileData.ext;
+    updates._hasFontData=true;
+    delete updates.fontData;
   }
   let sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
   const idx=sub.findIndex(f=>f.id===id);
@@ -9501,10 +9510,12 @@ async function submitFont(){
       newFont.status='approved';
       newFont.approvedAt=new Date().toISOString();
     }
-    if(submitBtn){submitBtn.textContent='Submit Font';submitBtn.disabled=false;}
+    // Bug #8 fix: re-enable button AFTER _finalizeSubmit, not before
     try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('? X?ta: '+err.message); }
+    finally{ if(submitBtn){submitBtn.textContent='Submit Font';submitBtn.disabled=false;} }
   } else {
     try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('? X?ta: '+err.message); }
+    finally{ if(submitBtn){submitBtn.textContent='Submit Font';submitBtn.disabled=false;} }
   }
 }
 
