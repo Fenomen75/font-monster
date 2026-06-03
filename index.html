@@ -4998,6 +4998,16 @@ function syncSubmittedFonts(){
       const stored=localStorage.getItem('fn_fontdata_'+f.id);
       if(stored) f.fontData=stored;
     }
+    // Restore fontVariants dataUrls from their separate keys
+    if(f.fontVariants && f.fontVariants.length>0){
+      f.fontVariants=f.fontVariants.map(function(v){
+        if(v._hasVariantData && (!v.url || v.url==='')){
+          const stored=localStorage.getItem('fn_variantdata_'+f.id+'_'+v._variantIdx);
+          if(stored) return Object.assign({},v,{url:stored});
+        }
+        return v;
+      });
+    }
     if(!f.pending) FONTS.push(f); // approved ? everyone sees
     else if(currentUser && f.submittedById===currentUser.id) FONTS.push(f); // pending ? only submitter
     // Re-inject @font-face for uploaded fonts (reloads page, localStorage fonts need re-injection)
@@ -5057,6 +5067,7 @@ try{
   sub.forEach(f=>{
     if(!FONTS_BASE.find(b=>b.id===f.id)&&!f.pending){
       if(f._hasFontData && !f.fontData){const stored=localStorage.getItem('fn_fontdata_'+f.id);if(stored)f.fontData=stored;}
+      if(f.fontVariants&&f.fontVariants.length>0){f.fontVariants=f.fontVariants.map(function(v){if(v._hasVariantData&&(!v.url||v.url==='')){const stored=localStorage.getItem('fn_variantdata_'+f.id+'_'+v._variantIdx);if(stored)return Object.assign({},v,{url:stored});}return v;});}
       FONTS.push(f);
       if(f.fontVariants&&f.fontVariants.length>0) injectVariantFaces(f);
       else if(f.fontUrl) injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');
@@ -5910,7 +5921,12 @@ async function socialLogin(provider) {
 
 function openAuthModal(tab){
   const o=document.getElementById('authOverlay');
-  o.classList.add('open');
+  // display:none qalmışsa sil ki CSS transition işləsin
+  o.style.display = '';
+  // Bir frame gözlə ki display dəyişikliyi render olunsun, sonra 'open' əlavə et
+  requestAnimationFrame(()=>{
+    o.classList.add('open');
+  });
   switchAuthTab(tab||'login');
   setTimeout(()=>{
     const inp=tab==='signup'?document.getElementById('signupName'):tab==='forgot'?document.getElementById('forgotEmail'):document.getElementById('loginEmail');
@@ -5920,9 +5936,20 @@ function openAuthModal(tab){
 function closeAuthModal(){
   const o = document.getElementById('authOverlay');
   if(!o) return;
+  // Yalnız class-ı sil — display-ə toxunma ki CSS transition işləsin
   o.classList.remove('open');
-  o.style.display = 'none';
-  setTimeout(() => { o.style.display = ''; }, 300);
+  // Transition bitdikdən sonra display:none et (görünməzlik + DOM performansı)
+  // Amma bunu yalnız hələ də bağlıdırsa et
+  const onTransitionEnd = () => {
+    if(!o.classList.contains('open')) o.style.display = 'none';
+    o.removeEventListener('transitionend', onTransitionEnd);
+  };
+  o.addEventListener('transitionend', onTransitionEnd);
+  // Fallback: transition olmadıqda (məs. reduced-motion)
+  setTimeout(() => {
+    if(!o.classList.contains('open')) o.style.display = 'none';
+    o.removeEventListener('transitionend', onTransitionEnd);
+  }, 400);
 }
 function switchAuthTab(tab){
   document.getElementById('authLoginTab').style.display=tab==='login'?'block':'none';
@@ -6818,7 +6845,7 @@ function adminApproveEdit(fontId){
   // Apply to tv_submitted
   let sub=_allSub();
   const idx=sub.findIndex(f=>f.id===fontId);
-  const updates={name:req.name,author:req.author,cat:req.cat,license:req.license,tags:req.tags,sourceUrl:req.sourceUrl};
+  const updates={name:req.name,author:req.author,cat:req.cat,license:req.license,tags:req.tags,sourceUrl:req.sourceUrl,description:req.description,previewImg:req.previewImg};
   if(idx>=0){sub[idx]={...sub[idx],...updates,editApprovedAt:new Date().toISOString()};localStorage.setItem("tv_submitted",JSON.stringify(sub));}
   // Apply to runtime FONTS
   const fi=FONTS.findIndex(f=>f.id===fontId);
@@ -8498,8 +8525,8 @@ function closeDetail(){
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
   currentDetailFont=null;
-  try{ history.replaceState({page:'grid'},'','/'); } catch(e){}
-  syncUrl(true);
+  // history.replaceState silindi — syncUrl(false) özü replace edir, ikiqat entry olurdu
+  syncUrl(false);
   renderFonts();
   // renderFonts-dan sonra scroll bərpa et
   requestAnimationFrame(()=>{
@@ -8523,7 +8550,6 @@ function showGrid(){
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat==='all'));
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
-  const freeBtn=document.getElementById('freeOnlyBtn');if(freeBtn)freeBtn.classList.remove('active');
   const freeToggleBtn=document.getElementById('freeToggle');if(freeToggleBtn)freeToggleBtn.classList.remove('free-active');
   fontSize=100;
   const sr=document.getElementById('sizeRange');if(sr)sr.value=100;
@@ -8626,6 +8652,8 @@ function openAuthorPage(authorName){
   document.getElementById('authorPage').style.display='block';
   window.scrollTo(0,0);
 }
+
+let currentRating = 0;
 
 function openDetail(fontId){
   const font=FONTS.find(f=>f.id===fontId);if(!font)return;
@@ -9359,10 +9387,13 @@ async function submitFont(){
     }
     if(font.fontUrl) delete fontForStorage.fontData; // don't double-store binary
     // fontVariants-dakı base64 url-leri storage-dan cixar (5MB quota asmasin)
-    // reload zamani fn_fontdata_ ve ya fontUrl-den yuklenir
+    // Hər variantın data URL-ni ayrıca fn_variantdata_{fontId}_{i} key-ə yaz
     if(fontForStorage.fontVariants){
-      fontForStorage.fontVariants=fontForStorage.fontVariants.map(function(v){
-        if(v.url && v.url.startsWith("data:")) return Object.assign({},v,{url:""});
+      fontForStorage.fontVariants=fontForStorage.fontVariants.map(function(v,i){
+        if(v.url && v.url.startsWith("data:")){
+          try{ localStorage.setItem('fn_variantdata_'+font.id+'_'+i, v.url); }catch(e){ console.warn('variant storage failed:',e); }
+          return Object.assign({},v,{url:"",_hasVariantData:true,_variantIdx:i});
+        }
         return v;
       });
     }
@@ -9612,7 +9643,6 @@ setTimeout(injectAllFallingLetters, 300);
 // COMMENTS & REVIEWS
 // ??????????????????????????????????????????
 // Storage: localStorage key "fontan_comments" ? { fontId: [{id,user,userId,rating,text,date,likes:[]}] }
-let currentRating = 0;
 
 function getComments(fontId){
   try{ const d=JSON.parse(localStorage.getItem('fontan_comments')||'{}'); return d[fontId]||[]; }catch(e){return [];}
@@ -9647,7 +9677,7 @@ async function renderComments(fontId){
     if(rated.length > 0) {
       const avg = rated.reduce((s,c)=>s+(c.rating||0),0)/rated.length;
       const fullStars = Math.round(avg);
-      avgEl.innerHTML = `<span style="color:#f5a623;letter-spacing:1px">${'?'.repeat(fullStars)}${'?'.repeat(5-fullStars)}</span> <span style="color:var(--text3);font-size:11px;font-weight:400">${avg.toFixed(1)}</span>`;
+      avgEl.innerHTML = `<span style="color:#f5a623;letter-spacing:1px">${'\u2605'.repeat(fullStars)}${'\u2606'.repeat(5-fullStars)}</span> <span style="color:var(--text3);font-size:11px;font-weight:400">${avg.toFixed(1)}</span>`;
       avgEl.style.display='inline-flex';
     } else {
       avgEl.style.display='none';
@@ -9658,7 +9688,7 @@ async function renderComments(fontId){
     return;
   }
   list.innerHTML=comments.slice().reverse().map(c=>{
-    const stars='?'.repeat(c.rating||0)+'?'.repeat(5-(c.rating||0));
+    const stars='\u2605'.repeat(c.rating||0)+'\u2606'.repeat(5-(c.rating||0));
     const likeCount=c.likes?c.likes.length:0;
     const likedByMe=currentUser&&c.likes&&c.likes.includes(currentUser.id);
     const isOwn=currentUser&&c.userId===currentUser.id;
