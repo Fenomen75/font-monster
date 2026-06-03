@@ -5112,7 +5112,8 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded){
 }
 function loadFont(f){
   if(loadedFonts.has(f.id)) return;
-  if(f.previewImg) return;
+  // Only skip if it's a pure image-preview font (DaFont) with no actual font data
+  if(f.previewImg && !f.fontData && !f.fontUrl && !f.gfamily) return;
   if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');return;}
   if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');return;}
   if(!f.gfamily) return;
@@ -5363,7 +5364,12 @@ function isNewFont(f){
   const sevenDaysAgo = Date.now() - 7*24*60*60*1000;
   const submittedAt = f.submittedAt ? new Date(f.submittedAt).getTime() : 0;
   const approvedAt = f.approvedAt ? new Date(f.approvedAt).getTime() : 0;
-  return submittedAt >= sevenDaysAgo || approvedAt >= sevenDaysAgo || f.pending===true;
+  const currentYear = new Date().getFullYear();
+  // Community fonts: submitted/approved in last 7 days, or still pending
+  if(submittedAt >= sevenDaysAgo || approvedAt >= sevenDaysAgo || f.pending === true) return true;
+  // Built-in fonts: released in current year or last year
+  if(!f.submittedAt && !f.approvedAt && f.year >= currentYear - 1) return true;
+  return false;
 }
 function getFiltered(){
   let list=FONTS.filter(f=>!f.pending||(currentUser&&f.submittedById===currentUser.id));
@@ -5662,15 +5668,6 @@ function renderFonts(){
           </div>
           <div style="width:1px;height:18px;background:var(--border2);flex-shrink:0;margin:0 3px"></div>
           ${(()=>{
-            const COLORS=[
-              {bg:'rgba(0,122,255,0.12)',border:'rgba(0,122,255,0.25)',text:'#0a7aff'},
-              {bg:'rgba(52,199,89,0.12)',border:'rgba(52,199,89,0.25)',text:'#1a8a38'},
-              {bg:'rgba(175,82,222,0.12)',border:'rgba(175,82,222,0.25)',text:'#9b3dce'},
-              {bg:'rgba(255,149,0,0.12)',border:'rgba(255,149,0,0.25)',text:'#b86000'},
-              {bg:'rgba(255,59,48,0.12)',border:'rgba(255,59,48,0.25)',text:'#d32f20'},
-              {bg:'rgba(90,200,250,0.15)',border:'rgba(90,200,250,0.3)',text:'#0077a8'},
-              {bg:'rgba(255,214,10,0.15)',border:'rgba(255,214,10,0.3)',text:'#8a6d00'},
-            ];
             const uniq = _LANG_CACHE[font.id] || getFontLangs(font);
             return uniq.map((l,i)=>{const c=_LANG_COLORS[i%_LANG_COLORS.length];return`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:980px;background:${c.bg};border:1px solid ${c.border};color:${c.text};letter-spacing:.02em;white-space:nowrap">${l}</span>`;}).join('')+`<span id="lang-count-${font.id}" style="font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;margin-left:3px">· .</span>`;
           })()}
@@ -5786,7 +5783,7 @@ function setCategory(cat){
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===cat));
   renderFonts();
-  if(cat==='new')showToast('✨ Showing new fonts (2022+)');
+  if(cat==='new')showToast('✨ Recently added & new releases');
   syncUrl(true);
 }
 function debouncedFilter(){
@@ -5794,30 +5791,27 @@ function debouncedFilter(){
   debounceTimer=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();currentPage=1;renderFonts();syncUrl();},155);
 }
 function toggleLike(id,btn){
+  if(!currentUser){openAuthModal('login');showToast('Sign in to save fonts');return;}
   if(likedFonts.has(id)){
     likedFonts.delete(id);
     if(btn){btn.textContent='♡';btn.classList.remove('liked');}
     showToast('Removed from saved');
   } else {
-    if(!currentUser){openAuthModal('login');showToast('? Sign in to save fonts');return;}
     likedFonts.add(id);
     if(btn){btn.textContent='♥';btn.classList.add('liked');}
-    showToast('? Saved');
+    showToast('❤️ Saved');
   }
-  if(currentUser){
-    currentUser.saved=[...likedFonts];
-    saveCurrentUser(currentUser);
-    // Sync to Firebase if available
-    if(window.fbToggleSave){
-      window.fbToggleSave(id).catch(e=>console.warn('fbToggleSave error:',e));
-    } else {
-      const users=getUsers();
-      const idx=users.findIndex(u=>u.id===currentUser.id);
-      if(idx>=0){users[idx].saved=currentUser.saved;saveUsers(users);}
-    }
-    const sc=document.getElementById('profileSavedCount');
-    if(sc)sc.textContent=currentUser.saved.length;
+  currentUser.saved=[...likedFonts];
+  saveCurrentUser(currentUser);
+  if(window.fbToggleSave){
+    window.fbToggleSave(id).catch(e=>console.warn('fbToggleSave error:',e));
+  } else {
+    const users=getUsers();
+    const idx=users.findIndex(u=>u.id===currentUser.id);
+    if(idx>=0){users[idx].saved=currentUser.saved;saveUsers(users);}
   }
+  const sc=document.getElementById('profileSavedCount');
+  if(sc)sc.textContent=currentUser.saved.length;
   localStorage.setItem("tv_liked",JSON.stringify([...likedFonts]));
   const lb=document.getElementById('fdpLikeBtn');
   if(lb&&lb.dataset.id===id){lb.className='fdp-like'+(likedFonts.has(id)?' liked':'');lb.innerHTML=likedFonts.has(id)?'♥ Saved':'♡ Save';}
@@ -5898,10 +5892,10 @@ async function socialLogin(provider) {
       isAdmin: extra.isAdmin === true,
       isModerator: extra.isModerator === true
     };
-    window.currentUser = user;
     currentUser = user;
-    window.likedFonts = new Set(user.saved);
-    likedFonts = window.likedFonts;
+    window.currentUser = currentUser;
+    likedFonts = new Set(user.saved);
+    window.likedFonts = likedFonts;
     try { localStorage.setItem('fn_current_user', JSON.stringify(user)); } catch(e) {}
     if(typeof updateNavForUser === 'function') updateNavForUser(user);
     showToast('👋 Welcome, ' + (fbUser.displayName || 'there') + '!' + (user.isAdmin ? ' 👑 Admin' : ''));
@@ -8172,7 +8166,7 @@ function heroBannerUpload(input){
         </div>
       </div>`;
     /* Re-apply mobile banner patch after image upload */
-    if(window.innerWidth <= 768 && typeof patchHero === 'function') setTimeout(patchHero, 100);
+    if(window.innerWidth <= 768 && typeof window.patchHero === 'function') setTimeout(window.patchHero, 100);
   };
   reader.readAsDataURL(file);
 }
@@ -9597,6 +9591,9 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
 })();
 
 renderFonts();renderRecentList();
+// initAuth loads currentUser from localStorage for offline/non-Firebase fallback
+// Firebase onAuthStateChanged will override this when it fires
+if(typeof initAuth === 'function') initAuth();
 setTimeout(injectAllFallingLetters, 300);
 
 // ??????????????????????????????????????????
@@ -10670,8 +10667,7 @@ input[type=range].hb-bright::-moz-range-thumb {
     });
   }
   /* ?? Hero banner: tund fon üz?rind?ki yazini kiçilt ?? */
-  function patchHero(){
-    var banner = document.getElementById('heroBannerAuto');
+  function patchHero(){    var banner = document.getElementById('heroBannerAuto');
     var txt = document.getElementById('heroBannerText');
     if(banner){
       banner.style.minHeight = '200px';
@@ -10749,6 +10745,8 @@ input[type=range].hb-bright::-moz-range-thumb {
       }
     }
   }
+  // Expose patchHero globally so heroBannerUpload() can call it from outside this IIFE
+  window.patchHero = patchHero;
 
   /* ?? Global zoom touch helper - passive:false üçün JS addEventListener lazimdir ?? */
   /* Bu funksiya artiq istifad? edilmir - patchHero JS listener qosur */
