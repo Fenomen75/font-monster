@@ -6120,21 +6120,47 @@ function showEmailVerifyBanner(){
   setTimeout(()=>banner.remove?.(), 8000);
 }
 
+function _clearUserLocalStorage(){
+  // Remove all user-session keys to prevent data leaks between accounts
+  localStorage.removeItem('fn_current_user');
+  localStorage.removeItem('fn_users');
+  localStorage.removeItem('tv_liked');
+  localStorage.removeItem('tv_submitted');
+  localStorage.removeItem('tv_admin_requests');
+  localStorage.removeItem('tv_admin_log');
+  localStorage.removeItem('tv_recent');
+  localStorage.removeItem('tv_trash');
+  // Remove any per-font cached data keys (fn_fontdata_*, fn_variantdata_*)
+  const keysToRemove = [];
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && (k.startsWith('fn_fontdata_') || k.startsWith('fn_variantdata_'))) keysToRemove.push(k);
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+}
+
 function logoutUser(){
   closeUserDropdown();
   if(window.fbLogout){
     window.fbLogout().then(()=>{
       currentUser=null;
+      window.currentUser=null;
       likedFonts=new Set();
-      localStorage.removeItem('fn_current_user');
-      localStorage.setItem('tv_liked','[]');
-      showGrid();showToast('Logged out.');
+      window.likedFonts=likedFonts;
+      _clearUserLocalStorage();
+      if(typeof updateNavForUser==='function') updateNavForUser(null);
+      showGrid();showToast('Logged out.');renderFonts();
     });
   } else {
-    currentUser=null;localStorage.removeItem('fn_current_user');
+    currentUser=null;
+    window.currentUser=null;
     likedFonts=new Set();
-    document.getElementById('userAvatarBtn').style.display='none';
-    document.getElementById('loginBtn').style.display='flex';
+    window.likedFonts=likedFonts;
+    _clearUserLocalStorage();
+    const avatarBtn=document.getElementById('userAvatarBtn');
+    const loginBtn=document.getElementById('loginBtn');
+    if(avatarBtn) avatarBtn.style.display='none';
+    if(loginBtn) loginBtn.style.display='flex';
     showGrid();showToast('Logged out.');renderFonts();
   }
 }
@@ -9731,6 +9757,11 @@ async function submitComment(){
   if(!txt){showToast('? Write something first');return;}
   if(window.fbAddComment){
     try{
+      // Duplicate check: fetch existing comments for this font from Firestore first
+      const existingComments = await window.fbGetComments(font.id);
+      const alreadyReviewed = existingComments.find(c => c.userId === currentUser.id);
+      if(alreadyReviewed){ showToast('⚠️ You already reviewed this font'); return; }
+
       await window.fbAddComment(font.id, txt, currentRating);
       // Also save to localStorage so reviews appear even if Firebase re-fetch is slow
       const _newC={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),userId:currentUser.id,user:currentUser.name||currentUser.email,rating:currentRating,text:txt,date:new Date().toISOString(),likes:[]};
