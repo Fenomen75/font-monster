@@ -6399,7 +6399,11 @@ function openEditFont(fontId){
   document.getElementById('ef-license').value=f.license;refreshCustomSelect('ef-license');
   document.getElementById('ef-year').value=f.year||'';
   document.getElementById('ef-tags').value=(f.tags||[]).join(',');
-  setTimeout(()=>_setTagChipValues('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',f.tags||[]),50);
+  (function _trySetTags(attempt){
+    const box=document.getElementById('ef-tags-box');
+    if(box&&box._tags){ _setTagChipValues('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',f.tags||[]); }
+    else if(attempt<10){ setTimeout(()=>_trySetTags(attempt+1), 60); }
+  })(0);
   document.getElementById('ef-url').value=f.sourceUrl||'';
   const efDesc=document.getElementById('ef-description');if(efDesc)efDesc.value=f.description||'';
   if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
@@ -7102,7 +7106,7 @@ async function sendFontStatusEmail(fontData, status){
 // ????????????????????????????????????????????????????????????????????????????
 
 function adminApprove(fontId){
-  if(!_isAdmin(currentUser) && !currentUser?.isModerator){ showToast('? Access denied'); return; }
+  if(!currentUser || (!_isAdmin(currentUser) && !currentUser.isModerator)){ showToast('? Access denied'); return; }
   let sub=_allSub();
   const idx=sub.findIndex(f=>f.id===fontId);
   if(idx<0) return;
@@ -7129,7 +7133,7 @@ function adminApprove(fontId){
   sendFontStatusEmail(approvedFont, 'approved');
 }
 function adminReject(fontId,ev){
-  if(!_isAdmin(currentUser) && !currentUser?.isModerator){ showToast('? Access denied'); return; }
+  if(!currentUser || (!_isAdmin(currentUser) && !currentUser.isModerator)){ showToast('? Access denied'); return; }
   let sub=_allSub();
   const f=sub.find(x=>x.id===fontId);
   if(!f) return;
@@ -9354,6 +9358,14 @@ async function submitFont(){
       fontForStorage._hasFontData=true; // flag so syncSubmittedFonts can reload it
     }
     if(font.fontUrl) delete fontForStorage.fontData; // don't double-store binary
+    // fontVariants-dakı base64 url-leri storage-dan cixar (5MB quota asmasin)
+    // reload zamani fn_fontdata_ ve ya fontUrl-den yuklenir
+    if(fontForStorage.fontVariants){
+      fontForStorage.fontVariants=fontForStorage.fontVariants.map(function(v){
+        if(v.url && v.url.startsWith("data:")) return Object.assign({},v,{url:""});
+        return v;
+      });
+    }
     try{const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");sub.push(fontForStorage);localStorage.setItem("tv_submitted",JSON.stringify(sub));}catch(e){}
     // Font fayli olan fontlar approved-dur, admin queue lazim deyil
     if(!font.fontUrl && !font.fontData){
@@ -9371,13 +9383,11 @@ async function submitFont(){
       try{
         const existing = await getDoc(doc(db,'submitted_fonts',font.id));
         if(existing.exists()){
+          // Mövcuddursa üzərinə yazma - Bug #3 fix
           console.warn('submitFont: font ID already exists in Firestore, skipping write:', font.id);
-          // Mövcuddursa update et - fontUrl d?yismis ola bil?r
-          await setDoc(doc(db,'submitted_fonts',font.id), cloudFont);
-          console.log('? Firestore updated:', font.id);
         } else {
           await setDoc(doc(db,'submitted_fonts',font.id), cloudFont);
-          console.log('? Firestore created:', font.id, 'pending:', cloudFont.pending, 'fontUrl:', cloudFont.fontUrl);
+          console.log('✅ Firestore created:', font.id, 'pending:', cloudFont.pending, 'fontUrl:', cloudFont.fontUrl);
         }
       }catch(e){ 
         console.warn('Firestore submitFont error (font saved locally):', e.message);
@@ -9452,6 +9462,8 @@ async function submitFont(){
       // PHP isl?m?di, amma dataUrl fallback var - bunlari da approved kimi qeyd et
       newFont.fontVariants=fontVariants;
       // Birinci varianti primary kimi saxla (preview üçün)
+      // fontUrl-u set et ki _finalizeSubmit fontUrl yolu ile getsin, session sonra itmesin
+      newFont.fontUrl=fontVariants[0].url;
       newFont.fontData=fontVariants[0].url;
       newFont.fontExt=fontVariants[0].ext;
       newFont.pending=false;
