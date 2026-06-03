@@ -6709,6 +6709,20 @@ function closeAdminPanel(skipHistory){
   },300);
   if(!skipHistory && location.pathname==='/admin') history.back();
 }
+function _adminGoToFont(fontId){
+  // Admin paneli bağla (history.back() olmadan)
+  const overlay=document.getElementById('adminPanelOverlay');
+  const drawer=document.getElementById('adminPanelDrawer');
+  if(overlay){ overlay.style.background='rgba(0,0,0,0)'; overlay.style.backdropFilter='blur(0px)'; }
+  if(drawer){ drawer.style.transform='translate(-50%,-50%) scale(0.96)'; drawer.style.opacity='0'; }
+  setTimeout(()=>{
+    if(overlay){ overlay.style.display='none'; }
+    document.body.style.overflow='';
+    // Font səhifəsini aç - popstate-i bypass et, birbaşa pushState + openDetail
+    history.pushState({}, '', '/font/'+encodeURIComponent(fontId));
+    if(typeof openDetail === 'function') openDetail(fontId);
+  }, 310);
+}
 function switchAdminTab(tab){
   _adminActiveTab=tab;
   ['pending','edits','all','stats','trash','log','export','messages','users','dafont'].forEach(t=>{
@@ -6982,7 +6996,7 @@ function _renderAdminAll(){
   });
   const row=f=>'<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface3);margin-bottom:8px">'+
     '<div style="flex:1;min-width:0">'+
-    '<div onclick="closeAdminPanel(true);setTimeout(()=>openDetail(\''+f.id+'\'),320)" style="font-size:14px;font-weight:600;color:var(--accent);letter-spacing:-0.01em;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:transparent;transition:text-decoration-color .15s" onmouseover="this.style.textDecorationColor=\'var(--accent)\'" onmouseout="this.style.textDecorationColor=\'transparent\'">'+esc(f.name)+'</div>'+
+    '<div onclick="_adminGoToFont(\''+f.id+'\')" style="font-size:14px;font-weight:600;color:var(--accent);letter-spacing:-0.01em;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:transparent;transition:text-decoration-color .15s" onmouseover="this.style.textDecorationColor=\'var(--accent)\'" onmouseout="this.style.textDecorationColor=\'transparent\'">'+esc(f.name)+'</div>'+
     '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(f.author||'-')+' · '+cap(f.cat||'')+' · '+(LICENSE_META[f.license]?.label||f.license||'-')+'</div>'+
     '</div>'+
     '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:980px;'+(f.pending?'background:var(--orange-dim);color:var(--orange)':'background:var(--green-dim);color:var(--green)')+'">'+( f.pending?'Pending':'Live')+'</span>'+
