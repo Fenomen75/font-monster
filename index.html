@@ -6448,25 +6448,17 @@ async function saveEditFont(){
     let primarySet=false;
     for(let i=0;i<_efFileList.length;i++){
       const efd=_efFileList[i];
-      try{
-        const fd=new FormData();
-        fd.append('font',efd.file);
-        fd.append('id',fontId+(i>0?('_'+i):''));
-        const fRef1=window._fbStorageRef(window._fbStorage,'fonts/'+(fontId+(i>0?('_'+i):'')+efd.ext));
-        await window._fbUploadBytes(fRef1, efd.file);
-        const url1=await window._fbGetDownloadURL(fRef1);
+      // Storage Rules konfiqurasiya edilənə qədər dataUrl birbaşa işlət
+      if(efd.dataUrl || efd.data){
+        const dUrl = efd.dataUrl || efd.data;
         if(!primarySet){
           primarySet=true;
-          updates.fontUrl=url1;
+          updates.fontData=dUrl;
           updates.fontExt=efd.ext;
-          if(efd.data) updates.fontData=efd.data;
           const _efFontName=updates.name||document.getElementById('ef-name').value.trim()||id;
-          injectCustomFontFaceUrl(id,_efFontName,url1,updates.fontExt||'.ttf',()=>renderFonts());
+          injectCustomFontFace(id, _efFontName, dUrl, efd.ext||'.ttf');
         }
-      }catch(err){
-        console.error('Edit upload failed:',err);
-        showToast('? '+err.message);
-        if(!primarySet && efd.data){updates.fontData=efd.data;updates.fontExt=efd.ext;}
+        console.log('✅ Local dataUrl used for edit:', efd.name||efd.file?.name);
       }
     }
     if(saveBtn){saveBtn.textContent='Save Changes';saveBtn.disabled=false;}
@@ -9386,25 +9378,25 @@ async function submitFont(){
       const fd=uploadedFontFiles[i];
       newFont.gfamily = null;
       if(submitBtn) submitBtn.textContent=`Uploading ${i+1}/${uploadedFontFiles.length}.`;
+      // Firebase Storage Rules konfiqurasiya edilməyibsə upload donur.
+      // dataUrl həmişə mövcuddur - onu birbaşa işlət; Storage Rules düzəldikdə
+      // aşağıdakı bloku aktivləşdir.
+      if(fd.dataUrl){
+        fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
+        console.log('✅ Local dataUrl used for:', fd.name);
+      }
+      /* --- Storage upload (Storage Rules konfiqurasiya edildikdən sonra bunu işlət) ---
       try{
-        const formData=new FormData();
-        formData.append('font', fd.file);
-        formData.append('id', newFont.id+(i>0?('_'+i):''));
         const fRef2=window._fbStorageRef(window._fbStorage,'fonts/'+(newFont.id+(i>0?('_'+i):'')+fd.ext));
         await window._fbUploadBytes(fRef2, fd.file);
         const url2=await window._fbGetDownloadURL(fRef2);
-        console.log('✅ Firebase Storage OK:', fd.name, url2);
         fontVariants.push({url:url2, ext:fd.ext, name:fd.name});
-        if(!primaryUrl){
-          primaryUrl=url2;
-          primaryExt=fd.ext;
-          primaryName=null;
-        }
+        if(!primaryUrl){ primaryUrl=url2; primaryExt=fd.ext; primaryName=null; }
       }catch(e){
-        console.warn('Firebase Storage upload failed for', fd.name, '- using local fallback:', e.message);
-        // Storage xetasi olsa bele dataUrl fallback ile davam et - istifadeciye xeta gosterme
-        if(!primaryUrl && fd.dataUrl) newFont.fontData=fd.dataUrl;
+        console.warn('Storage failed:', e.message);
+        if(fd.dataUrl) fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
       }
+      --- **/
     }
     // dataUrl fallback - PHP upload isl?m?dikd? uploadedFontFiles-dan variant qur
     if(!fontVariants.length && uploadedFontFiles.length>0){
