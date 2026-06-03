@@ -247,7 +247,7 @@
       name, email,
       saved: [],
       joined: new Date().toISOString(),
-      emailVerified: true,
+      emailVerified: user.emailVerified || false,
       createdAt: serverTimestamp()
     });
     // Email dogrulama teleb edilmir - birbaşa qeydiyyat
@@ -5378,7 +5378,7 @@ function getFiltered(){
     const _re=new RegExp(_esc,'i');
     list=list.filter(f=>_re.test(f.name)||_re.test(f.author)||f.tags.some(t=>_re.test(t)));
   }
-  const sort=document.getElementById('sortSel').value;
+  const sort=(document.getElementById('sortSel')||{value:'popular'}).value;
   if(sort==="alpha")return[...list].sort((a,b)=>a.name.localeCompare(b.name));
   if(sort==="alpha-desc")return[...list].sort((a,b)=>b.name.localeCompare(a.name));
   if(sort==="newest")return[...list].sort((a,b)=>b.year-a.year);
@@ -6525,10 +6525,14 @@ function deleteMyFont(fontId){
   let sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
   sub=sub.filter(f=>f.id!==fontId);
   localStorage.setItem("tv_submitted",JSON.stringify(sub));
-  // Remove from admin requests too
   let reqs=getAdminRequests();
   reqs=reqs.filter(r=>r.id!==fontId);
   saveAdminRequests(reqs);
+  // Firestore-dan da sil (Rules istifadecinin oz fontunu silmesine icaze verir)
+  if(window._fbFns && window._fbDb){
+    const {doc, deleteDoc} = window._fbFns;
+    deleteDoc(doc(window._fbDb,'submitted_fonts',fontId)).catch(e=>console.warn('Firestore delete error:',e));
+  }
   syncSubmittedFonts();
   renderMyFontsTab();
   const mc=document.getElementById('profileMyFontsCount');
@@ -7161,12 +7165,17 @@ function adminReject(fontId,ev){
     const {doc, deleteDoc} = window._fbFns;
     deleteDoc(doc(window._fbDb,'submitted_fonts',fontId)).catch(e=>console.warn('Firestore reject error:',e));
   }
+  // Submitter-in localStorage-indan da sil ki font onlarda geri qelmesin
+  try{
+    let allSub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
+    allSub=allSub.filter(f=>f.id!==fontId);
+    localStorage.setItem("tv_submitted",JSON.stringify(allSub));
+  }catch(e){}
   syncSubmittedFonts();
   renderFonts();
   _renderAdminPending();
   adminLog('reject',rejectedName,'Rejected submission');
-  showToast(`? "${rejectedName}" rejected`);
-  // ?? Email bildirisi gönd?r ??
+  showToast(`✕ "${rejectedName}" rejected`);
   sendFontStatusEmail(rejectedFont, 'rejected');
 }
 function adminEditFontDirect(fontId){
@@ -8483,19 +8492,20 @@ function closeAuthorPage(){
 }
 
 function closeDetail(){
+  // Scroll mövqeyini əvvəlcədən yadda saxla ki renderFonts() üstünə yazmasın
+  const savedScroll = (typeof window._savedGridScroll !== 'undefined') ? window._savedGridScroll : 0;
   document.getElementById('gridLayout').style.display='';
   document.getElementById('fontDetailPage').classList.remove('visible');
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
   currentDetailFont=null;
-  // Əvvəlcə URL-i '/' et (syncUrl location.pathname-ə baxmasın deyə)
   try{ history.replaceState({page:'grid'},'','/'); } catch(e){}
-  // İndi filter state-i URL-ə yaz
   syncUrl(true);
   renderFonts();
-  // Əvvəlki scroll mövqeyini bərpa et
-  if(typeof window._restoreGridScroll === 'function') window._restoreGridScroll();
-  else window.scrollTo(0,0);
+  // renderFonts-dan sonra scroll bərpa et
+  requestAnimationFrame(()=>{
+    window.scrollTo(0, savedScroll);
+  });
 }
 
 function showGrid(){
@@ -8731,15 +8741,25 @@ function openDetail(fontId){
       </div>
     </div>
     <div class="fdp-actions">
-      <a href="https://fonts.google.com/download?family=${encodeURIComponent(font.name)}" target="_blank" class="fdp-dl"
-        onclick="handleDownloadClick('${font.id}','${esc(font.name)}');updateDetailDlCount('${font.id}')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download ZIP
-      </a>
-      <a href="https://fonts.google.com/specimen/${encodeURIComponent(font.name)}" target="_blank" class="fdp-gf">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Google Fonts
-      </a>
+      ${(()=>{
+        const isCommunity = !!(font.fontData || font.fontUrl || (font.fontVariants && font.fontVariants.length > 0));
+        if(isCommunity){
+          return `<button class="fdp-dl" onclick="handleDownloadClick('${font.id}','${esc(font.name)}');updateDetailDlCount('${font.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download${(font.fontVariants&&font.fontVariants.length>1)?' ZIP':''}
+          </button>`;
+        } else {
+          return `<a href="https://fonts.google.com/download?family=${encodeURIComponent(font.name)}" target="_blank" class="fdp-dl"
+            onclick="handleDownloadClick('${font.id}','${esc(font.name)}');updateDetailDlCount('${font.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download ZIP
+          </a>
+          <a href="https://fonts.google.com/specimen/${encodeURIComponent(font.name)}" target="_blank" class="fdp-gf">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Google Fonts
+          </a>`;
+        }
+      })()}
       <button class="fdp-like ${likedFonts.has(font.id)?'liked':''}" id="fdpLikeBtn" data-id="${font.id}"
         onclick="toggleLike('${font.id}',this);this.innerHTML=likedFonts.has('${font.id}')?'? Saved':'? Save';this.className='fdp-like'+(likedFonts.has('${font.id}')?' liked':'')">
         ${likedFonts.has(font.id)?'? Saved':'? Save'}
