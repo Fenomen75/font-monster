@@ -70,6 +70,32 @@
          }
        }
      }
+
+     ??? FIREBASE STORAGE RULES (Firebase Console > Storage > Rules) ???
+     Bu olmasa font upload "Permission denied" xetasi verir!
+
+     rules_version = '2';
+     service firebase.storage {
+       match /b/{bucket}/o {
+         // Font files: any authenticated user can upload; anyone can read/download
+         match /fonts/{fontFile} {
+           allow read: if true;
+           allow write: if request.auth != null
+             && request.resource.size < 10 * 1024 * 1024  // max 10 MB
+             && (request.resource.contentType.matches('font/.*')
+               || request.resource.contentType == 'application/octet-stream'
+               || request.resource.contentType == 'application/x-font-ttf'
+               || request.resource.contentType == 'application/x-font-otf');
+         }
+         // Font preview images
+         match /font-images/{imageFile} {
+           allow read: if true;
+           allow write: if request.auth != null
+             && request.resource.size < 3 * 1024 * 1024  // max 3 MB
+             && request.resource.contentType.matches('image/.*');
+         }
+       }
+     }
      ??????????????????????????????????????????????????????????????????? -->
 <title>Font·Monster - Free Font Discovery</title>
 <meta name="description" content="Discover and download thousands of free fonts. Browse by category, style, license and more.">
@@ -9332,7 +9358,11 @@ async function submitFont(){
           await setDoc(doc(db,'submitted_fonts',font.id), cloudFont);
           console.log('? Firestore created:', font.id, 'pending:', cloudFont.pending, 'fontUrl:', cloudFont.fontUrl);
         }
-      }catch(e){ console.error('? Firestore submitFont error:',e); showToast('? Firestore x?tasi: '+e.message); }
+      }catch(e){ 
+        console.warn('Firestore submitFont error (font saved locally):', e.message);
+        // Firestore yazma xetasi olsa bele font localStorage-da var - istifadeciye xeta gosterme
+        if(!font.fontData && !font.fontUrl) showToast('⚠ Font saxlanildi amma cloud sync olmadi: '+e.message);
+      }
     }
     ['sf-name','sf-author','sf-tags','sf-year','sf-url','sf-description'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
     const sfBox=document.getElementById('sf-tags-box');
@@ -9371,8 +9401,8 @@ async function submitFont(){
           primaryName=null;
         }
       }catch(e){
-        console.error('Upload failed for', fd.name, e);
-        showToast('? '+e.message);
+        console.warn('Firebase Storage upload failed for', fd.name, '- using local fallback:', e.message);
+        // Storage xetasi olsa bele dataUrl fallback ile davam et - istifadeciye xeta gosterme
         if(!primaryUrl && fd.dataUrl) newFont.fontData=fd.dataUrl;
       }
     }
