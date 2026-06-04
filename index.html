@@ -8817,7 +8817,6 @@ function openDetail(fontId){
     <div>
       <div class="fdp-name">${esc(font.name)}</div>
       <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year}</div>
-      ${font.description?`<div style="font-size:13px;color:var(--text2);margin-top:-4px;margin-bottom:10px;line-height:1.55;max-width:500px">${esc(font.description)}</div>`:''}
       <div class="fdp-meta-row">
         <span class="fdp-chip">${cap(font.cat)}</span>
         <span class="lic-badge ${licM.cls}" style="border-radius:100px;padding:3px 11px">${licM.label}</span>
@@ -8978,7 +8977,8 @@ function openDetail(fontId){
         ${uniqueLangs.map(l=>`<span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:980px;background:var(--surface3);border:1px solid var(--border2);color:var(--text2)">${l}</span>`).join('')}
       </div>
     </div>
-    ${font.sourceUrl?`<div class="fdp-info-row"><span class="fdp-info-key">Source</span><a href="${esc(font.sourceUrl)}" target="_blank" style="color:var(--blue);font-size:11px;word-break:break-all;max-width:200px;display:inline-block;line-height:1.4">${esc(font.sourceUrl)}</a></div>`:''}`;
+    ${font.sourceUrl?`<div class="fdp-info-row"><span class="fdp-info-key">Source</span><a href="${esc(font.sourceUrl)}" target="_blank" style="color:var(--blue);font-size:11px;word-break:break-all;max-width:200px;display:inline-block;line-height:1.4">${esc(font.sourceUrl)}</a></div>`:''}
+    ${font.description?`<div class="fdp-info-row" style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 14px"><span class="fdp-info-key">Description</span><span style="font-size:12px;color:var(--text2);line-height:1.55">${esc(font.description)}</span></div>`:''}`;
 
   // Update lang badges + charmap tabs from unified cache
   resolveFontLangs(font, langs => {
@@ -9399,7 +9399,6 @@ async function submitFont(){
   const previewImg=imgThumb&&imgThumb.src&&imgThumb.src.startsWith('data:')?imgThumb.src:null;
   const newFont={
     id,name,author,cat,gfamily,weight:'400',tags,license,year,popular:60,sourceUrl:url||'',
-    description:description||'',
     pending:true,isNew:true,
     submittedById:currentUser.id,
     submittedByName:currentUser.name,
