@@ -181,7 +181,7 @@
     signOut, onAuthStateChanged, updateProfile,
     doc, setDoc, getDoc, updateDoc, collection, addDoc,
     getDocs, deleteDoc, query, orderBy, where, increment, serverTimestamp,
-    sendPasswordResetEmail
+    sendPasswordResetEmail, sendEmailVerification
   };
   window.fbResetPassword = (email) => sendPasswordResetEmail(auth, email);
 
@@ -434,7 +434,7 @@
   --text2: #44576D;
   --text3: #768A96;
   --sans: "Geist", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-  --mono: "SF Mono", "Fira Code", ui-monospace, monospace;
+  --mono: "Geist Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
   --radius: 12px;
   --radius-lg: 18px;
   --radius-xl: 24px;
@@ -4968,7 +4968,10 @@ function fmtDlCount(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return 
 function incrementDownload(id){DL_COUNTS[id]=(DL_COUNTS[id]||0)+1;window.DL_COUNTS[id]=DL_COUNTS[id];}
 
 let FONTS=[...FONTS_BASE],activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
-let currentUser=null; // proper declaration - synced from Firebase onAuthStateChanged
+// Buq 4 düzəlişi: type="module" script defer kimi işləyir — onAuthStateChanged gəlməzdən
+// əvvəl currentUser null qalır. localStorage cache-dən ilkin dəyəri oxuyuruq ki yarış vəziyyəti olmasın.
+let currentUser=(function(){try{var c=localStorage.getItem('fn_current_user');return c?JSON.parse(c):null;}catch(e){return null;}})();
+window.currentUser=currentUser; // Firebase onAuthStateChanged gəldikdə üzərinə yazacaq
 let likedFonts=new Set(),loadedFonts=new Set(),debounceTimer,currentDetailFont=null;
 let activeDetailWeight='400',pvMode='text',pvBold=false,pvItalic=false,pvAlign='left';
 let pvBgColor='#ffffff',pvTextColor='#111111',pvBgImage=null;
@@ -6058,7 +6061,8 @@ async function resendVerificationEmail(){
   if(!fbUser){showToast('? Error: user not found');return;}
   btn.textContent='Sending.';btn.disabled=true;
   try{
-    await fbUser.sendEmailVerification({ url: window.location.href });
+    const { sendEmailVerification } = window._fbFns;
+    await sendEmailVerification(fbUser, { url: window.location.href });
     showToast('📧 Verification link resent!');
     btn.textContent='✓ Sent';
     setTimeout(()=>{btn.textContent='Resend Email';btn.disabled=false;},4000);
@@ -10828,7 +10832,7 @@ input[type=range].hb-bright::-moz-range-thumb {
     if(user){
       var info = document.createElement('div');
       info.className = 'mnav-user';
-      info.innerHTML = '<div class="mnav-user-name">'+user.name+'</div><div class="mnav-user-email">'+user.email+'</div>';
+      info.innerHTML = '<div class="mnav-user-name">'+esc(user.name)+'</div><div class="mnav-user-email">'+esc(user.email)+'</div>';
       drop.appendChild(info);
       drop.appendChild(mkItem(ICONS.user, 'My Profile', function(){ if(typeof showProfile==='function') showProfile(); }));
       drop.appendChild(mkItem(ICONS.heart, 'Saved Fonts', function(){ if(typeof showProfile==='function') showProfile('saved'); }));
@@ -11948,6 +11952,7 @@ async function _dfSubmitToFirestore(font) {
     var waitFonts = function(cb, attempt){
       if(typeof FONTS !== 'undefined' && FONTS && FONTS.length){ cb(); }
       else if(attempt < 25){ setTimeout(function(){ waitFonts(cb, attempt+1); }, 150); }
+      else { console.warn('waitFonts: FONTS 25 cəhddən sonra da hazır deyil, callback məcburi çağırılır'); cb(); }
     };
 
     if(initFontId){
