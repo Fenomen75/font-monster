@@ -8602,6 +8602,7 @@ function showGrid(){
   document.getElementById('authorPage').style.display='none';
   activeCategory='all';
   searchTerm='';
+  activeTag='';
   activeLicenseFilter=null;
   alphaFilter='';
   freeOnly=false;
@@ -8611,6 +8612,7 @@ function showGrid(){
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat==='all'));
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
+  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
   const freeBtn=document.getElementById('freeOnlyBtn');if(freeBtn)freeBtn.classList.remove('active');
   const freeToggleBtn=document.getElementById('freeToggle');if(freeToggleBtn)freeToggleBtn.classList.remove('free-active');
   fontSize=100;
