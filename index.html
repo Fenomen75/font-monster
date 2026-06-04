@@ -4019,7 +4019,7 @@ input[type=range]::-moz-range-progress {
               </div>
               <div id="sfImgPreview" style="display:none;position:relative">
                 <img id="sfImgThumb" style="max-height:140px;max-width:100%;border-radius:8px;object-fit:contain">
-                <button onclick="event.stopPropagation();clearFontImg()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">?</button>
+                <button onclick="event.stopPropagation();clearFontImg()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="1" y1="1" x2="9" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="1" x2="1" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></button>
               </div>
             </div>
           </div>
@@ -4174,7 +4174,7 @@ input[type=range]::-moz-range-progress {
             </div>
             <div id="efImgPreview" style="display:none;position:relative">
               <img id="efImgThumb" style="max-height:120px;max-width:100%;border-radius:8px;object-fit:contain">
-              <button onclick="event.stopPropagation();clearEditImg()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">?</button>
+              <button onclick="event.stopPropagation();clearEditImg()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="1" y1="1" x2="9" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="1" x2="1" y2="9" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></button>
             </div>
           </div>
         </div>
@@ -6891,7 +6891,7 @@ function _renderAdminPending(){
   const view=document.getElementById('adminView_pending');
   if(!reqs.length){
     view.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--text3)">
-      <div style="font-size:40px;margin-bottom:14px">?</div>
+      <div style="font-size:40px;margin-bottom:14px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg></div>
       <div style="font-size:15px;font-weight:600;color:var(--text2)">No pending submissions</div>
       <div style="font-size:13px;margin-top:6px">All caught up!</div>
     </div>`;
