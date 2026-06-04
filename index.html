@@ -224,6 +224,8 @@
       if(typeof updateNavForUser === 'function') updateNavForUser(user);
       if(typeof syncSubmittedFonts === 'function') syncSubmittedFonts();
       if(typeof syncSubmittedFontsFromFirestore === 'function') syncSubmittedFontsFromFirestore();
+      // Sayğacı admin girişinə görə yenilə
+      if(typeof window._refreshOnlineCounter === 'function') window._refreshOnlineCounter();
       // Mark auth as initialized; renderFonts already ran at page load from line 9235
       _authInitialized = true;
     } else {
@@ -234,6 +236,8 @@
       const loginBtn = document.getElementById('loginBtn');
       const avatarBtn = document.getElementById('userAvatarBtn');
       if(loginBtn) loginBtn.style.display = 'flex';
+      // Çıxış etdi - fake sayğaca qayıt
+      if(typeof window._refreshOnlineCounter === 'function') window._refreshOnlineCounter();
       if(avatarBtn) avatarBtn.style.display = 'none';
       _authInitialized = true;
     }
@@ -398,13 +402,58 @@
   onDisconnect(sesRef).remove();
   window.addEventListener('pagehide', () => rtSet(sesRef, null));
 
+  // Yalanci sayğac üçün random dəyər generatoru (1500-2000 arası)
+  function _fakeOnlineCount(){
+    return Math.floor(Math.random() * 501) + 1500; // 1500..2000
+  }
+  // Fake sayğacı hər 8-15 saniyədə bir kiçik dəyişikliklə "canlı" göstər
+  let _fakeBase = _fakeOnlineCount();
+  function _animateFakeCounter(){
+    const el = document.getElementById('onlineCount');
+    if(!el) return;
+    // +-1..+-5 arası kiçik dəyişiklik
+    _fakeBase = Math.min(2000, Math.max(1500, _fakeBase + Math.floor(Math.random()*11) - 5));
+    el.textContent = _fakeBase.toLocaleString();
+  }
+
+  let _lastRealCount = 1;
   onValue(ref(rtdb, 'presence'), snap => {
-    const count = snap.exists() ? Object.keys(snap.val()).length : 1;
+    const realCount = snap.exists() ? Object.keys(snap.val()).length : 1;
+    _lastRealCount = realCount;
     const el = document.getElementById('onlineCount');
     const badge = document.getElementById('onlineBadge');
-    if(el) el.textContent = count.toLocaleString();
     if(badge) badge.style.display = 'flex';
+
+    // Admin isə real sayı göstər, deyilsə yalançı sayğac
+    const isAdminNow = window.currentUser && window.currentUser.isAdmin === true;
+    if(isAdminNow){
+      if(el) el.textContent = realCount.toLocaleString();
+      // Fake interval varsa sil
+      if(window._fakeCounterInterval){ clearInterval(window._fakeCounterInterval); window._fakeCounterInterval = null; }
+    } else {
+      if(el) el.textContent = _fakeBase.toLocaleString();
+      // Hər 8-14 saniyədə bir yenilə (artıq interval yoxdursa)
+      if(!window._fakeCounterInterval){
+        window._fakeCounterInterval = setInterval(_animateFakeCounter, 8000 + Math.random()*6000);
+      }
+    }
   });
+  // Login/logout zamanı sayğacı yenilə
+
+  window._refreshOnlineCounter = function(){
+    const el = document.getElementById('onlineCount');
+    if(!el) return;
+    const isAdm = window.currentUser && window.currentUser.isAdmin === true;
+    if(isAdm){
+      el.textContent = _lastRealCount.toLocaleString();
+      if(window._fakeCounterInterval){ clearInterval(window._fakeCounterInterval); window._fakeCounterInterval = null; }
+    } else {
+      el.textContent = _fakeBase.toLocaleString();
+      if(!window._fakeCounterInterval){
+        window._fakeCounterInterval = setInterval(_animateFakeCounter, 8000 + Math.random()*6000);
+      }
+    }
+  };
 </script>
 <style>
 :root {
@@ -10037,16 +10086,35 @@ updateAdminMessagesBadge();
     <div style="margin:0 24px 12px;display:flex;gap:8px;align-items:center">
       <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Preview text</span>
       <input type="text" id="pairCustomText" value="The quick brown fox" placeholder="type your own text." oninput="renderPairPreview()" style="flex:1;background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none">
-      <div style="display:flex;gap:5px">
-        <button onclick="setPairTheme('light')" id="pairLightBtn" style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;border:1px solid var(--border2);background:var(--surface-solid);color:var(--text2);cursor:pointer;font-family:var(--sans)">? Light</button>
-        <button onclick="setPairTheme('dark')" id="pairDarkBtn" style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;border:1px solid var(--border2);background:var(--surface-solid);color:var(--text2);cursor:pointer;font-family:var(--sans)">🌙 Dark</button>
-      </div>
+      <button onclick="togglePairTheme()" id="pairThemeToggleBtn" title="Toggle Light / Dark" style="width:34px;height:34px;border-radius:50%;border:1px solid var(--border2);background:var(--surface-solid);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s,border-color .2s">
+        <svg id="pairThemeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- sun icon (shown in light mode) -->
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Zoom slider -->
+    <div style="margin:0 24px 14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap">Zoom</span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      <input type="range" id="pairZoomSlider" min="60" max="200" value="100" oninput="applyPairZoom(this.value)" style="flex:1;accent-color:var(--accent);cursor:pointer;height:3px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      <span id="pairZoomLabel" style="font-size:11px;font-weight:600;color:var(--text3);min-width:34px;text-align:right">100%</span>
     </div>
 
     <div id="pairPreviewWrap" style="margin:0 24px 24px;border-radius:16px;overflow:hidden;border:1px solid var(--border)">
       <div id="pairPreviewCanvas" style="padding:40px 36px;background:#fff;transition:background .2s">
-        <div id="pairHeadingPreview" style="font-size:48px;line-height:1.1;margin-bottom:16px;transition:font-family .3s">Heading Text</div>
-        <div id="pairBodyPreview" style="font-size:16px;line-height:1.7;color:#555;transition:font-family .3s">The quick brown fox jumps over the lazy dog. Typography is the art and technique of arranging type to make written language legible, readable and appealing when displayed.</div>
+        <div id="pairHeadingPreview" style="font-size:48px;line-height:1.1;margin-bottom:16px;transition:font-family .3s,font-size .2s">Heading Text</div>
+        <div id="pairBodyPreview" style="font-size:16px;line-height:1.7;color:#555;transition:font-family .3s,font-size .2s">The quick brown fox jumps over the lazy dog. Typography is the art and technique of arranging type to make written language legible, readable and appealing when displayed.</div>
       </div>
     </div>
   </div>
@@ -10142,6 +10210,9 @@ function openPairModal(){
     refreshCustomSelect('pairHeadingSelect');
     refreshCustomSelect('pairBodySelect');
   }
+  // Reset zoom
+  const zs = document.getElementById('pairZoomSlider');
+  if(zs){ zs.value=100; applyPairZoom(100); }
   renderPairPreview();
 }
 function closePairModal(){
@@ -10156,15 +10227,37 @@ function setPairTheme(t){
   const canvas = document.getElementById('pairPreviewCanvas');
   const hPrev = document.getElementById('pairHeadingPreview');
   const bPrev = document.getElementById('pairBodyPreview');
+  const icon  = document.getElementById('pairThemeIcon');
+  const btn   = document.getElementById('pairThemeToggleBtn');
   if(t === 'dark'){
     canvas.style.background = '#111';
     hPrev.style.color = '#fff';
     bPrev.style.color = '#aaa';
+    // Show moon icon
+    if(icon) icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    if(btn){ btn.style.background='#222'; btn.style.borderColor='#444'; btn.style.color='#fff'; }
   } else {
     canvas.style.background = '#fff';
     hPrev.style.color = '#111';
     bPrev.style.color = '#555';
+    // Show sun icon
+    if(icon) icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    if(btn){ btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; }
   }
+}
+
+function togglePairTheme(){
+  setPairTheme(pairTheme === 'dark' ? 'light' : 'dark');
+}
+
+function applyPairZoom(val){
+  const zoom = parseInt(val) / 100;
+  const hPrev = document.getElementById('pairHeadingPreview');
+  const bPrev = document.getElementById('pairBodyPreview');
+  const label = document.getElementById('pairZoomLabel');
+  if(hPrev) hPrev.style.fontSize = (48 * zoom) + 'px';
+  if(bPrev) bPrev.style.fontSize = (16 * zoom) + 'px';
+  if(label) label.textContent = val + '%';
 }
 
 function renderPairPreview(){
