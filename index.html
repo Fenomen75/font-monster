@@ -4769,6 +4769,21 @@ const FONTS_BASE=[
   {id:"pt-mono",name:"PT Mono",author:"ParaType",cat:"monospace",gfamily:"PT+Mono",weight:"400",tags:["Cyrillic","Classic","Code"],license:"ofl",year:2009,popular:73},
   {id:"overpass-mono",name:"Overpass Mono",author:"Delve Withrington",cat:"monospace",gfamily:"Overpass+Mono:wght@300;400;600;700",weight:"400",tags:["Open Source","Variable","Code"],license:"ofl",year:2016,popular:71},
   {id:"noto-sans",name:"Noto Sans",author:"Google",cat:"sans-serif",gfamily:"Noto+Sans:ital,wght@0,300;0,400;0,700;1,400",weight:"400",tags:["Universal","Multilingual","Google"],license:"ofl",year:2012,popular:88},
+  {id:"cabinet-grotesk",name:"Cabinet Grotesk",author:"Fontshare",cat:"sans-serif",gfamily:"Cabinet+Grotesk:wght@300;400;500;600;700;800",weight:"500",tags:["Grotesque","Modern","Variable"],license:"ofl",year:2022,popular:79},
+  {id:"chivo",name:"Chivo",author:"Héctor Gatti",cat:"sans-serif",gfamily:"Chivo:ital,wght@0,300;0,400;0,700;0,900;1,400",weight:"400",tags:["Grotesque","Editorial","Variable"],license:"ofl",year:2013,popular:76},
+  {id:"albert-sans",name:"Albert Sans",author:"Andreas Rasmussen",cat:"sans-serif",gfamily:"Albert+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400",weight:"400",tags:["Geometric","Clean","Variable"],license:"ofl",year:2022,popular:74},
+  {id:"italiana",name:"Italiana",author:"Alicia Carvalho",cat:"serif",gfamily:"Italiana",weight:"400",tags:["Didone","Elegant","Fashion"],license:"ofl",year:2012,popular:73},
+  {id:"dm-serif-display",name:"DM Serif Display",author:"Colophon Foundry",cat:"serif",gfamily:"DM+Serif+Display:ital@0;1",weight:"400",tags:["Editorial","Contrast","Display"],license:"ofl",year:2019,popular:80},
+  {id:"vt323",name:"VT323",author:"Peter Hull",cat:"display",gfamily:"VT323",weight:"400",tags:["Pixel","Terminal","Retro"],license:"ofl",year:2014,popular:75},
+  {id:"silkscreen",name:"Silkscreen",author:"Jason Kottke",cat:"display",gfamily:"Silkscreen:wght@400;700",weight:"400",tags:["Pixel","Bitmap","Gaming"],license:"ofl",year:2021,popular:72},
+  {id:"nanum-pen-script",name:"Nanum Pen Script",author:"Sandoll",cat:"handwriting",gfamily:"Nanum+Pen+Script",weight:"400",tags:["Korean","Handwritten","Casual"],license:"ofl",year:2012,popular:70},
+  {id:"comic-neue",name:"Comic Neue",author:"Craig Rozynski",cat:"handwriting",gfamily:"Comic+Neue:ital,wght@0,300;0,400;0,700;1,400",weight:"400",tags:["Comic","Friendly","Casual"],license:"ofl",year:2014,popular:71},
+  {id:"fragment-mono",name:"Fragment Mono",author:"Nico Stubler",cat:"monospace",gfamily:"Fragment+Mono:ital@0;1",weight:"400",tags:["Minimal","Code","Modern"],license:"ofl",year:2023,popular:69},
+  {id:"lilita-one",name:"Lilita One",author:"Rodrigo Fuenzalida",cat:"display",gfamily:"Lilita+One",weight:"400",tags:["Bold","Rounded","Latin"],license:"ofl",year:2011,popular:76},
+  {id:"schibsted-grotesk",name:"Schibsted Grotesk",author:"Schibsted",cat:"sans-serif",gfamily:"Schibsted+Grotesk:ital,wght@0,400;0,500;0,700;0,900;1,400",weight:"400",tags:["Grotesque","News","Editorial"],license:"ofl",year:2023,popular:68},
+  {id:"teachers",name:"Teachers",author:"Omnibus-Type",cat:"sans-serif",gfamily:"Teachers:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400",weight:"400",tags:["Humanist","Friendly","Variable"],license:"ofl",year:2023,popular:67},
+  {id:"reddit-mono",name:"Reddit Mono",author:"Reddit",cat:"monospace",gfamily:"Reddit+Mono:wght@300;400;500;600;700",weight:"400",tags:["Code","Neutral","Variable"],license:"ofl",year:2024,popular:70},
+  {id:"urbanist",name:"Urbanist",author:"Corey Hu",cat:"sans-serif",gfamily:"Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400",weight:"400",tags:["Geometric","Clean","Variable"],license:"ofl",year:2020,popular:78},
 ];
 
 // ?? SHARED language-support helper (used on both card & detail page) ??
@@ -4859,6 +4874,21 @@ const FONT_SUBSETS = {
   'pt-mono':            ['Latin','Latin Ext','Cyrillic'],
   'overpass-mono':      ['Latin','Latin Ext'],
   'noto-sans':          ['Latin','Latin Ext','Cyrillic','Greek','Vietnamese'],
+  'cabinet-grotesk':    ['Latin','Latin Ext'],
+  'chivo':              ['Latin','Latin Ext'],
+  'albert-sans':        ['Latin','Latin Ext'],
+  'italiana':           ['Latin','Latin Ext'],
+  'dm-serif-display':   ['Latin','Latin Ext'],
+  'vt323':              ['Latin','Latin Ext','Vietnamese'],
+  'silkscreen':         ['Latin'],
+  'nanum-pen-script':   ['Latin','Korean'],
+  'comic-neue':         ['Latin'],
+  'fragment-mono':      ['Latin','Latin Ext'],
+  'lilita-one':         ['Latin','Latin Ext'],
+  'schibsted-grotesk':  ['Latin','Latin Ext'],
+  'teachers':           ['Latin','Latin Ext'],
+  'reddit-mono':        ['Latin','Latin Ext'],
+  'urbanist':           ['Latin','Latin Ext'],
 };
 function getFontLangs(font) {
   if (FONT_SUBSETS[font.id]) return FONT_SUBSETS[font.id];
