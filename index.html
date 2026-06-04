@@ -6392,7 +6392,7 @@ function closeProfile(){
 }
 
 // ?? EDIT FONT - file/image helpers ??
-let _efFileData=null, _efImgData=null;
+let _efFileData=null, _efImgData=null, _efImgRemoved=false;
 function handleEditDragOver(e){e.preventDefault();document.getElementById('efFileUploadZone').classList.add('drag-over');}
 function handleEditDragLeave(e){document.getElementById('efFileUploadZone').classList.remove('drag-over');}
 function handleEditDrop(e){
@@ -6459,6 +6459,7 @@ function handleEditImgSelect(inp){
   const r=new FileReader();
   r.onload=ev=>{
     _efImgData=ev.target.result;
+    _efImgRemoved=false;
     document.getElementById('efImgThumb').src=_efImgData;
     document.getElementById('efImgPlaceholder').style.display='none';
     document.getElementById('efImgPreview').style.display='block';
@@ -6467,6 +6468,7 @@ function handleEditImgSelect(inp){
 }
 function clearEditImg(){
   _efImgData=null;
+  _efImgRemoved=true;
   document.getElementById('ef-img').value='';
   document.getElementById('efImgPlaceholder').style.display='';
   document.getElementById('efImgPreview').style.display='none';
@@ -6474,6 +6476,7 @@ function clearEditImg(){
 function _resetEditModal(){
   clearEditFile();
   clearEditImg();
+  _efImgRemoved=false;
   document.getElementById('ef-year').value='';
   _efFileData=null; _efImgData=null;
 }
@@ -6524,7 +6527,7 @@ async function saveEditFont(){
     sourceUrl:document.getElementById('ef-url').value.trim(),
     description:(document.getElementById('ef-description')?.value||'').trim(),
     ...(yearVal?{year:parseInt(yearVal)}:{}),
-    ...(_efImgData?{previewImg:_efImgData}:{})
+    ...(_efImgData ? {previewImg:_efImgData} : _efImgRemoved ? {previewImg:''} : {})
   };
   if(!updates.name||!updates.author||!updates.cat||!updates.license){showToast('? Please fill in all required fields');return;}
   // Font fayli varsa PHP-y? yükl?
@@ -8602,7 +8605,6 @@ function showGrid(){
   document.getElementById('authorPage').style.display='none';
   activeCategory='all';
   searchTerm='';
-  activeTag='';
   activeLicenseFilter=null;
   alphaFilter='';
   freeOnly=false;
@@ -8612,7 +8614,6 @@ function showGrid(){
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat==='all'));
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
-  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
   const freeBtn=document.getElementById('freeOnlyBtn');if(freeBtn)freeBtn.classList.remove('active');
   const freeToggleBtn=document.getElementById('freeToggle');if(freeToggleBtn)freeToggleBtn.classList.remove('free-active');
   fontSize=100;
