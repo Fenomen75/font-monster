@@ -8817,6 +8817,7 @@ function openDetail(fontId){
     <div>
       <div class="fdp-name">${esc(font.name)}</div>
       <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year}</div>
+      ${font.description?`<div style="font-size:13px;color:var(--text2);margin-top:-4px;margin-bottom:10px;line-height:1.55;max-width:500px">${esc(font.description)}</div>`:''}
       <div class="fdp-meta-row">
         <span class="fdp-chip">${cap(font.cat)}</span>
         <span class="lic-badge ${licM.cls}" style="border-radius:100px;padding:3px 11px">${licM.label}</span>
@@ -9399,6 +9400,7 @@ async function submitFont(){
   const previewImg=imgThumb&&imgThumb.src&&imgThumb.src.startsWith('data:')?imgThumb.src:null;
   const newFont={
     id,name,author,cat,gfamily,weight:'400',tags,license,year,popular:60,sourceUrl:url||'',
+    description:description||'',
     pending:true,isNew:true,
     submittedById:currentUser.id,
     submittedByName:currentUser.name,
