@@ -6392,7 +6392,7 @@ function closeProfile(){
 }
 
 // ?? EDIT FONT - file/image helpers ??
-let _efFileData=null, _efImgData=null, _efImgRemoved=false;
+let _efFileData=null, _efImgData=null;
 function handleEditDragOver(e){e.preventDefault();document.getElementById('efFileUploadZone').classList.add('drag-over');}
 function handleEditDragLeave(e){document.getElementById('efFileUploadZone').classList.remove('drag-over');}
 function handleEditDrop(e){
@@ -6459,7 +6459,6 @@ function handleEditImgSelect(inp){
   const r=new FileReader();
   r.onload=ev=>{
     _efImgData=ev.target.result;
-    _efImgRemoved=false;
     document.getElementById('efImgThumb').src=_efImgData;
     document.getElementById('efImgPlaceholder').style.display='none';
     document.getElementById('efImgPreview').style.display='block';
@@ -6468,7 +6467,6 @@ function handleEditImgSelect(inp){
 }
 function clearEditImg(){
   _efImgData=null;
-  _efImgRemoved=true;
   document.getElementById('ef-img').value='';
   document.getElementById('efImgPlaceholder').style.display='';
   document.getElementById('efImgPreview').style.display='none';
@@ -6476,7 +6474,6 @@ function clearEditImg(){
 function _resetEditModal(){
   clearEditFile();
   clearEditImg();
-  _efImgRemoved=false;
   document.getElementById('ef-year').value='';
   _efFileData=null; _efImgData=null;
 }
@@ -6527,7 +6524,7 @@ async function saveEditFont(){
     sourceUrl:document.getElementById('ef-url').value.trim(),
     description:(document.getElementById('ef-description')?.value||'').trim(),
     ...(yearVal?{year:parseInt(yearVal)}:{}),
-    ...(_efImgData ? {previewImg:_efImgData} : _efImgRemoved ? {previewImg:''} : {})
+    ...(_efImgData?{previewImg:_efImgData}:{})
   };
   if(!updates.name||!updates.author||!updates.cat||!updates.license){showToast('? Please fill in all required fields');return;}
   // Font fayli varsa PHP-y? yükl?
@@ -8820,6 +8817,7 @@ function openDetail(fontId){
     <div>
       <div class="fdp-name">${esc(font.name)}</div>
       <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year}</div>
+      ${font.description?`<div style="font-size:13px;color:var(--text2);margin-top:-4px;margin-bottom:10px;line-height:1.55;max-width:500px">${esc(font.description)}</div>`:''}
       <div class="fdp-meta-row">
         <span class="fdp-chip">${cap(font.cat)}</span>
         <span class="lic-badge ${licM.cls}" style="border-radius:100px;padding:3px 11px">${licM.label}</span>
@@ -9401,6 +9399,7 @@ async function submitFont(){
   const previewImg=imgThumb&&imgThumb.src&&imgThumb.src.startsWith('data:')?imgThumb.src:null;
   const newFont={
     id,name,author,cat,gfamily,weight:'400',tags,license,year,popular:60,sourceUrl:url||'',
+    description:description||'',
     pending:true,isNew:true,
     submittedById:currentUser.id,
     submittedByName:currentUser.name,
