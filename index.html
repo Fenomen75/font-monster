@@ -6880,7 +6880,7 @@ function closeAdminPanel(skipHistory){
     overlay.style.display='none';
     document.body.style.overflow='';
   },300);
-  if(!skipHistory && location.pathname==='/admin') history.back();
+  if(!skipHistory && location.pathname==='/admin' && history.state && history.state.page==='admin') history.back();
 }
 function _adminGoToFont(fontId){
   // Admin paneli bağla (history.back() olmadan)
@@ -9485,7 +9485,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   _initTagChip('sf-tags-box','sf-tags-chips','sf-tags-input','sf-tags',5);
   _initTagChip('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',5);
 });
-function closeSubmitOutside(e){if(e.target===document.getElementById('submitModal'))closeSubmit();}
+function closeSubmitOutside(e){if(e.target===document.getElementById('submitModal')&&e.type!=='touchmove')closeSubmit();}
 async function submitFont(){
   if(!currentUser){closeSubmit();openAuthModal('login');showToast('⚠ Please sign up or sign in to submit a font');return;}
   // Email doğrulanmamışsa submit-i blokla (OAuth login-lər həmişə verified sayılır)
@@ -9742,6 +9742,11 @@ document.addEventListener('keydown',e=>{
   const tag=e.target.tagName;
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
   if(e.key==='Escape'){
+    var _pm=document.getElementById('pairModal');if(_pm&&_pm.style.opacity==='1'){closePairModal();return;}
+    var _em=document.getElementById('editFontModal');if(_em&&_em.classList.contains('open')){closeEditFont();return;}
+    var _ao=document.getElementById('authOverlay');if(_ao&&_ao.classList.contains('open')){closeAuthModal();return;}
+    var _mo=document.getElementById('modPanelOverlay');if(_mo&&_mo.style.display!=='none'){closeModPanel();return;}
+    var _admin=document.getElementById('adminPanelOverlay');if(_admin&&_admin.style.display!=='none'){closeAdminPanel();return;}
     closeSubmit();closeContactModal();closeCompare();
     if(shortcutsOpen){shortcutsOpen=false;document.getElementById('shortcutsPanel').classList.remove('open');}
     else if(document.getElementById('authorPage').style.display!=='none')showGrid();
@@ -10311,6 +10316,7 @@ function resetTxtUpload(){
 let pairTheme = 'light';
 
 function openPairModal(){
+  document.body.style.overflow='hidden';
   const m = document.getElementById('pairModal');
   m.style.opacity='1';m.style.pointerEvents='all';m.style.visibility='visible';
   const hSel = document.getElementById('pairHeadingSelect');
@@ -10341,6 +10347,7 @@ function openPairModal(){
 }
 function closePairModal(){
   const _pm=document.getElementById('pairModal');_pm.style.opacity='0';_pm.style.pointerEvents='none';_pm.style.visibility='hidden';
+  document.body.style.overflow='';
 }
 document.getElementById('pairModal').addEventListener('click', function(e){
   if(e.target === this) closePairModal();
