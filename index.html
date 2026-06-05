@@ -141,6 +141,59 @@
   import { getDatabase, ref, onValue, onDisconnect, set as rtSet, serverTimestamp as rtServerTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
   import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
+  /*
+   * ⚠️  SECURITY CHECKLIST — Firebase client config aşkar olması normaldır,
+   *     lakin aşağıdakı tədbirlər MÜTLƏQdir:
+   *
+   *  1. Firebase Console → Project Settings → API restrictions:
+   *       - Bu API key-i yalnız öz domain(lar)ınla məhdudlaşdır
+   *         (HTTP referrers whitelist: https://yourdomain.com/*)
+   *
+   *  2. Firestore Security Rules (Firebase Console → Firestore → Rules):
+   *
+   *     rules_version = '2';
+   *     service cloud.firestore {
+   *       match /databases/{database}/documents {
+   *         // Fonts — hər kəs oxuya bilər, yalnız auth user yaza bilər
+   *         match /fonts/{fontId} {
+   *           allow read: if true;
+   *           allow create: if request.auth != null;
+   *           allow update, delete: if request.auth != null
+   *             && (request.auth.uid == resource.data.submittedBy
+   *                 || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isModerator == true);
+   *         }
+   *         // Users — yalnız öz profilini yaza bilər
+   *         match /users/{userId} {
+   *           allow read: if true;
+   *           allow write: if request.auth != null && request.auth.uid == userId;
+   *         }
+   *         // Admin-only collections
+   *         match /admin/{doc} {
+   *           allow read, write: if request.auth != null
+   *             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isModerator == true;
+   *         }
+   *       }
+   *     }
+   *
+   *  3. Firebase Storage Rules (Firebase Console → Storage → Rules):
+   *
+   *     rules_version = '2';
+   *     service firebase.storage {
+   *       match /b/{bucket}/o {
+   *         match /fonts/{allPaths=**} {
+   *           allow read: if true;
+   *           allow write: if request.auth != null
+   *             && request.resource.size < 20 * 1024 * 1024  // 20 MB limit
+   *             && (request.resource.contentType.matches('font/.*')
+   *                 || request.resource.contentType.matches('application/octet-stream'));
+   *         }
+   *       }
+   *     }
+   *
+   *  4. Realtime Database Rules (Firebase Console → Realtime Database → Rules):
+   *       Minimum: { "rules": { ".read": false, ".write": false } }
+   *       Presence üçün: yalnız /status/{uid} path-i auth user-a açıq olsun.
+   */
   const firebaseConfig = {
     apiKey: "AIzaSyBvKAVE0Gnt9O5d_KOmaxhtCKlShoYWhlE",
     authDomain: "fontan-7bae4.firebaseapp.com",
@@ -213,11 +266,13 @@
       window.currentUser = currentUser;
       likedFonts = new Set(user.saved);
       window.likedFonts = likedFonts;
-      // Persist locally for offline fallback
-      // isAdmin IS cached so admin panel shows immediately on mobile reload
-      // Security: Firestore rules are the real enforcement - UI flag only shows/hides the button
+      // Persist locally for offline/reload fallback.
+      // isAdmin and isModerator are NOT cached — they must always come from Firestore.
+      // Caching them would allow anyone to spoof admin access via browser console.
       try{
         const safeUser = {...user};
+        delete safeUser.isAdmin;
+        delete safeUser.isModerator;
         localStorage.setItem('fn_current_user', JSON.stringify(safeUser));
         localStorage.setItem('tv_liked', JSON.stringify(user.saved));
       }catch(e){}
@@ -251,10 +306,11 @@
       name, email,
       saved: [],
       joined: new Date().toISOString(),
-      emailVerified: user.emailVerified || false,
+      emailVerified: false,
       createdAt: serverTimestamp()
     });
-    // Email dogrulama teleb edilmir - birbaşa qeydiyyat
+    // Email doğrulama göndər
+    await sendEmailVerification(user, { url: window.location.href });
     return user;
   };
 
@@ -2713,11 +2769,12 @@ input[type=range]::-moz-range-progress {
 
 /* ?? CONTACT MODAL ?? */
 #contactOverlay{
-  display:none;position:fixed;inset:0;z-index:9999;
+  position:fixed;inset:0;z-index:2000;
   background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);
-  align-items:center;justify-content:center;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
 }
-#contactOverlay.open{display:flex !important}
+#contactOverlay.open{opacity:1;pointer-events:all}
 .ct-chip{
   background:var(--surface3);border:1px solid var(--border);
   border-radius:980px;padding:5px 13px;font-size:11px;font-weight:600;
@@ -3995,7 +4052,8 @@ input[type=range]::-moz-range-progress {
                 <option value="serif">Serif</option>
                 <option value="display">Display</option>
                 <option value="handwriting">Handwriting</option>
-                <option value="monospace">Other</option>
+                <option value="monospace">Monospace</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div class="form-group">
@@ -4160,7 +4218,8 @@ input[type=range]::-moz-range-progress {
               <option value="serif">Serif</option>
               <option value="display">Display</option>
               <option value="handwriting">Handwriting</option>
-              <option value="monospace">Other</option>
+              <option value="monospace">Monospace</option>
+              <option value="other">Other</option>
             </select>
           </div>
           <div class="form-group">
@@ -5050,7 +5109,18 @@ function incrementDownload(id){DL_COUNTS[id]=(DL_COUNTS[id]||0)+1;window.DL_COUN
 let FONTS=[...FONTS_BASE],activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
 // Buq 4 düzəlişi: type="module" script defer kimi işləyir — onAuthStateChanged gəlməzdən
 // əvvəl currentUser null qalır. localStorage cache-dən ilkin dəyəri oxuyuruq ki yarış vəziyyəti olmasın.
-let currentUser=(function(){try{var c=localStorage.getItem('fn_current_user');return c?JSON.parse(c):null;}catch(e){return null;}})();
+let currentUser=(function(){
+  try{
+    var c=localStorage.getItem('fn_current_user');
+    if(!c) return null;
+    var u=JSON.parse(c);
+    // isAdmin/isModerator heç vaxt cache-dən oxunmur — Firestore-dan gəlməlidir.
+    // Bu, brauzer console-dan localStorage.setItem ilə admin saxtakarlığını önləyir.
+    u.isAdmin=false;
+    u.isModerator=false;
+    return u;
+  }catch(e){return null;}
+})();
 window.currentUser=currentUser; // Firebase onAuthStateChanged gəldikdə üzərinə yazacaq
 let likedFonts=new Set(),loadedFonts=new Set(),debounceTimer,currentDetailFont=null;
 let activeDetailWeight='400',pvMode='text',pvBold=false,pvItalic=false,pvAlign='left';
@@ -5315,6 +5385,7 @@ function closeCompare(){
   const modal=document.getElementById('compareModal');
   modal.classList.remove('open');
   document.body.style.overflow='';
+  setTimeout(()=>{ modal.style.display='none'; },300);
   // reset so compare bar doesn't linger
   compareFonts=[];
   document.querySelectorAll('[data-compare-btn]').forEach(b=>b.classList.remove('compare-on'));
@@ -5714,7 +5785,9 @@ function renderFonts(){
             onclick="event.stopPropagation();addToCompare('${font.id}')">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
           </button>
-          <button class="icon-btn ${isLiked?'liked':''}" title="Save"
+          <button class="icon-btn ${isLiked?'liked':''}"
+            aria-label="${isLiked?'Saved – click to unsave':'Save font'}"
+            aria-pressed="${isLiked?'true':'false'}"
             onclick="event.stopPropagation();toggleLike('${font.id}',this)">${isLiked?'♥':'♡'}</button>
           <a href="${(font.fontData||font.fontUrl)?'#':`https://fonts.google.com/download?family=${encodeURIComponent(font.name)}`}" ${(font.fontData||font.fontUrl)?'':'target="_blank"'} class="dl-btn"
             onclick="event.stopPropagation();handleDownloadClick('${font.id}','${esc(font.name)}');${(font.fontData||font.fontUrl)?'return false;':''}">
@@ -5887,11 +5960,11 @@ function toggleLike(id,btn){
   if(!currentUser){openAuthModal('login');showToast('Sign in to save fonts');return;}
   if(likedFonts.has(id)){
     likedFonts.delete(id);
-    if(btn){btn.textContent='♡';btn.classList.remove('liked');}
+    if(btn){btn.textContent='♡';btn.classList.remove('liked');btn.setAttribute('aria-label','Save font');btn.setAttribute('aria-pressed','false');}
     showToast('Removed from saved');
   } else {
     likedFonts.add(id);
-    if(btn){btn.textContent='♥';btn.classList.add('liked');}
+    if(btn){btn.textContent='♥';btn.classList.add('liked');btn.setAttribute('aria-label','Saved – click to unsave');btn.setAttribute('aria-pressed','true');}
     showToast('❤️ Saved');
   }
   currentUser.saved=[...likedFonts];
@@ -5907,7 +5980,7 @@ function toggleLike(id,btn){
   if(sc)sc.textContent=currentUser.saved.length;
   localStorage.setItem("tv_liked",JSON.stringify([...likedFonts]));
   const lb=document.getElementById('fdpLikeBtn');
-  if(lb&&lb.dataset.id===id){lb.className='fdp-like'+(likedFonts.has(id)?' liked':'');lb.innerHTML=likedFonts.has(id)?'♥ Saved':'♡ Save';}
+  if(lb&&lb.dataset.id===id){lb.className='fdp-like'+(likedFonts.has(id)?' liked':'');lb.innerHTML=likedFonts.has(id)?'♥ Saved':'♡ Save';lb.setAttribute('aria-label',likedFonts.has(id)?'Saved – click to unsave':'Save font');lb.setAttribute('aria-pressed',likedFonts.has(id)?'true':'false');}
 }
 
 // ??????????????????????????????????????????
@@ -5919,10 +5992,13 @@ function getUsers(){try{return JSON.parse(localStorage.getItem('fn_users')||'[]'
 function saveUsers(u){try{localStorage.setItem('fn_users',JSON.stringify(u));}catch(e){}}
 function getCurrentUser(){try{const u=localStorage.getItem('fn_current_user');return u?JSON.parse(u):null;}catch(e){return null;}}
 function saveCurrentUser(u){
-  // Never persist password into localStorage
-  // isAdmin IS persisted - Firestore rules are the real enforcement; this only controls UI
+  // Never persist password, isAdmin, or isModerator into localStorage.
+  // isAdmin/isModerator must always be re-fetched from Firestore on auth init —
+  // caching them allows anyone to fake admin access via browser console.
   const safe={...u};
   delete safe.password;
+  delete safe.isAdmin;
+  delete safe.isModerator;
   try{localStorage.setItem('fn_current_user',JSON.stringify(safe));}catch(e){}
 }
 
@@ -5989,7 +6065,7 @@ async function socialLogin(provider) {
     window.currentUser = currentUser;
     likedFonts = new Set(user.saved);
     window.likedFonts = likedFonts;
-    try { localStorage.setItem('fn_current_user', JSON.stringify(user)); } catch(e) {}
+    saveCurrentUser(user); // isAdmin/isModerator bu funksiya tərəfindən cache-ə yazılmır
     if(typeof updateNavForUser === 'function') updateNavForUser(user);
     showToast('👋 Welcome, ' + (fbUser.displayName || 'there') + '!' + (user.isAdmin ? ' 👑 Admin' : ''));
   } catch(err) {
@@ -6004,6 +6080,7 @@ async function socialLogin(provider) {
 function openAuthModal(tab){
   const o=document.getElementById('authOverlay');
   o.classList.add('open');
+  document.body.style.overflow='hidden';
   switchAuthTab(tab||'login');
   setTimeout(()=>{
     const inp=tab==='signup'?document.getElementById('signupName'):tab==='forgot'?document.getElementById('forgotEmail'):document.getElementById('loginEmail');
@@ -6014,12 +6091,13 @@ function closeAuthModal(){
   const o = document.getElementById('authOverlay');
   if(!o) return;
   o.classList.remove('open');
-  setTimeout(() => { o.style.display = 'none'; o.style.display = ''; }, 300);
+  document.body.style.overflow='';
 }
 function switchAuthTab(tab){
   document.getElementById('authLoginTab').style.display=tab==='login'?'block':'none';
   document.getElementById('authSignupTab').style.display=tab==='signup'?'block':'none';
   document.getElementById('authForgotTab').style.display=tab==='forgot'?'block':'none';
+  document.getElementById('authVerifyTab').style.display=tab==='verify'?'block':'none';
   document.getElementById('loginError').textContent='';
   document.getElementById('signupError').textContent='';
   if(tab==='forgot'){
@@ -6066,12 +6144,15 @@ function submitLogin(){
   const email=document.getElementById('loginEmail').value.trim();
   const pass=document.getElementById('loginPassword').value;
   const err=document.getElementById('loginError');
+  const btn=document.querySelector('#authLoginTab .auth-submit');
   if(!email||!pass){err.textContent='Please fill in all fields.';return;}
-  err.textContent='Signing in.';
+  err.textContent='';
+  if(btn){btn.textContent='Signing in…';btn.disabled=true;}
   if(window.fbLogin){
     window.fbLogin(email,pass)
-      .then(()=>{closeAuthModal();showToast('👋 Welcome back!');})
+      .then(()=>{if(btn){btn.textContent='Sign In';btn.disabled=false;}closeAuthModal();showToast('👋 Welcome back!');})
       .catch(e=>{
+        if(btn){btn.textContent='Sign In';btn.disabled=false;}
         const isWrongPass=e.code==='auth/invalid-credential'||e.code==='auth/wrong-password';
         const isGoogleAccount=e.code==='auth/account-exists-with-different-credential';
         err.innerHTML=isGoogleAccount
@@ -6086,7 +6167,7 @@ function submitLogin(){
       const users=getUsers();
       const hash=await _sha256(pass);
       const user=users.find(u=>u.email===email&&u.passwordHash===hash);
-      if(!user){err.textContent='Incorrect email or password.';return;}
+      if(!user){if(btn){btn.textContent='Sign In';btn.disabled=false;}err.textContent='Incorrect email or password.';return;}
       const safeUser={...user};delete safeUser.passwordHash;
       currentUser=safeUser;saveCurrentUser(safeUser);
       likedFonts=new Set(currentUser.saved||[]);
@@ -6304,7 +6385,7 @@ function renderProfileSaved(saved){
           <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(f.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(f.author)}</span> · ${f.year}</div>
         </div>
         <div class="card-actions" style="position:relative;z-index:2">
-          <button class="icon-btn liked" title="Remove" onclick="event.stopPropagation();toggleLike('${f.id}',this);renderProfileSaved(currentUser?.saved||[])">♥</button>
+          <button class="icon-btn liked" aria-label="Saved – click to unsave" aria-pressed="true" onclick="event.stopPropagation();toggleLike('${f.id}',this);renderProfileSaved(currentUser?.saved||[])">♥</button>
         </div>
       </div>
       <div class="card-preview-area">
@@ -7061,7 +7142,15 @@ function _renderAdminPending(){
   }).join('')}</div>`;
 }
 function _adminPrevUpdate(fontId, val){
-  // live-update both the input font rendering (already in-place) and abc row is static
+  // Preview input-u artıq öz fontunu render edir (font-family inline style-dadır).
+  // Burada yalnız abc sətrini eyni mətni əks etdirməklə sinxronlaşdırırıq.
+  const abc = document.getElementById('aprev_abc_' + fontId);
+  if(!abc) return;
+  if(val && val.trim()){
+    abc.textContent = val;
+  } else {
+    abc.textContent = 'ABCDEFGHIJKLM   abcdefghijklm   0123456789   !@#$%&';
+  }
 }
 function _adminPrevSize(fontId, val){
   const inp=document.getElementById('aprev_inp_'+fontId);
@@ -8699,11 +8788,11 @@ function openAuthorPage(authorName){
             <div class="ch-fall"></div>
             <div style="position:relative;z-index:2;flex:1;min-width:0">
               <div class="card-name">${esc(font.name)}</div>
-              <div class="card-author">${font.year}</div>
+              <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(font.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(font.author)}</span> · ${font.year}</div>
             </div>
             <div class="card-actions" style="position:relative;z-index:2">
               ${isOwner?`<button class="icon-btn" onclick="event.stopPropagation();openEditFont('${font.id}')" title="Edit font" style="color:var(--accent);background:var(--blue-dim);border:1px solid var(--border2);border-radius:8px;width:30px;height:30px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:''}
-              <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${font.id}',this)" title="Save">
+              <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${font.id}',this)" aria-label="${isLiked?'Saved – click to unsave':'Save font'}" aria-pressed="${isLiked?'true':'false'}">
                 ${isLiked?'♥':'♡'}
               </button>
               <a class="dl-btn" href="https://fonts.google.com/download?family=${encodeURIComponent(font.name)}" target="_blank"
@@ -8861,7 +8950,9 @@ function openDetail(fontId){
         }
       })()}
       <button class="fdp-like ${likedFonts.has(font.id)?'liked':''}" id="fdpLikeBtn" data-id="${font.id}"
-        onclick="toggleLike('${font.id}',this);this.innerHTML=likedFonts.has('${font.id}')?'♥ Saved':'♡ Save';this.className='fdp-like'+(likedFonts.has('${font.id}')?' liked':'')">
+        aria-label="${likedFonts.has(font.id)?'Saved – click to unsave':'Save font'}"
+        aria-pressed="${likedFonts.has(font.id)?'true':'false'}"
+        onclick="toggleLike('${font.id}',this);this.innerHTML=likedFonts.has('${font.id}')?'♥ Saved':'♡ Save';this.className='fdp-like'+(likedFonts.has('${font.id}')?' liked':'');this.setAttribute('aria-label',likedFonts.has('${font.id}')?'Saved – click to unsave':'Save font');this.setAttribute('aria-pressed',likedFonts.has('${font.id}')?'true':'false')">
         ${likedFonts.has(font.id)?'♥ Saved':'♡ Save'}
       </button>
     </div>`;
@@ -9073,7 +9164,7 @@ function openDetail(fontId){
             <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(sf.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(sf.author)}</span></div>
           </div>
           <div class="card-actions" style="position:relative;z-index:2">
-            <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${sf.id}',this)" title="Save">
+            <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${sf.id}',this)" aria-label="${isLiked?'Saved – click to unsave':'Save font'}" aria-pressed="${isLiked?'true':'false'}">
               ${isLiked?'♥':'♡'}
             </button>
             <a class="dl-btn" href="https://fonts.google.com/download?family=${encodeURIComponent(sf.name)}" target="_blank"
@@ -9145,8 +9236,15 @@ function openDetail(fontId){
     document.getElementById('fotdBtn').onclick=()=>openDetail(fotd.id);
   }
 
-  // Trending Tags widget
-  const allTagsW=[...new Set(FONTS.flatMap(f=>f.tags))].sort(()=>Math.random()-0.5).slice(0,16);
+  // Trending Tags widget — tagları download + like sayına görə sırala (random deyil)
+  const tagScore={};
+  FONTS.forEach(f=>{
+    const score=(DL_COUNTS[f.id]||f.downloads||0)+(f.popular||0);
+    (f.tags||[]).forEach(t=>{tagScore[t]=(tagScore[t]||0)+score;});
+  });
+  const allTagsW=[...new Set(FONTS.flatMap(f=>f.tags))]
+    .sort((a,b)=>(tagScore[b]||0)-(tagScore[a]||0))
+    .slice(0,16);
   const ttwEl=document.getElementById('trendingTagsWidget');
   ttwEl.innerHTML=allTagsW.map(t=>`
     <span data-tag="${esc(t)}" onclick="(function(el){const t=el.dataset.tag;showGrid();document.getElementById('searchInput').value=t;searchTerm=t.toLowerCase();renderFonts();showToast('&quot;'+t+'&quot; fonts');})(this)"
@@ -9389,7 +9487,13 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 function closeSubmitOutside(e){if(e.target===document.getElementById('submitModal'))closeSubmit();}
 async function submitFont(){
-  if(!currentUser){closeSubmit();openAuthModal('login');showToast('? Please sign up or sign in to submit a font');return;}
+  if(!currentUser){closeSubmit();openAuthModal('login');showToast('⚠ Please sign up or sign in to submit a font');return;}
+  // Email doğrulanmamışsa submit-i blokla (OAuth login-lər həmişə verified sayılır)
+  if(currentUser.emailVerified === false){
+    showToast('⚠ Please verify your email before submitting a font. Check your inbox.');
+    showEmailVerifyBanner();
+    return;
+  }
   const name=document.getElementById('sf-name').value.trim();
   const author=document.getElementById('sf-author').value.trim();
   const cat=document.getElementById('sf-cat').value;
@@ -9398,12 +9502,15 @@ async function submitFont(){
   const description=(document.getElementById('sf-description')?.value||'').trim();
   if(!name||!author||!cat||!license){showToast('? Please fill in all required fields');return;}
   let id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-  // ID artiq mövcuddursa suffix ?lav? et (eyni adli font submit edil? bilsin)
+  // ID artıq mövcuddursa rəqəmli suffix əlavə et
   if(FONTS.find(f=>f.id===id)){
     let suffix=2;
     while(FONTS.find(f=>f.id===id+'-'+suffix)) suffix++;
     id=id+'-'+suffix;
   }
+  // Qeyd: timestamp artıq əlavə edilmir. Eyni adlı fontu iki dəfə submit etmək
+  // yuxarıdakı suffix məntiqi ilə idarə olunur. Firestore-da race condition
+  // setDoc-dan əvvəl getDoc ilə mövcudluq yoxlanılması ilə önlənir.
   const gfamily=name.replace(/\s+/g,'+');
   const tagsRaw=document.getElementById('sf-tags').value.trim();
   const year=parseInt(document.getElementById('sf-year').value)||new Date().getFullYear();
@@ -9436,7 +9543,7 @@ async function submitFont(){
       if(!font.detectedLangs.length) font.detectedLangs=['Latin'];
       _LANG_CACHE[font.id]=font.detectedLangs;
     }
-    // Add to runtime FONTS (current user sees it, getFiltered will restrict to submitter)
+    // Add to runtime FONTS (current user sees it immediately)
     FONTS.push(font);
     DL_COUNTS[font.id]=0;
     // Inject font face immediately for current session
@@ -9445,52 +9552,62 @@ async function submitFont(){
       else if(font.fontData) injectCustomFontFace(font.id,font.name,font.fontData,font.fontExt||'.ttf');
       else if(font.fontUrl) injectCustomFontFaceUrl(font.id,font.name,font.fontUrl,font.fontExt||'.ttf');
     }
-    // Save to localStorage - store fontData separately to avoid 5MB limit on tv_submitted
-    // font.pending bu nöqt?d? düzgün set edilib (PHP ugurlu ? false, yoxsa ? true)
+    // Storage obyektini hazırla (binary-siz)
     const fontForStorage={...font};
-    // ?min ol ki fontUrl/fontData olan fontlar pending deyil
     if(fontForStorage.fontUrl || fontForStorage.fontData){
       fontForStorage.pending=false;
       fontForStorage.status='approved';
       if(!fontForStorage.approvedAt) fontForStorage.approvedAt=new Date().toISOString();
     }
+    // fontData-nı ayrı saxla (5MB limit)
     if(font.fontData){
-      // Store binary separately so tv_submitted stays small
       try{localStorage.setItem('fn_fontdata_'+font.id, font.fontData);}catch(e){console.warn('fontData storage failed (quota?):',e);}
       delete fontForStorage.fontData;
-      fontForStorage._hasFontData=true; // flag so syncSubmittedFonts can reload it
+      fontForStorage._hasFontData=true;
     }
-    if(font.fontUrl) delete fontForStorage.fontData; // don't double-store binary
-    try{const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");sub.push(fontForStorage);localStorage.setItem("tv_submitted",JSON.stringify(sub));}catch(e){}
-    // Font fayli olan fontlar approved-dur, admin queue lazim deyil
-    if(!font.fontUrl && !font.fontData){
-      try{const reqs=getAdminRequests();reqs.push({...fontForStorage,requestType:'add'});saveAdminRequests(reqs);}catch(e){}
-    }
-    // Save to Firestore if available
+    if(font.fontUrl) delete fontForStorage.fontData;
+
+    // ── PRIMARY: Firestore ──────────────────────────────────────────────────
+    // Firebase mövcuddursa əvvəlcə Firestore-a yaz; localStorage yalnız
+    // offline/fallback cache rolunu oynayır. Fərqli brauzer/cihazdan adminlər
+    // yalnız Firestore-dakı fontu görə bilər.
+    let savedToFirestore = false;
     if(window._fbFns && window._fbDb){
       const {doc, setDoc, getDoc} = window._fbFns;
       const db = window._fbDb;
       const cloudFont={...fontForStorage};
-      delete cloudFont.fontData; // never store base64 in Firestore
-      // Font fayli varsa Firestore-da da approved olsun
+      delete cloudFont.fontData;
       if(cloudFont.fontUrl){ cloudFont.pending=false; cloudFont.status='approved'; }
-      // Check Firestore for existing doc to prevent overwrite attacks
       try{
         const existing = await getDoc(doc(db,'submitted_fonts',font.id));
         if(existing.exists()){
           console.warn('submitFont: font ID already exists in Firestore, skipping write:', font.id);
-          // Mövcuddursa update et - fontUrl d?yismis ola bil?r
-          await setDoc(doc(db,'submitted_fonts',font.id), cloudFont);
-          console.log('? Firestore updated:', font.id);
+          savedToFirestore = true; // mövcuddur, yazma tələb olunmur
         } else {
           await setDoc(doc(db,'submitted_fonts',font.id), cloudFont);
-          console.log('? Firestore created:', font.id, 'pending:', cloudFont.pending, 'fontUrl:', cloudFont.fontUrl);
+          savedToFirestore = true;
+          console.log('✅ Firestore primary save:', font.id, 'pending:', cloudFont.pending);
         }
-      }catch(e){ 
-        console.warn('Firestore submitFont error (font saved locally):', e.message);
-        // Firestore yazma xetasi olsa bele font localStorage-da var - istifadeciye xeta gosterme
-        if(!font.fontData && !font.fontUrl) showToast('⚠ Font saxlanildi amma cloud sync olmadi: '+e.message);
+      }catch(e){
+        console.warn('Firestore submitFont error, falling back to localStorage:', e.message);
+        showToast('⚠ Cloud sync olmadı, lokal saxlandı. Internet bərpasında yenidən cəhd olunacaq.');
       }
+    }
+
+    // ── FALLBACK: localStorage ──────────────────────────────────────────────
+    // Həmişə local cache-ə yaz: cari sessiya üçün + Firestore offline olduqda
+    try{
+      const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
+      // Mövcuddursa update et, yoxsa əlavə et
+      const existIdx=sub.findIndex(x=>x.id===fontForStorage.id);
+      if(existIdx>=0) sub[existIdx]={...sub[existIdx],...fontForStorage};
+      else sub.push(fontForStorage);
+      localStorage.setItem("tv_submitted",JSON.stringify(sub));
+    }catch(e){console.warn('localStorage fallback save error:',e);}
+
+    // Admin queue — yalnız Firebase yoxdursa (tam offline vəziyyət)
+    if(!font.fontUrl && !font.fontData && !savedToFirestore){
+      try{const reqs=getAdminRequests();reqs.push({...fontForStorage,requestType:'add'});saveAdminRequests(reqs);}catch(e){}
     }
     ['sf-name','sf-author','sf-tags','sf-year','sf-url','sf-description'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
     const sfBox=document.getElementById('sf-tags-box');
@@ -9514,25 +9631,17 @@ async function submitFont(){
       const fd=uploadedFontFiles[i];
       newFont.gfamily = null;
       if(submitBtn) submitBtn.textContent=`Uploading ${i+1}/${uploadedFontFiles.length}.`;
-      // Firebase Storage Rules konfiqurasiya edilməyibsə upload donur.
-      // dataUrl həmişə mövcuddur - onu birbaşa işlət; Storage Rules düzəldikdə
-      // aşağıdakı bloku aktivləşdir.
-      if(fd.dataUrl){
-        fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
-        console.log('✅ Local dataUrl used for:', fd.name);
-      }
-      /* --- Storage upload (Storage Rules konfiqurasiya edildikdən sonra bunu işlət) ---
       try{
         const fRef2=window._fbStorageRef(window._fbStorage,'fonts/'+(newFont.id+(i>0?('_'+i):'')+fd.ext));
         await window._fbUploadBytes(fRef2, fd.file);
         const url2=await window._fbGetDownloadURL(fRef2);
         fontVariants.push({url:url2, ext:fd.ext, name:fd.name});
         if(!primaryUrl){ primaryUrl=url2; primaryExt=fd.ext; primaryName=null; }
+        console.log('✅ Firebase Storage upload ok:', fd.name);
       }catch(e){
-        console.warn('Storage failed:', e.message);
+        console.warn('Storage upload failed, falling back to dataUrl:', e.message);
         if(fd.dataUrl) fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
       }
-      --- **/
     }
     // dataUrl fallback - PHP upload isl?m?dikd? uploadedFontFiles-dan variant qur
     if(!fontVariants.length && uploadedFontFiles.length>0){
@@ -12111,6 +12220,12 @@ async function _dfSubmitToFirestore(font) {
   // Global keyboard shortcuts
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape'){
+      // Pair modal açıqdırsa bağla
+      var pm = document.getElementById('pairModal');
+      if(pm && pm.style.opacity === '1'){
+        if(typeof closePairModal === 'function') closePairModal();
+        return;
+      }
       // Font detail açıqdırsa bağla
       var fdp = document.getElementById('fontDetailPage');
       if(fdp && fdp.classList.contains('visible')){
