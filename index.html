@@ -8365,11 +8365,11 @@ function setPvMode(mode,btn){
   const isOverlay = mode==='imgoverlay';
   document.getElementById('pvCanvas').style.display = isOverlay ? 'none' : '';
   document.getElementById('pvImgOverlayPanel').style.display = isOverlay ? 'flex' : 'none';
-  document.getElementById('pvTopRow').style.display = (mode==='waterfall'||mode==='description'||isOverlay) ? 'none' : 'flex';
+  document.getElementById('pvTopRow').style.display = (mode==='waterfall'||isOverlay) ? 'none' : 'flex';
   document.getElementById('pvTopRow').previousElementSibling && null; // style-bar stays visible
-  // hide style bar for overlay/description mode (no controls needed)
+  // hide style bar for overlay mode (has its own controls)
   const styleBar = document.querySelector('.pv-style-bar');
-  if(styleBar) styleBar.style.display = (isOverlay||mode==='description') ? 'none' : '';
+  if(styleBar) styleBar.style.display = isOverlay ? 'none' : '';
   if(!isOverlay) renderPvCanvas();
   else pvUpdateOverlay();
 }
