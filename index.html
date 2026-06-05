@@ -7893,29 +7893,29 @@ function _canvasTestChar(fontName, weight, char) {
 }
 
 const CANVAS_SCRIPT_TESTS = [
-  { subset:'latin',      char:'A',  count:100 },
-  { subset:'latin-ext',  char:'?',  count:200 },
-  { subset:'cyrillic',   char:'?',  count:9   },
-  { subset:'greek',      char:'?',  count:2   },
-  { subset:'arabic',     char:'?',  count:25  },
-  { subset:'hebrew',     char:'?',  count:3   },
-  { subset:'devanagari', char:'?',  count:120 },
-  { subset:'thai',       char:'?',  count:1   },
-  { subset:'georgian',   char:'?',  count:1   },
-  { subset:'armenian',   char:'?',  count:1   },
-  { subset:'bengali',    char:'?',  count:1   },
-  { subset:'gujarati',   char:'?',  count:1   },
-  { subset:'tamil',      char:'?',  count:1   },
-  { subset:'telugu',     char:'?',  count:1   },
-  { subset:'kannada',    char:'?',  count:1   },
-  { subset:'malayalam',  char:'?',  count:1   },
-  { subset:'myanmar',    char:'?',  count:1   },
-  { subset:'khmer',      char:'?',  count:1   },
-  { subset:'ethiopic',   char:'?',  count:1   },
-  { subset:'vietnamese', char:'?',  count:1   },
-  { subset:'mongolian',  char:'?',  count:1   },
-  { subset:'japanese',   char:'?',  count:1   },
-  { subset:'korean',     char:'?',  count:1   },
+  { subset:'latin',      char:'A',       count:100 },
+  { subset:'latin-ext',  char:'À',  count:200 },
+  { subset:'cyrillic',   char:'А',  count:9   },
+  { subset:'greek',      char:'α',  count:2   },
+  { subset:'arabic',     char:'ب',  count:25  },
+  { subset:'hebrew',     char:'א',  count:3   },
+  { subset:'devanagari', char:'अ',  count:120 },
+  { subset:'thai',       char:'ก',  count:1   },
+  { subset:'georgian',   char:'ა',  count:1   },
+  { subset:'armenian',   char:'Ա',  count:1   },
+  { subset:'bengali',    char:'অ',  count:1   },
+  { subset:'gujarati',   char:'અ',  count:1   },
+  { subset:'tamil',      char:'அ',  count:1   },
+  { subset:'telugu',     char:'అ',  count:1   },
+  { subset:'kannada',    char:'ಅ',  count:1   },
+  { subset:'malayalam',  char:'അ',  count:1   },
+  { subset:'myanmar',    char:'က',  count:1   },
+  { subset:'khmer',      char:'ក',  count:1   },
+  { subset:'ethiopic',   char:'ሀ',  count:1   },
+  { subset:'vietnamese', char:'Ạ',  count:1   },
+  { subset:'mongolian',  char:'ᠠ',  count:1   },
+  { subset:'japanese',   char:'あ',  count:1   },
+  { subset:'korean',     char:'가',  count:1   },
 ];
 
 async function detectFontLangCount(font) {
@@ -8514,7 +8514,9 @@ function renderCharmapLangBadges(font){
       const ok=supported.includes(lang.label);
       const pill=document.createElement('span');
       pill.style.cssText=`display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:980px;font-size:10px;font-weight:600;letter-spacing:.02em;font-family:var(--sans);border:1px solid;transition:opacity .2s;${ok?`background:${lang.color}18;color:${lang.color};border-color:${lang.color}30`:'background:var(--surface3);color:var(--text3);border-color:var(--border);opacity:0.55'}`;
-      pill.innerHTML=`<span style="font-size:9px">${ok?'?':'-'}</span>${lang.label}`;
+      pill.innerHTML=ok
+        ? `<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>${lang.label}`
+        : `<span style="font-size:9px;opacity:.6">–</span>${lang.label}`;
       pill.title=`${lang.label}: ${ok?'Supported':'Not detected'}`;
       container.appendChild(pill);
     });
