@@ -3428,6 +3428,7 @@ input[type=range]::-moz-range-progress {
           <button class="pv-mode-tab" onclick="setPvMode('paragraph',this)">Paragraph</button>
           <button class="pv-mode-tab" onclick="setPvMode('pairs',this)">Heading + Body</button>
           <button class="pv-mode-tab" onclick="setPvMode('stress',this)">Stress Test</button>
+          <button class="pv-mode-tab" onclick="setPvMode('description',this)">Description</button>
         </div>
         <div class="pv-top-row" id="pvTopRow">
           <input type="text" class="pv-text-input" id="fdpPvInput" placeholder="Type preview text." oninput="renderPvCanvas()">
@@ -8345,6 +8346,16 @@ function renderPvCanvas(){
         <div class="pv-stress-label" style="color:${pvTextColor}">${r.label}</div>
         <div class="pv-stress-chars" style="${bs}font-size:${stressSize}px">${r.chars}</div>
       </div>`).join('')}</div>`;
+  } else if(pvMode==='description'){
+    const descText = font.description || '';
+    const sepColor = pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+    const subColor = pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)';
+    canvas.innerHTML = descText
+      ? `<div style="padding:24px 28px;display:flex;flex-direction:column;gap:16px;width:100%;box-sizing:border-box">
+          <div style="font-family:var(--sans);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${subColor}">About this font</div>
+          <div style="${bs}font-size:${Math.max(14,Math.min(sz,28))}px;line-height:1.65;text-align:${pvAlign};word-break:break-word;border-top:1px solid ${sepColor};padding-top:16px">${esc(descText)}</div>
+        </div>`
+      : `<div style="padding:32px 28px;font-family:var(--sans);font-size:13px;color:${subColor};font-style:italic">No description available for this font.</div>`;
   }
 }
 
@@ -8354,11 +8365,11 @@ function setPvMode(mode,btn){
   const isOverlay = mode==='imgoverlay';
   document.getElementById('pvCanvas').style.display = isOverlay ? 'none' : '';
   document.getElementById('pvImgOverlayPanel').style.display = isOverlay ? 'flex' : 'none';
-  document.getElementById('pvTopRow').style.display = (mode==='waterfall'||isOverlay) ? 'none' : 'flex';
+  document.getElementById('pvTopRow').style.display = (mode==='waterfall'||mode==='description'||isOverlay) ? 'none' : 'flex';
   document.getElementById('pvTopRow').previousElementSibling && null; // style-bar stays visible
-  // hide style bar for overlay mode (has its own controls)
+  // hide style bar for overlay/description mode (no controls needed)
   const styleBar = document.querySelector('.pv-style-bar');
-  if(styleBar) styleBar.style.display = isOverlay ? 'none' : '';
+  if(styleBar) styleBar.style.display = (isOverlay||mode==='description') ? 'none' : '';
   if(!isOverlay) renderPvCanvas();
   else pvUpdateOverlay();
 }
