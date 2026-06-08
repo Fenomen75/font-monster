@@ -9613,7 +9613,7 @@ function closeSubmitOutside(e){if(e.target===document.getElementById('submitModa
 async function submitFont(){
   if(!currentUser){closeSubmit();openAuthModal('login');showToast('⚠ Please sign up or sign in to submit a font');return;}
   // Email doğrulanmamışsa submit-i blokla (OAuth login-lər həmişə verified sayılır)
-  if(currentUser.emailVerified === false){
+  if(currentUser.emailVerified !== true){
     showToast('⚠ Please verify your email before submitting a font. Check your inbox.');
     showEmailVerifyBanner();
     return;
