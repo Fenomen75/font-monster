@@ -6411,7 +6411,7 @@ function renderMyFontsTab(){
     const hasPendingEdit=adminReqs.some(r=>r.id===f.id&&r.requestType==='edit');
     const statusColor=isPending?'var(--orange)':'var(--green)';
     const statusBg=isPending?'var(--orange-dim)':'var(--green-dim)';
-    const statusLabel=isPending?'? Pending Review':'? Approved';
+    const statusLabel=isPending?'🕐 Pending Review':'✅ Approved';
     const statusExtra=!isPending&&f.approvedAt?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Approved ${new Date(f.approvedAt).toLocaleDateString()}</div>`
       :(isPending?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Submitted ${f.submittedAt?new Date(f.submittedAt).toLocaleDateString():'recently'} · Awaiting admin review</div>`:'')
     if(!f.previewImg) loadFont(f);
@@ -6444,14 +6444,14 @@ function renderMyFontsTab(){
           color:${hasPendingEdit?'var(--orange)':'var(--text2)'};
           cursor:pointer;transition:all .15s;font-family:var(--sans);letter-spacing:-0.01em;
         " onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='${hasPendingEdit?'rgba(255,149,0,0.4)':'var(--border2)'}';this.style.color='${hasPendingEdit?'var(--orange)':'var(--text2)'}'">
-          ? Edit${hasPendingEdit?' (pending)':''}
+          ✏️ Edit${hasPendingEdit?' (pending)':''}
         </button>
         <button onclick="deleteMyFont('${f.id}')" style="
           padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;
           background:var(--surface3);border:1px solid var(--border2);color:var(--text3);
           cursor:pointer;transition:all .15s;font-family:var(--sans);letter-spacing:-0.01em;
         " onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">
-          ? Delete
+          🗑️ Delete
         </button>
       </div>
     </div>`;
@@ -6608,9 +6608,7 @@ async function saveEditFont(){
     sourceUrl:document.getElementById('ef-url').value.trim(),
     description:(document.getElementById('ef-description')?.value||'').trim(),
     ...(yearVal?{year:parseInt(yearVal)}:{}),
-    ...(  _efImgData            ? {previewImg: _efImgData}
-         : _efImgRemoved        ? {previewImg: null}
-         :                        {})
+    ...(_efImgData ? {previewImg:_efImgData} : _efImgRemoved ? {previewImg:null} : {})
   };
   if(!updates.name||!updates.author||!updates.cat||!updates.license){showToast('? Please fill in all required fields');return;}
   // Font fayli varsa PHP-y? yükl?
@@ -6641,14 +6639,15 @@ async function saveEditFont(){
   }
   let sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
   const idx=sub.findIndex(f=>f.id===id);
-  if(idx<0){showToast('⚠ Font not found');return;}
 
   // Admin direct edit - bypass approval queue
   if(window._adminDirectEditId===id){
     window._adminDirectEditId=null;
     // Update in tv_submitted if exists, otherwise insert
     if(idx>=0){
-      sub[idx]={...sub[idx],...updates,adminEditedAt:new Date().toISOString()};
+      // Şəkil silindisə null yaz, yoxsa köhnəni qoru
+      if(updates.previewImg===null) sub[idx]={...sub[idx],...updates,previewImg:null,adminEditedAt:new Date().toISOString()};
+      else sub[idx]={...sub[idx],...updates,adminEditedAt:new Date().toISOString()};
     } else {
       // Built-in font - add an override entry to tv_submitted
       const fi=FONTS.find(f=>f.id===id);
@@ -6662,20 +6661,22 @@ async function saveEditFont(){
     _updateAdminEditsBadge();
     // Apply to runtime FONTS immediately
     const fi=FONTS.findIndex(f=>f.id===id);
-    if(fi>=0) Object.assign(FONTS[fi],updates);
+    if(fi>=0){
+      Object.assign(FONTS[fi],updates);
+      if(updates.previewImg===null) FONTS[fi].previewImg=null;
+    }
     syncSubmittedFonts();
     renderFonts();
-    // Close modal - admin panel stays visible underneath
-    document.getElementById('editFontModal').classList.remove('open');
-    window._adminPanelWasOpen=false;
-    document.body.style.overflow='hidden';
+    // Close modal
+    closeEditFont();
     _renderAdminAll();
     adminLog('edit',updates.name,'Admin direct edit');
-    showToast(`? "${updates.name}" updated`);
+    showToast(`✅ "${updates.name}" updated`);
     return;
   }
 
   // Regular user edit - send to admin queue for approval
+  if(idx<0){showToast('⚠ Font not found');return;}
   const reqs=getAdminRequests();
   const existingReqIdx=reqs.findIndex(r=>r.id===id&&r.requestType==='edit');
   const editReq={
@@ -6687,11 +6688,15 @@ async function saveEditFont(){
   };
   if(existingReqIdx>=0) reqs[existingReqIdx]=editReq;
   else reqs.push(editReq);
+  // localStorage-a dərhal tətbiq et (user öz fontunu görür)
+  if(updates.previewImg===null) sub[idx]={...sub[idx],...updates,previewImg:null};
+  else sub[idx]={...sub[idx],...updates};
+  localStorage.setItem("tv_submitted",JSON.stringify(sub));
   saveAdminRequests(reqs);
   _updateAdminEditsBadge();
   closeEditFont();
   renderMyFontsTab();
-  showToast('? Changes submitted - awaiting admin review');
+  showToast('✅ Changes submitted - awaiting admin review');
 }
 function deleteMyFont(fontId){
   if(!confirm('Delete this submitted font?')) return;
@@ -6960,7 +6965,7 @@ function _renderAdminEdits(){
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
             <span style="font-size:16px;font-weight:700;letter-spacing:-0.02em;color:var(--text)">${esc(f.name)}</span>
-            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:980px;background:var(--orange-dim);color:var(--orange)">? Edit</span>
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:980px;background:var(--orange-dim);color:var(--orange)">✏️ Edit</span>
           </div>
           <div style="font-size:12px;color:var(--text3);margin-bottom:10px">
             Submitted by: <strong style="color:var(--text2)">${esc(f.submittedByName||'-')}</strong>
@@ -7115,7 +7120,7 @@ function _renderAdminPending(){
         >
         <div id="aprev_abc_${f.id}" style="font-family:${fontFamily};font-size:14px;color:var(--text3);line-height:1.6;">ABCDEFGHIJKLM &nbsp; abcdefghijklm &nbsp; 0123456789 &nbsp; !@#$%&amp;</div>
         `}
-        <span style="position:absolute;top:16px;right:18px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:980px;background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,0.25)">? Pending</span>
+        <span style="position:absolute;top:16px;right:18px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:980px;background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,0.25)">🕐 Pending</span>
       </div>`:''}
       <div style="padding:16px 20px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
@@ -7137,7 +7142,7 @@ function _renderAdminPending(){
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;min-width:120px">
             <button onclick="adminApprove('${f.id}')" style="padding:9px 0;border-radius:9px;font-size:12px;font-weight:700;background:var(--green);border:none;color:#fff;cursor:pointer;font-family:var(--sans);width:100%;transition:filter .15s" onmouseover="this.style.filter='brightness(1.12)'" onmouseout="this.style.filter=''">✓ Approve</button>
-            <button onclick="adminEditFontDirect('${f.id}')" style="padding:9px 0;border-radius:9px;font-size:12px;font-weight:700;background:var(--accent);border:none;color:#fff;cursor:pointer;font-family:var(--sans);width:100%;transition:filter .15s" onmouseover="this.style.filter='brightness(1.12)'" onmouseout="this.style.filter=''">? Edit</button>
+            <button onclick="adminEditFontDirect('${f.id}')" style="padding:9px 0;border-radius:9px;font-size:12px;font-weight:700;background:var(--accent);border:none;color:#fff;cursor:pointer;font-family:var(--sans);width:100%;transition:filter .15s" onmouseover="this.style.filter='brightness(1.12)'" onmouseout="this.style.filter=''">✏️ Edit</button>
             <button onclick="adminReject('${f.id}',event)" style="padding:9px 0;border-radius:9px;font-size:12px;font-weight:700;background:var(--red);border:none;color:#fff;cursor:pointer;font-family:var(--sans);width:100%;transition:filter .15s" onmouseover="this.style.filter='brightness(1.12)'" onmouseout="this.style.filter=''">✕ Reject</button>
           </div>
         </div>
@@ -7185,7 +7190,7 @@ function _renderAdminAll(){
     '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(f.author||'-')+' · '+cap(f.cat||'')+' · '+(LICENSE_META[f.license]?.label||f.license||'-')+'</div>'+
     '</div>'+
     '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:980px;'+(f.pending?'background:var(--orange-dim);color:var(--orange)':'background:var(--green-dim);color:var(--green)')+'">'+( f.pending?'Pending':'Live')+'</span>'+
-    '<button onclick="adminEditFontDirect(\''+f.id+'\')" style="display:flex;align-items:center;gap:4px;background:var(--blue-dim);border:1px solid var(--border2);color:var(--accent);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s" onmouseover="this.style.filter=\'brightness(1.1)\'" onmouseout="this.style.filter=\'\'">? Edit</button>'+
+    '<button onclick="adminEditFontDirect(\''+f.id+'\')" style="display:flex;align-items:center;gap:4px;background:var(--blue-dim);border:1px solid var(--border2);color:var(--accent);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s" onmouseover="this.style.filter=\'brightness(1.1)\'" onmouseout="this.style.filter=\'\'">✏️ Edit</button>'+
     '<button onclick="adminDeleteFont(\''+f.id+'\',this)" style="display:flex;align-items:center;gap:4px;background:var(--red-dim);border:1px solid var(--border2);color:var(--red);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">🗑️ Delete</button>'+
     '</div>';
   const selStyle='background:var(--surface-solid);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);font-family:var(--sans);cursor:pointer;outline:none';
@@ -7272,7 +7277,7 @@ async function sendFontStatusEmail(fontData, status){
         to_email:  toEmail,
         to_name:   toName,
         font_name: fontName,
-        status:    isApproved ? '? Approved' : '? Rejected',
+        status:    isApproved ? '✅ Approved' : '❌ Rejected',
         status_raw: status,
         message:   isApproved
           ? `Great news! Your font "${fontName}" has been reviewed by our team and is now live on Font Monster. Thank you for your contribution!`
@@ -7374,6 +7379,7 @@ function adminEditFontDirect(fontId){
   document.getElementById('ef-url').value=f.sourceUrl||f.url||'';
   const efDescAdmin=document.getElementById('ef-description');if(efDescAdmin)efDescAdmin.value=f.description||'';
   if(f.previewImg){_efImgData=f.previewImg;_efImgRemoved=false;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
+  // Show admin notice, hide user review notice
   document.getElementById('ef-admin-notice').style.display='';
   document.getElementById('ef-user-notice').style.display='none';
   document.getElementById('ef-review-notice').style.display='none';
@@ -7550,7 +7556,7 @@ function _renderAdminTrash(){
       <div style="font-size:14px;font-weight:600;color:var(--text);letter-spacing:-0.01em;opacity:.7">${esc(f.name)}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:2px">${esc(f.author||'-')} · ${cap(f.cat||'')} · Deleted ${f.trashedAt?new Date(f.trashedAt).toLocaleDateString('en-US'):''}</div>
     </div>
-    <button onclick="adminRestoreFont('${f.id}')" style="background:var(--green-dim);border:1px solid var(--border2);color:var(--green);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">? Restore</button>
+    <button onclick="adminRestoreFont('${f.id}')" style="background:var(--green-dim);border:1px solid var(--border2);color:var(--green);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">↩️ Restore</button>
     <button onclick="adminPermanentDelete('${f.id}',this)" style="background:var(--red-dim);border:1px solid var(--border2);color:var(--red);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">Delete permanently</button>
   </div>`).join('')}
   </div>`
@@ -7858,7 +7864,7 @@ function _adminUserRow(u, subMap){
                  color:${isBanned?'var(--green)':'var(--orange)'};
                  font-size:11px;font-weight:700;cursor:pointer;font-family:var(--sans);
                  transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">
-          ${isBanned ? '? Unban' : '? Ban'}
+          ${isBanned ? '✅ Unban' : '🚫 Ban'}
         </button>
         <button onclick="_adminDeleteUser('${esc(u.uid)}','${esc(u.name||u.email||'this user')}')" title="Delete user account"
           style="padding:4px 10px;border-radius:7px;border:1px solid var(--red,#ff3b30);
@@ -9439,7 +9445,7 @@ function _initTagChip(boxId, chipsId, inputId, hiddenId, maxTags){
   function addTag(val){
     const v=val.trim().replace(/,/g,'');
     if(!v) return;
-    if(tags.length>=10){showToast("? Maximum 10 tags allowed");return;}
+    if(tags.length>=10){showToast("⚠ Maximum 10 tags allowed");return;}
     if(tags.map(t=>t.toLowerCase()).includes(v.toLowerCase())) return;
     tags.push(v.charAt(0).toUpperCase()+v.slice(1));
     renderChips();
