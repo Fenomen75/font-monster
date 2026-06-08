@@ -426,7 +426,7 @@
     }
   };
 
-  console.log('? Firebase connected - fontan-7bae4');
+  console.log('✅ Firebase connected - fontan-7bae4');
 
   // ?? Load real download counts from Firestore font_stats ??
   window.syncFontStatsFromFirestore = async function() {
@@ -444,7 +444,7 @@
         }
       });
       // DL_COUNTS updated in-place; no full re-render needed
-      console.log('? Font stats synced from Firestore');
+      console.log('✅ Font stats synced from Firestore');
     } catch(e) { console.warn('Font stats sync error:', e); }
   };
   // Call after page is settled to ensure DL_COUNTS is initialized
@@ -3968,7 +3968,7 @@ input[type=range]::-moz-range-progress {
     <div id="fdpSimilarFonts" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
   </div>
 </div>
-<div class="cmp-modal" id="compareModal">
+<div class="cmp-modal" id="compareModal" onclick="if(event.target===this)closeCompare()">
   <div class="cmp-panel">
     <div class="cmp-header">
       <div class="cmp-title">Font Comparison</div>
@@ -5858,7 +5858,7 @@ function handleDownloadClick(fontId,fontName){
   const font=FONTS.find(f=>f.id===fontId);
   if(font && font.fontVariants && font.fontVariants.length > 1){
     // Çoxlu variant - ZIP kimi yükl?
-    showToast(`? ZIP hazirlanir.`);
+    showToast(`⏳ ZIP hazirlanir.`);
     (async()=>{
       try{
         const zip=new JSZip();
@@ -5904,9 +5904,9 @@ function handleDownloadClick(fontId,fontName){
     a.download=fontName.replace(/\s+/g,'_')+ext;
     if(font.fontUrl) a.target='_blank';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
-    showToast(`? Downloading ${fontName}${ext}.`);
+    showToast(`⬇️ Downloading ${fontName}${ext}.`);
   } else {
-    showToast(`? Downloading ${fontName}.`);
+    showToast(`⬇️ Downloading ${fontName}.`);
   }
   if(window.fbIncrementDownload) window.fbIncrementDownload(fontId).catch(()=>{});
   // DL_COUNTS already incremented by incrementDownload() above â do NOT increment again here
@@ -6219,7 +6219,7 @@ async function resendVerificationEmail(){
   const btn=document.getElementById('resendVerifyBtn');
   if(!btn) return;
   const fbUser = window._fbAuth && window._fbAuth.currentUser;
-  if(!fbUser){showToast('? Error: user not found');return;}
+  if(!fbUser){showToast('❌ Error: user not found');return;}
   btn.textContent='Sending.';btn.disabled=true;
   try{
     const { sendEmailVerification } = window._fbFns;
@@ -6228,7 +6228,7 @@ async function resendVerificationEmail(){
     btn.textContent='✓ Sent';
     setTimeout(()=>{btn.textContent='Resend Email';btn.disabled=false;},4000);
   }catch(e){
-    showToast('? Error: '+e.message);
+    showToast('❌ Error: '+e.message);
     btn.textContent='Resend Email';btn.disabled=false;
   }
 }
@@ -6411,7 +6411,7 @@ function renderMyFontsTab(){
     const hasPendingEdit=adminReqs.some(r=>r.id===f.id&&r.requestType==='edit');
     const statusColor=isPending?'var(--orange)':'var(--green)';
     const statusBg=isPending?'var(--orange-dim)':'var(--green-dim)';
-    const statusLabel=isPending?'🕐 Pending Review':'✅ Approved';
+    const statusLabel=isPending?'✏️ Pending Review':'✅ Approved';
     const statusExtra=!isPending&&f.approvedAt?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Approved ${new Date(f.approvedAt).toLocaleDateString()}</div>`
       :(isPending?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Submitted ${f.submittedAt?new Date(f.submittedAt).toLocaleDateString():'recently'} · Awaiting admin review</div>`:'')
     if(!f.previewImg) loadFont(f);
@@ -6471,6 +6471,14 @@ function switchProfileTab(tab){
 
 function closeProfile(){
   document.getElementById('profilePage').style.display='none';
+  document.getElementById('gridLayout').style.display='';
+  document.getElementById('toolbarBar').style.display='';
+  document.getElementById('heroSection').style.display='';
+  try{ history.replaceState({page:'grid'},'','/'); }catch(e){}
+  syncUrl(true);
+  renderFonts();
+  if(typeof window._restoreGridScroll==='function') window._restoreGridScroll();
+  updatePageMeta({title:'Font·Monster - Free Font Discovery',url:'/'});
 }
 
 // ?? EDIT FONT - file/image helpers ??
@@ -6488,7 +6496,7 @@ let _efFileList=[];
 function _applyEditFile(f){
   const fext='.'+f.name.split('.').pop().toLowerCase();
   const allowed=['.ttf','.otf','.woff','.woff2'];
-  if(!allowed.includes(fext)){showToast(`? "${f.name}" - only TTF, OTF, WOFF, WOFF2 allowed`);return;}
+  if(!allowed.includes(fext)){showToast(`✅ "${f.name}" - only TTF, OTF, WOFF, WOFF2 allowed`);return;}
   if(f.size>20*1024*1024){showToast('⚠ Font file too large - max 20 MB');return;}
   if(_efFileList.find(x=>x.name===f.name)){showToast(`"${f.name}" already added`);return;}
   const r=new FileReader();
@@ -6536,11 +6544,12 @@ function clearEditFile(){
 }
 function handleEditImgSelect(inp){
   const f=inp.files[0];if(!f)return;
-  if(!f.type.startsWith('image/')){showToast('? Only image files allowed');inp.value='';return;}
+  if(!f.type.startsWith('image/')){showToast('⚠️ Only image files allowed');inp.value='';return;}
   if(f.size>3*1024*1024){showToast('⚠ Your image is too large - please use an image under 3 MB');inp.value='';return;}
   const r=new FileReader();
   r.onload=ev=>{
     _efImgData=ev.target.result;
+    _efImgRemoved=false;
     document.getElementById('efImgThumb').src=_efImgData;
     document.getElementById('efImgPlaceholder').style.display='none';
     document.getElementById('efImgPreview').style.display='block';
@@ -6578,7 +6587,7 @@ function openEditFont(fontId){
   setTimeout(()=>_setTagChipValues('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',f.tags||[]),50);
   document.getElementById('ef-url').value=f.sourceUrl||'';
   const efDesc=document.getElementById('ef-description');if(efDesc)efDesc.value=f.description||'';
-  if(f.previewImg){_efImgData=f.previewImg;_efImgRemoved=false;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
+  if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
   document.getElementById('ef-admin-notice').style.display='none';
   document.getElementById('ef-user-notice').style.display='';
   document.getElementById('ef-review-notice').style.display='flex';
@@ -6608,9 +6617,9 @@ async function saveEditFont(){
     sourceUrl:document.getElementById('ef-url').value.trim(),
     description:(document.getElementById('ef-description')?.value||'').trim(),
     ...(yearVal?{year:parseInt(yearVal)}:{}),
-    ...(_efImgData ? {previewImg:_efImgData} : _efImgRemoved ? {previewImg:null} : {})
+    ...(_efImgData?{previewImg:_efImgData}:(_efImgRemoved?{previewImg:''}:{}))
   };
-  if(!updates.name||!updates.author||!updates.cat||!updates.license){showToast('? Please fill in all required fields');return;}
+  if(!updates.name||!updates.author||!updates.cat||!updates.license){showToast('⚠️ Please fill in all required fields');return;}
   // Font fayli varsa PHP-y? yükl?
   if(_efFileList.length > 0){
     const saveBtn=document.querySelector('#editFontModal .submit-btn');
@@ -6639,15 +6648,14 @@ async function saveEditFont(){
   }
   let sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
   const idx=sub.findIndex(f=>f.id===id);
+  if(idx<0){showToast('⚠️ Font not found'); closeEditFont(); return;}
 
   // Admin direct edit - bypass approval queue
   if(window._adminDirectEditId===id){
     window._adminDirectEditId=null;
     // Update in tv_submitted if exists, otherwise insert
     if(idx>=0){
-      // Şəkil silindisə null yaz, yoxsa köhnəni qoru
-      if(updates.previewImg===null) sub[idx]={...sub[idx],...updates,previewImg:null,adminEditedAt:new Date().toISOString()};
-      else sub[idx]={...sub[idx],...updates,adminEditedAt:new Date().toISOString()};
+      sub[idx]={...sub[idx],...updates,adminEditedAt:new Date().toISOString()};
     } else {
       // Built-in font - add an override entry to tv_submitted
       const fi=FONTS.find(f=>f.id===id);
@@ -6661,14 +6669,13 @@ async function saveEditFont(){
     _updateAdminEditsBadge();
     // Apply to runtime FONTS immediately
     const fi=FONTS.findIndex(f=>f.id===id);
-    if(fi>=0){
-      Object.assign(FONTS[fi],updates);
-      if(updates.previewImg===null) FONTS[fi].previewImg=null;
-    }
+    if(fi>=0) Object.assign(FONTS[fi],updates);
     syncSubmittedFonts();
     renderFonts();
-    // Close modal
-    closeEditFont();
+    // Close modal - admin panel stays visible underneath
+    document.getElementById('editFontModal').classList.remove('open');
+    window._adminPanelWasOpen=false;
+    document.body.style.overflow='hidden';
     _renderAdminAll();
     adminLog('edit',updates.name,'Admin direct edit');
     showToast(`✅ "${updates.name}" updated`);
@@ -6676,7 +6683,6 @@ async function saveEditFont(){
   }
 
   // Regular user edit - send to admin queue for approval
-  if(idx<0){showToast('⚠ Font not found');return;}
   const reqs=getAdminRequests();
   const existingReqIdx=reqs.findIndex(r=>r.id===id&&r.requestType==='edit');
   const editReq={
@@ -6688,10 +6694,6 @@ async function saveEditFont(){
   };
   if(existingReqIdx>=0) reqs[existingReqIdx]=editReq;
   else reqs.push(editReq);
-  // localStorage-a dərhal tətbiq et (user öz fontunu görür)
-  if(updates.previewImg===null) sub[idx]={...sub[idx],...updates,previewImg:null};
-  else sub[idx]={...sub[idx],...updates};
-  localStorage.setItem("tv_submitted",JSON.stringify(sub));
   saveAdminRequests(reqs);
   _updateAdminEditsBadge();
   closeEditFont();
@@ -6721,7 +6723,7 @@ function deleteMyFont(fontId){
 
 // ?? MODERATOR PANEL ??????????????????????????????????????????????????????????
 function openModPanel(){
-  if(!_isModerator(currentUser)){ showToast('? Access denied'); return; }
+  if(!_isModerator(currentUser)){ showToast('🚫 Access denied'); return; }
   const overlay=document.getElementById('modPanelOverlay');
   const drawer=document.getElementById('modPanelDrawer');
   overlay.style.display='flex';
@@ -6738,14 +6740,20 @@ function openModPanel(){
   });
   _renderModPanel();
 }
-function closeModPanel(){
+function closeModPanel(skipHistory){
   const overlay=document.getElementById('modPanelOverlay');
   const drawer=document.getElementById('modPanelDrawer');
   overlay.style.background='rgba(0,0,0,0)';
   overlay.style.backdropFilter='blur(0px)';
   drawer.style.transform='translate(-50%,-50%) scale(0.96)';
   drawer.style.opacity='0';
-  setTimeout(()=>{ overlay.style.display='none'; document.body.style.overflow=''; },300);
+  if(skipHistory){
+    // popstate-dən çağırılıb — dərhal overflow sıfırla
+    document.body.style.overflow='';
+    setTimeout(()=>{ overlay.style.display='none'; },300);
+  } else {
+    setTimeout(()=>{ overlay.style.display='none'; document.body.style.overflow=''; },300);
+  }
 }
 function _renderModPanel(){
   if(!_isModerator(currentUser)){ return; }
@@ -6804,7 +6812,7 @@ function _drawModPending(content, pending){
     </div>`;
 }
 function _modApprove(fontId){
-  if(!_isModerator(currentUser)){ showToast('? Access denied'); return; }
+  if(!_isModerator(currentUser)){ showToast('🚫 Access denied'); return; }
   // Call adminApprove which handles localStorage + Firestore + renderFonts
   adminApprove(fontId);
   // Remove row from mod panel immediately
@@ -6823,7 +6831,7 @@ function _modApprove(fontId){
   }, 250);
 }
 function _modReject(fontId, btn){
-  if(!_isModerator(currentUser)){ showToast('? Access denied'); return; }
+  if(!_isModerator(currentUser)){ showToast('🚫 Access denied'); return; }
   if(btn.dataset.confirm!=='yes'){
     btn.textContent='Are you sure?';
     btn.dataset.confirm='yes';
@@ -6853,7 +6861,7 @@ let _adminActiveTab='pending';
 function openAdminPanel(){
   // ?? SECURITY: server-side guard via Firestore Rules; client guard as extra layer ??
   if(!_isAdmin(currentUser)){
-    showToast('? Access denied');
+    showToast('🚫 Access denied');
     return;
   }
   const overlay=document.getElementById('adminPanelOverlay');
@@ -6885,11 +6893,14 @@ function closeAdminPanel(skipHistory){
   overlay.style.backdropFilter='blur(0px)';
   drawer.style.transform='translate(-50%,-50%) scale(0.96)';
   drawer.style.opacity='0';
-  setTimeout(()=>{
-    overlay.style.display='none';
+  if(skipHistory){
+    // popstate-dən çağırılıb — yeni view render olmazdan əvvəl dərhal overflow sıfırla
     document.body.style.overflow='';
-  },300);
-  if(!skipHistory && location.pathname==='/admin' && history.state && history.state.page==='admin') history.back();
+    setTimeout(()=>{ overlay.style.display='none'; },300);
+  } else {
+    setTimeout(()=>{ overlay.style.display='none'; document.body.style.overflow=''; },300);
+    if(location.pathname==='/admin' && history.state && history.state.page==='admin') history.back();
+  }
 }
 function _adminGoToFont(fontId){
   // Admin paneli bağla (history.back() olmadan)
@@ -7009,12 +7020,12 @@ function adminApproveEdit(fontId){
   _renderAdminEdits();
   _updateAdminEditsBadge();
   adminLog('edit',req.name,'Edit approved');
-  showToast(`? "${req.name}" edit approved!`);
+  showToast(`✅ "${req.name}" edit approved!`);
   // ?? Email bildirisi gönd?r ??
   sendFontStatusEmail({...req, name: req.name+' (Redakt?)'}, 'approved');
 }
 function adminRejectEdit(fontId,btn){
-  if(!_isAdmin(currentUser)){ showToast('? Access denied'); return; }
+  if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
   if(btn.dataset.confirmReject!=='yes'){
     btn.textContent='Are you sure?';
     btn.dataset.confirmReject='yes';
@@ -7038,7 +7049,7 @@ function adminRejectEdit(fontId,btn){
   _renderAdminEdits();
   _updateAdminEditsBadge();
   adminLog('reject',name,'Edit rejected');
-  showToast(`? "${name}" edit rejected`);
+  showToast(`✅ "${name}" edit rejected`);
   // ?? Email bildirisi gönd?r ??
   sendFontStatusEmail({...rejectedEditFont, name: name+' (Redakt?)'}, 'rejected');
 }
@@ -7120,7 +7131,7 @@ function _renderAdminPending(){
         >
         <div id="aprev_abc_${f.id}" style="font-family:${fontFamily};font-size:14px;color:var(--text3);line-height:1.6;">ABCDEFGHIJKLM &nbsp; abcdefghijklm &nbsp; 0123456789 &nbsp; !@#$%&amp;</div>
         `}
-        <span style="position:absolute;top:16px;right:18px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:980px;background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,0.25)">🕐 Pending</span>
+        <span style="position:absolute;top:16px;right:18px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:980px;background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,0.25)">⏳ Pending</span>
       </div>`:''}
       <div style="padding:16px 20px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
@@ -7293,7 +7304,7 @@ async function sendFontStatusEmail(fontData, status){
 // ????????????????????????????????????????????????????????????????????????????
 
 function adminApprove(fontId){
-  if(!_isAdmin(currentUser) && !currentUser?.isModerator){ showToast('? Access denied'); return; }
+  if(!_isAdmin(currentUser) && !currentUser?.isModerator){ showToast('🚫 Access denied'); return; }
   let sub=_allSub();
   const idx=sub.findIndex(f=>f.id===fontId);
   if(idx<0) return;
@@ -7314,13 +7325,13 @@ function adminApprove(fontId){
   renderFonts();
   _renderAdminPending();
   adminLog('approve',fontName,'Approved submission');
-  showToast(`? "${fontName}" approved!`);
+  showToast(`✅ "${fontName}" approved!`);
   // ?? Email bildirisi gönd?r ??
   const approvedFont = sub[idx] || {id:fontId,name:fontName};
   sendFontStatusEmail(approvedFont, 'approved');
 }
 function adminReject(fontId,ev){
-  if(!_isAdmin(currentUser) && !currentUser?.isModerator){ showToast('? Access denied'); return; }
+  if(!_isAdmin(currentUser) && !currentUser?.isModerator){ showToast('🚫 Access denied'); return; }
   let sub=_allSub();
   const f=sub.find(x=>x.id===fontId);
   if(!f) return;
@@ -7378,7 +7389,7 @@ function adminEditFontDirect(fontId){
   document.getElementById('ef-tags').value=(f.tags||[]).join(', ');
   document.getElementById('ef-url').value=f.sourceUrl||f.url||'';
   const efDescAdmin=document.getElementById('ef-description');if(efDescAdmin)efDescAdmin.value=f.description||'';
-  if(f.previewImg){_efImgData=f.previewImg;_efImgRemoved=false;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
+  if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
   // Show admin notice, hide user review notice
   document.getElementById('ef-admin-notice').style.display='';
   document.getElementById('ef-user-notice').style.display='none';
@@ -7400,7 +7411,7 @@ function _updateTrashBadge(){
   badge.style.display=count>0?'inline-flex':'none';
 }
 function adminDeleteFont(fontId,btn){
-  if(!_isAdmin(currentUser)){ showToast('? Access denied'); return; }
+  if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
   // Two-step confirmation
   if(!btn||btn.dataset.confirmDelete!=='yes'){
     if(btn){
@@ -7447,7 +7458,7 @@ function adminDeleteFont(fontId,btn){
   }
 }
 function adminRestoreFont(fontId){
-  if(!_isAdmin(currentUser)){ showToast('? Access denied'); return; }
+  if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
   const trash=_getTrash();
   const f=trash.find(x=>x.id===fontId);
   if(!f) return;
@@ -7467,7 +7478,7 @@ function adminRestoreFont(fontId){
   _renderAdminTrash();
   _updateTrashBadge();
   adminLog('restore',f.name,'Restored from Trash');
-  showToast(`? "${f.name}" restored - now in Pending`);
+  showToast(`✅ "${f.name}" restored - now in Pending`);
 }
 function adminPermanentDelete(fontId,btn){
   if(!btn||btn.dataset.confirmPerm!=='yes'){
@@ -7556,7 +7567,7 @@ function _renderAdminTrash(){
       <div style="font-size:14px;font-weight:600;color:var(--text);letter-spacing:-0.01em;opacity:.7">${esc(f.name)}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:2px">${esc(f.author||'-')} · ${cap(f.cat||'')} · Deleted ${f.trashedAt?new Date(f.trashedAt).toLocaleDateString('en-US'):''}</div>
     </div>
-    <button onclick="adminRestoreFont('${f.id}')" style="background:var(--green-dim);border:1px solid var(--border2);color:var(--green);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">↩️ Restore</button>
+    <button onclick="adminRestoreFont('${f.id}')" style="background:var(--green-dim);border:1px solid var(--border2);color:var(--green);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">? Restore</button>
     <button onclick="adminPermanentDelete('${f.id}',this)" style="background:var(--red-dim);border:1px solid var(--border2);color:var(--red);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">Delete permanently</button>
   </div>`).join('')}
   </div>`
@@ -7894,7 +7905,7 @@ async function _adminToggleBan(uid, email, isBanned){
 }
 
 async function _adminToggleModerator(uid, email, isModerator){
-  if(!_isAdmin(currentUser)){ showToast('? Access denied'); return; }
+  if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
   if(!uid) return;
   const action = isModerator ? 'remove moderator from' : 'make moderator';
   if(!confirm(`Are you sure you want to ${action}:\n\n${email}\n\nModerators can approve/reject font submissions without admin panel access.`)) return;
@@ -8678,6 +8689,9 @@ function selectWeight(fontId,weight,rowEl){
 // Detail page-dən çıx — filterləri sıfırlamadan
 function closeAuthorPage(){
   document.getElementById('authorPage').style.display='none';
+  // Əgər profile üzərindən author page-ə gəlinibsə, profile-i də gizlət
+  const _pp=document.getElementById('profilePage');
+  if(_pp && _pp.style.display!=='none') _pp.style.display='none';
   document.getElementById('gridLayout').style.display='';
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
@@ -8692,6 +8706,11 @@ function closeAuthorPage(){
 function closeDetail(){
   // Scroll mövqeyini əvvəlcədən yadda saxla ki renderFonts() üstünə yazmasın
   const savedScroll = (typeof window._savedGridScroll !== 'undefined') ? window._savedGridScroll : 0;
+  // Üst-üstə açıq qalan modalları bağla
+  const _pm=document.getElementById('pairModal');
+  if(_pm&&_pm.style.opacity==='1') closePairModal();
+  const _adm=document.getElementById('adminPanelOverlay');
+  if(_adm&&_adm.style.display!=='none') closeAdminPanel(true);
   document.getElementById('gridLayout').style.display='';
   document.getElementById('fontDetailPage').classList.remove('visible');
   document.getElementById('toolbarBar').style.display='';
@@ -8744,6 +8763,11 @@ function showGrid(){
 function openAuthorPage(authorName){
   // Grid scroll mövqeyini yadda saxla
   if(typeof window._saveGridScroll === 'function') window._saveGridScroll();
+  // Açıq modalları bağla
+  const _adm=document.getElementById('adminPanelOverlay');
+  if(_adm&&_adm.style.display!=='none') closeAdminPanel(true);
+  const _mod=document.getElementById('modPanelOverlay');
+  if(_mod&&_mod.style.display!=='none') closeModPanel();
   // Hide other views
   document.getElementById('gridLayout').style.display='none';
   document.getElementById('fontDetailPage').classList.remove('visible');
@@ -9107,6 +9131,8 @@ function openDetail(fontId){
   document.getElementById('gridLayout').style.display='none';
   document.getElementById('toolbarBar').style.display='none';
   document.getElementById('heroSection').style.display='none';
+  document.getElementById('profilePage').style.display='none';
+  document.getElementById('authorPage').style.display='none';
   document.getElementById('fontDetailPage').classList.add('visible');
 
   // URL routing + title
@@ -9316,9 +9342,9 @@ function handleDragLeave(){document.getElementById('fileUploadZone').classList.r
 function handleDrop(e){e.preventDefault();document.getElementById('fileUploadZone').classList.remove('drag-over');Array.from(e.dataTransfer.files||[]).forEach(f=>processFile(f));}
 function processFile(file){
   const ext='.'+file.name.split('.').pop().toLowerCase();
-  if(!['.ttf','.otf','.woff','.woff2'].includes(ext)){showToast(`? "${file.name}" - only TTF, OTF, WOFF, WOFF2 allowed`);return;}
+  if(!['.ttf','.otf','.woff','.woff2'].includes(ext)){showToast(`✅ "${file.name}" - only TTF, OTF, WOFF, WOFF2 allowed`);return;}
   const MAX_FONT_SIZE=10*1024*1024;
-  if(file.size>MAX_FONT_SIZE){showToast(`? "${file.name}" too large - max 10 MB`);return;}
+  if(file.size>MAX_FONT_SIZE){showToast(`✅ "${file.name}" too large - max 10 MB`);return;}
   if(uploadedFontFiles.find(f=>f.name===file.name)){showToast(`"${file.name}" already added`);return;}
   const reader=new FileReader();
   reader.onload=e=>{
@@ -9351,7 +9377,7 @@ function processFile(file){
       if(uploadedFontFiles.indexOf(entry)===0){const sfEl=document.getElementById('sf-name');if(sfEl&&!sfEl.value.trim())sfEl.value=fallback;}
     }
     _renderFileList();
-    showToast(`? "${file.name}" added`);
+    showToast(`✅ "${file.name}" added`);
   };
   reader.onerror=()=>showToast(`? Could not read "${file.name}"`);
   reader.readAsDataURL(file);
@@ -9397,7 +9423,7 @@ document.getElementById('sf-license').addEventListener('change',function(){
 });
 function handleFontImgSelect(input){
   const file=input.files[0];if(!file)return;
-  if(!file.type.startsWith('image/')){showToast('? Only image files allowed');input.value='';return;}
+  if(!file.type.startsWith('image/')){showToast('⚠️ Only image files allowed');input.value='';return;}
   if(file.size>3*1024*1024){showToast('⚠ Your image is too large - please use an image under 3 MB');input.value='';return;}
   const reader=new FileReader();
   reader.onload=e=>{
@@ -9414,17 +9440,31 @@ function clearFontImg(){
   document.getElementById('sfImgPreview').style.display='none';
 }
 
+function _resetSubmitForm(){
+  ['sf-name','sf-author','sf-year','sf-url','sf-description'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const sfBox=document.getElementById('sf-tags-box');
+  if(sfBox&&sfBox._tags){sfBox._tags.length=0;sfBox._renderChips();}
+  const sfTagsInput=document.getElementById('sf-tags-input');if(sfTagsInput)sfTagsInput.value='';
+  const sfTagsHidden=document.getElementById('sf-tags');if(sfTagsHidden)sfTagsHidden.value='';
+  const sfCat=document.getElementById('sf-cat');if(sfCat){sfCat.value='';refreshCustomSelect('sf-cat');}
+  const sfLic=document.getElementById('sf-license');if(sfLic){sfLic.value='';refreshCustomSelect('sf-license');}
+  const sfDesc=document.getElementById('sf-desc-counter');if(sfDesc)sfDesc.textContent='0/300';
+  clearFile();clearFontImg();
+}
 function openSubmit(){
   if(!currentUser){
     openAuthModal('login');
-    showToast('? Please sign up or sign in to submit a font');
+    showToast('⚠ Please sign up or sign in to submit a font');
     return;
   }
+  _resetSubmitForm();
   document.getElementById('submitFormWrap').style.display='';
   document.getElementById('submitSuccess').classList.remove('show');
   document.getElementById('submitModal').classList.add('open');document.body.style.overflow='hidden';
 }
-function closeSubmit(){document.getElementById('submitModal').classList.remove('open');document.body.style.overflow='';}
+function closeSubmit(){document.getElementById('submitModal').classList.remove('open');document.body.style.overflow='';_resetSubmitForm();}
 
 // ?? TAG CHIP INPUT ??
 function _initTagChip(boxId, chipsId, inputId, hiddenId, maxTags){
@@ -9445,7 +9485,7 @@ function _initTagChip(boxId, chipsId, inputId, hiddenId, maxTags){
   function addTag(val){
     const v=val.trim().replace(/,/g,'');
     if(!v) return;
-    if(tags.length>=10){showToast("⚠ Maximum 10 tags allowed");return;}
+    if(tags.length>=10){showToast("? Maximum 10 tags allowed");return;}
     if(tags.map(t=>t.toLowerCase()).includes(v.toLowerCase())) return;
     tags.push(v.charAt(0).toUpperCase()+v.slice(1));
     renderChips();
@@ -9509,7 +9549,7 @@ async function submitFont(){
   const license=document.getElementById('sf-license').value;
   const url=document.getElementById('sf-url').value.trim();
   const description=(document.getElementById('sf-description')?.value||'').trim();
-  if(!name||!author||!cat||!license){showToast('? Please fill in all required fields');return;}
+  if(!name||!author||!cat||!license){showToast('⚠️ Please fill in all required fields');return;}
   let id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
   // ID artıq mövcuddursa rəqəmli suffix əlavə et
   if(FONTS.find(f=>f.id===id)){
@@ -9930,7 +9970,7 @@ async function submitComment(){
       setRating(0); currentRating=0;
       await renderComments(font.id);
       showToast('? Review posted!');
-    }catch(e){ showToast('? Error: '+e.message); }
+    }catch(e){ showToast('❌ Error: '+e.message); }
   } else {
     const comments=getComments(font.id);
     const already=comments.find(c=>c.userId===currentUser.id);
@@ -10001,6 +10041,11 @@ function closeContactModal(){
   const o=document.getElementById('contactOverlay');
   if(o) o.classList.remove('open');
   document.body.style.overflow='';
+  ['ctName','ctEmail','ctSubject','ctMsg'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const cw=document.getElementById('contactFormWrap');if(cw)cw.style.display='';
+  const cs=document.getElementById('contactSuccess');if(cs)cs.style.display='none';
 }
 
 function submitContact(){
@@ -10009,7 +10054,7 @@ function submitContact(){
   const activeChip=document.querySelector('.ct-chip.active');
   const subject=activeChip?activeChip.dataset.val:'other';
   const msg=document.getElementById('ctMessage').value.trim();
-  if(!name||!email||!msg){showToast('? Please fill in all fields');return;}
+  if(!name||!email||!msg){showToast('⚠️ Please fill in all fields');return;}
   if(!email.includes('@')){showToast('? Enter a valid email');return;}
   const btn=document.getElementById('ctSendBtn');
   const btnOrigHTML = btn ? btn.innerHTML : '';
@@ -12019,7 +12064,7 @@ async function _dfFetch() {
 
     _renderAdminDafont();
   } catch(e) {
-    if (sbar) { sbar.style.color = 'var(--red)'; sbar.textContent = '? Error: ' + e.message + ' - this may be a proxy restriction, please try again later.'; }
+    if (sbar) { sbar.style.color = 'var(--red)'; sbar.textContent = '❌ Error: ' + e.message + ' - this may be a proxy restriction, please try again later.'; }
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Fetch New Fonts'; }
   }
 }
@@ -12051,7 +12096,7 @@ async function _dfApproveOne(dfId) {
 
     // Statusu yenil?
     const sbar = document.getElementById('dfStatusBar');
-    if (sbar) { sbar.style.display = 'block'; sbar.style.color = 'var(--green)'; sbar.textContent = `? "${font.name}" approved and added to the database.`; }
+    if (sbar) { sbar.style.display = 'block'; sbar.style.color = 'var(--green)'; sbar.textContent = `✅ "${font.name}" approved and added to the database.`; }
 
     // Queue bosdursa empty state göst?r
     if (pending === 0) {
@@ -12061,7 +12106,7 @@ async function _dfApproveOne(dfId) {
   } catch(e) {
     if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
     const sbar = document.getElementById('dfStatusBar');
-    if (sbar) { sbar.style.display = 'block'; sbar.style.color = 'var(--red)'; sbar.textContent = '? Error: ' + e.message; }
+    if (sbar) { sbar.style.display = 'block'; sbar.style.color = 'var(--red)'; sbar.textContent = '❌ Error: ' + e.message; }
   }
 }
 
@@ -12190,13 +12235,24 @@ async function _dfSubmitToFirestore(font) {
       _restoreMainView();
       if(typeof restoreFromUrl === 'function') restoreFromUrl();
       if(typeof window._restoreGridScroll === 'function') window._restoreGridScroll();
-      // Admin panel açıqdırsa bağla
+      // Açıq qalan panelləri bağla
       var ov=document.getElementById('adminPanelOverlay');
       if(ov && ov.style.display!=='none'){
-        var dr=document.getElementById('adminPanelDrawer');
-        ov.style.background='rgba(0,0,0,0)'; ov.style.backdropFilter='blur(0px)';
-        if(dr){ dr.style.transform='translate(-50%,-50%) scale(0.96)'; dr.style.opacity='0'; }
-        setTimeout(function(){ ov.style.display='none'; document.body.style.overflow=''; },300);
+        if(typeof closeAdminPanel==='function') closeAdminPanel(true);
+        else {
+          var dr=document.getElementById('adminPanelDrawer');
+          ov.style.background='rgba(0,0,0,0)'; ov.style.backdropFilter='blur(0px)';
+          if(dr){ dr.style.transform='translate(-50%,-50%) scale(0.96)'; dr.style.opacity='0'; }
+          setTimeout(function(){ ov.style.display='none'; document.body.style.overflow=''; },300);
+        }
+      }
+      var mov=document.getElementById('modPanelOverlay');
+      if(mov && mov.style.display!=='none'){
+        if(typeof closeModPanel==='function') closeModPanel(true);
+      }
+      var pm=document.getElementById('pairModal');
+      if(pm && pm.style.opacity==='1'){
+        if(typeof closePairModal==='function') closePairModal();
       }
     }
   });
@@ -12236,22 +12292,70 @@ async function _dfSubmitToFirestore(font) {
   // Global keyboard shortcuts
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape'){
-      // Pair modal açıqdırsa bağla
+      // Prioritet sırası: ən üstdəki (z-index yüksək) modal əvvəl bağlanır
       var pm = document.getElementById('pairModal');
       if(pm && pm.style.opacity === '1'){
         if(typeof closePairModal === 'function') closePairModal();
         return;
       }
-      // Font detail açıqdırsa bağla
+      var em = document.getElementById('editFontModal');
+      if(em && em.classList.contains('open')){
+        if(typeof closeEditFont === 'function') closeEditFont();
+        return;
+      }
+      var ao = document.getElementById('authOverlay');
+      if(ao && ao.classList.contains('open')){
+        if(typeof closeAuthModal === 'function') closeAuthModal();
+        return;
+      }
+      var sm = document.getElementById('submitModal');
+      if(sm && sm.classList.contains('open')){
+        if(typeof closeSubmit === 'function') closeSubmit();
+        return;
+      }
+      var co = document.getElementById('contactOverlay');
+      if(co && co.classList.contains('open')){
+        if(typeof closeContactModal === 'function') closeContactModal();
+        return;
+      }
+      var cmp = document.getElementById('compareModal');
+      if(cmp && cmp.classList.contains('open')){
+        if(typeof closeCompare === 'function') closeCompare();
+        return;
+      }
+      var adm = document.getElementById('adminPanelOverlay');
+      if(adm && adm.style.display !== 'none'){
+        if(typeof closeAdminPanel === 'function') closeAdminPanel();
+        return;
+      }
+      var mod = document.getElementById('modPanelOverlay');
+      if(mod && mod.style.display !== 'none'){
+        if(typeof closeModPanel === 'function') closeModPanel();
+        return;
+      }
+      // Shortcuts panel
+      var sp = document.getElementById('shortcutsPanel');
+      if(sp && sp.classList.contains('open')){
+        sp.classList.remove('open');
+        if(typeof shortcutsOpen !== 'undefined') shortcutsOpen = false;
+        return;
+      }
+      // Font detail
       var fdp = document.getElementById('fontDetailPage');
       if(fdp && fdp.classList.contains('visible')){
         if(typeof closeDetail === 'function') closeDetail();
         return;
       }
-      // Author page açıqdırsa bağla
+      // Author page
       var ap = document.getElementById('authorPage');
       if(ap && ap.style.display !== 'none' && ap.style.display !== ''){
         if(typeof closeAuthorPage === 'function') closeAuthorPage();
+        return;
+      }
+      // Profile page
+      var pp = document.getElementById('profilePage');
+      if(pp && pp.style.display !== 'none' && pp.style.display !== ''){
+        if(typeof closeProfile === 'function') closeProfile();
         return;
       }
     }
