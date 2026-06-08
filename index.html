@@ -68,6 +68,12 @@
            allow delete: if request.auth != null
              && request.auth.token.email == 'YOUR_ADMIN_EMAIL';
          }
+         // Deleted users: admin writes on delete; any auth user can read own doc (for login block check)
+         match /deleted_users/{userId} {
+           allow read: if request.auth != null && request.auth.uid == userId;
+           allow write: if request.auth != null
+             && request.auth.token.email == 'YOUR_ADMIN_EMAIL';
+         }
        }
      }
 
@@ -246,7 +252,13 @@
       await fbUser.reload().catch(()=>{});
       // Get extra user data from Firestore
       const snap = await getDoc(doc(db, 'users', fbUser.uid));
-      const extra = snap.exists() ? snap.data() : {};
+      // Firestore doc yoxdursa — admin tərəfindən silinib, girişi blokla
+      if (!snap.exists()) {
+        await signOut(auth);
+        alert('This account has been removed. Please contact support if you think this is a mistake.');
+        return;
+      }
+      const extra = snap.data();
       // Ban check
       if (extra.banned === true) {
         await signOut(auth);
@@ -7955,9 +7967,11 @@ async function _adminDeleteUser(uid, name){
     var db = window._fbDb;
     var docFn = fns.doc, deleteDocFn = fns.deleteDoc, updateDocFn = fns.updateDoc;
     var collFn = fns.collection, getDocsFn = fns.getDocs, queryFn = fns.query, whereFn = fns.where;
-    // Step 1: Ban so user cannot login even if Auth record stays
+    // Step 1: deleted_users-a yaz ki doc silinəndən sonra da blok qalsın
+    try{ await fns.setDoc(docFn(db,'deleted_users',uid), { deletedAt: new Date().toISOString(), deletedBy: currentUser.id }); }catch(e){ console.warn(e); }
+    // Step 2: Ban so user cannot login even if Auth record stays
     try{ await updateDocFn(docFn(db,'users',uid), { banned: true, deletedAt: new Date().toISOString() }); }catch(e){ console.warn(e); }
-    // Step 2: Delete Firestore user doc
+    // Step 3: Delete Firestore user doc
     await deleteDocFn(docFn(db,'users',uid));
     // Step 3: Delete user comments
     try{
@@ -7976,7 +7990,7 @@ async function _adminDeleteUser(uid, name){
         localStorage.setItem('tv_liked','[]');
       }
     }catch(e){ console.warn('localStorage user remove error:',e); }
-    showToast('User deleted from database. Remember to delete from Firebase Console > Authentication too.');
+    showToast('✅ User deleted. They will be signed out on next login.');
     _renderAdminUsers();
   }catch(err){
     console.error('Delete user error:', err);
