@@ -242,6 +242,8 @@
   let _authInitialized = false;
   onAuthStateChanged(auth, async (fbUser) => {
     if (fbUser) {
+      // Token-i yenilə ki emailVerified dəqiq olsun
+      await fbUser.reload().catch(()=>{});
       // Get extra user data from Firestore
       const snap = await getDoc(doc(db, 'users', fbUser.uid));
       const extra = snap.exists() ? snap.data() : {};
@@ -251,16 +253,20 @@
         alert('Your account has been banned. Please contact support.');
         return;
       }
+      // Firebase emailVerified true-dursa Firestore-u da yenilə
+      if (fbUser.emailVerified && extra.emailVerified !== true) {
+        try { await updateDoc(doc(db, 'users', fbUser.uid), { emailVerified: true }); } catch(e){}
+      }
       const user = {
         id: fbUser.uid,
         name: fbUser.displayName || extra.name || fbUser.email.split('@')[0],
         email: fbUser.email,
-        emailVerified: fbUser.emailVerified || extra.emailVerified === true,
+        emailVerified: fbUser.emailVerified === true,
         photo: fbUser.photoURL || extra.photo || null,
         saved: extra.saved || [],
         joined: extra.joined || fbUser.metadata.creationTime,
-        isAdmin: extra.isAdmin === true,   // set manually in Firestore - never client-side
-        isModerator: extra.isModerator === true  // set by admin via Users tab
+        isAdmin: extra.isAdmin === true,
+        isModerator: extra.isModerator === true
       };
       currentUser = user;
       window.currentUser = currentUser;
@@ -6313,7 +6319,7 @@ function updateNavForUser(user){
   const modItem=document.getElementById('modDropdownItem');
   if(modItem) modItem.style.display=(!_isAdmin(user) && user.isModerator)?'flex':'none';
   // Dogrulanmamis email üçün banner - yalniz admin olmayan istifad?çil?r?
-  if(!_isAdmin(user) && user.emailVerified === false){
+  if(!_isAdmin(user) && user.emailVerified !== true){
     setTimeout(showEmailVerifyBanner, 1500);
   }
 }
