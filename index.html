@@ -310,7 +310,10 @@
       createdAt: serverTimestamp()
     });
     // Email doğrulama göndər
-    await sendEmailVerification(user, { url: window.location.href });
+    await sendEmailVerification(user, {
+      url: window.location.origin + '/',
+      handleCodeInApp: false
+    });
     return user;
   };
 
@@ -6191,8 +6194,10 @@ function submitSignup(){
   if(window.fbSignup){
     window.fbSignup(name,email,pass)
       .then(()=>{
-        closeAuthModal();
-        showToast('🎉 Welcome, ' + name + '!');
+        // Modalı bağlamaq əvəzinə verify tab-ı göstər
+        const verifyAddr=document.getElementById('verifyEmailAddr');
+        if(verifyAddr) verifyAddr.textContent=email;
+        switchAuthTab('verify');
       })
       .catch(e=>{
         const msg=e.code==='auth/email-already-in-use'?'An account with this email already exists.':e.message;
@@ -6223,7 +6228,10 @@ async function resendVerificationEmail(){
   btn.textContent='Sending.';btn.disabled=true;
   try{
     const { sendEmailVerification } = window._fbFns;
-    await sendEmailVerification(fbUser, { url: window.location.href });
+    await sendEmailVerification(fbUser, {
+      url: window.location.origin + '/',
+      handleCodeInApp: false
+    });
     showToast('📧 Verification link resent!');
     btn.textContent='✓ Sent';
     setTimeout(()=>{btn.textContent='Resend Email';btn.disabled=false;},4000);
