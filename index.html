@@ -9914,16 +9914,25 @@ document.addEventListener('keydown',e=>{
     var _ao=document.getElementById('authOverlay');if(_ao&&_ao.classList.contains('open')){closeAuthModal();return;}
     var _mo=document.getElementById('modPanelOverlay');if(_mo&&_mo.style.display!=='none'){closeModPanel();return;}
     var _admin=document.getElementById('adminPanelOverlay');if(_admin&&_admin.style.display!=='none'){closeAdminPanel();return;}
-    closeSubmit();closeContactModal();closeCompare();
+    // Bug 7 fix: only call close functions when modal is actually open to avoid
+    // unconditionally resetting compareFonts (and losing compare bar selection)
+    var _sm=document.getElementById('submitModal');if(_sm&&_sm.classList.contains('open')){closeSubmit();return;}
+    var _co=document.getElementById('contactOverlay');if(_co&&_co.classList.contains('open')){closeContactModal();return;}
+    var _cmp=document.getElementById('compareModal');if(_cmp&&_cmp.classList.contains('open')){closeCompare();return;}
     if(shortcutsOpen){shortcutsOpen=false;document.getElementById('shortcutsPanel').classList.remove('open');}
     else if(document.getElementById('authorPage').style.display!=='none')showGrid();
     else if(currentDetailFont)showGrid();
     return;
   }
-  if(e.key==='c'||e.key==='C'){openCompare();}
+  // Bug 8 fix: guard shortcuts so they don't fire when any overlay modal is open
+  function _anyModalOpen(){
+    var ids=['pairModal','editFontModal','authOverlay','submitModal','contactOverlay','compareModal','adminPanelOverlay','modPanelOverlay','emailVerifyModal'];
+    return ids.some(function(id){var el=document.getElementById(id);if(!el)return false;var s=el.style;return s.display==='flex'||s.display==='block'||el.classList.contains('open')||(id==='pairModal'&&s.opacity==='1');});
+  }
+  if(e.key==='c'||e.key==='C'){if(!_anyModalOpen())openCompare();}
   if(e.key==='d'||e.key==='D'){toggleDark();}
-  if(e.key==='n'||e.key==='N'){openSubmit();}
-  if(e.key==='?'){e.preventDefault();toggleShortcuts();}
+  if(e.key==='n'||e.key==='N'){if(!_anyModalOpen())openSubmit();}
+  if(e.key==='?'){e.preventDefault();if(!_anyModalOpen())toggleShortcuts();}
   if(e.key==='/'){e.preventDefault();document.getElementById('searchInput').focus();}
 });
 
