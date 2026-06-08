@@ -142,7 +142,7 @@
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendEmailVerification, sendPasswordResetEmail, GoogleAuthProvider, GithubAuthProvider, FacebookAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendEmailVerification, sendPasswordResetEmail, GoogleAuthProvider, GithubAuthProvider, FacebookAuthProvider, signInWithPopup, applyActionCode } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, where, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getDatabase, ref, onValue, onDisconnect, set as rtSet, serverTimestamp as rtServerTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
   import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
@@ -235,6 +235,7 @@
   window._fbSignInWithPopup = signInWithPopup;
   window._fbAuth = auth;
   window._fbDb = db;
+  window._fbApplyActionCode = (code) => applyActionCode(auth, code);
   window._fbFns = {
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
     signOut, onAuthStateChanged, updateProfile,
@@ -6110,6 +6111,30 @@ async function socialLogin(provider) {
   }
 }
 
+function showEmailVerifiedModal(type) {
+  var existing = document.getElementById('emailVerifiedModal');
+  if(existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'emailVerifiedModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
+  var isError = type === 'error';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:20px;padding:40px 36px;max-width:400px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.25)">
+      <div style="width:64px;height:64px;border-radius:50%;background:${isError ? 'rgba(239,68,68,.12)' : 'rgba(34,197,94,.12)'};display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+        ${isError
+          ? '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+          : '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+        }
+      </div>
+      <h2 style="font-size:22px;font-weight:700;color:var(--text);margin:0 0 10px;letter-spacing:-0.03em">${isError ? 'Link expired' : 'Email verified!'}</h2>
+      <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:0 0 28px">${isError ? 'This verification link has expired or already been used. Please request a new one.' : 'Your email has been verified. You can now sign in and submit fonts.'}</p>
+      <button onclick="document.getElementById('emailVerifiedModal').remove();document.body.style.overflow='';${isError ? "openAuthModal('login');" : "openAuthModal('login');"}" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">${isError ? 'Back to Sign In' : 'Sign In →'}</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.body.style.overflow = 'hidden';
+}
+
 function showAccountRemovedModal(type) {
   var overlay = document.getElementById('accountRemovedOverlay');
   var title = document.getElementById('accountRemovedTitle');
@@ -6132,13 +6157,22 @@ function closeAccountRemovedModal() {
 
 function openAuthModal(tab){
   const o=document.getElementById('authOverlay');
+  const wasAlreadyOpen = o.classList.contains('open');
   o.classList.add('open');
   document.body.style.overflow='hidden';
-  // Clear login fields on open
-  var le=document.getElementById('loginEmail');
-  var lp=document.getElementById('loginPassword');
-  if(le) le.value='';
-  if(lp) lp.value='';
+  // Clear fields only on fresh open, not when switching tabs
+  if(!wasAlreadyOpen){
+    var le=document.getElementById('loginEmail');
+    var lp=document.getElementById('loginPassword');
+    var sp=document.getElementById('signupPassword');
+    var sn=document.getElementById('signupName');
+    var se=document.getElementById('signupEmail');
+    if(le) le.value='';
+    if(lp) lp.value='';
+    if(sp) sp.value='';
+    if(sn) sn.value='';
+    if(se) se.value='';
+  }
   switchAuthTab(tab||'login');
   setTimeout(()=>{
     const inp=tab==='signup'?document.getElementById('signupName'):tab==='forgot'?document.getElementById('forgotEmail'):document.getElementById('loginEmail');
@@ -6241,20 +6275,24 @@ function submitSignup(){
   const pass=document.getElementById('signupPassword').value;
   const pass2=(document.getElementById('signupPasswordConfirm')||{}).value||pass;
   const err=document.getElementById('signupError');
+  const btn=document.querySelector('#authSignupTab .auth-submit');
   if(!name||!email||!pass){err.textContent='Please fill in all fields.';return;}
   if(pass.length<6){err.textContent='Password must be at least 6 characters.';return;}
   if(pass!==pass2){err.textContent='Passwords do not match.';return;}
   if(!/\S+@\S+\.\S+/.test(email)){err.textContent='Please enter a valid email.';return;}
-  err.textContent='Creating account.';
+  err.textContent='';
+  if(btn){btn.textContent='Creating…';btn.disabled=true;}
   if(window.fbSignup){
     window.fbSignup(name,email,pass)
       .then(()=>{
+        if(btn){btn.textContent='Create Account';btn.disabled=false;}
         // Modalı bağlamaq əvəzinə verify tab-ı göstər
         const verifyAddr=document.getElementById('verifyEmailAddr');
         if(verifyAddr) verifyAddr.textContent=email;
         switchAuthTab('verify');
       })
       .catch(e=>{
+        if(btn){btn.textContent='Create Account';btn.disabled=false;}
         const msg=e.code==='auth/email-already-in-use'?'An account with this email already exists.':e.message;
         err.textContent=msg;
       });
@@ -6277,10 +6315,9 @@ function submitSignup(){
 // ?? Email dogrulama yenid?n gönd?r ??
 async function resendVerificationEmail(){
   const btn=document.getElementById('resendVerifyBtn');
-  if(!btn) return;
   const fbUser = window._fbAuth && window._fbAuth.currentUser;
   if(!fbUser){showToast('❌ Error: user not found');return;}
-  btn.textContent='Sending.';btn.disabled=true;
+  if(btn){btn.textContent='Sending…';btn.disabled=true;}
   try{
     const { sendEmailVerification } = window._fbFns;
     await sendEmailVerification(fbUser, {
@@ -6288,11 +6325,11 @@ async function resendVerificationEmail(){
       handleCodeInApp: false
     });
     showToast('📧 Verification link resent!');
-    btn.textContent='✓ Sent';
-    setTimeout(()=>{btn.textContent='Resend Email';btn.disabled=false;},4000);
+    if(btn){btn.textContent='✓ Sent';setTimeout(()=>{btn.textContent='Resend Email';btn.disabled=false;},4000);}
   }catch(e){
     showToast('❌ Error: '+e.message);
-    btn.textContent='Resend Email';btn.disabled=false;
+    if(btn){btn.textContent='Resend Email';btn.disabled=false;}
+    throw e;
   }
 }
 
@@ -6314,7 +6351,7 @@ function showEmailVerifyBanner(){
       </div>
       <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 10px;letter-spacing:-0.03em">Verify your email</h2>
       <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:0 0 24px">To submit fonts, you need to verify your email address first. Check your inbox and click the verification link.</p>
-      <button onclick="resendVerificationEmail();document.getElementById('emailVerifyModal').style.display='none';document.body.style.overflow='';" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-bottom:10px" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Resend verification email</button>
+      <button onclick="resendVerificationEmail().then(()=>{document.getElementById('emailVerifyModal').style.display='none';document.body.style.overflow='';})" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-bottom:10px" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Resend verification email</button>
       <button onclick="document.getElementById('emailVerifyModal').style.display='none';document.body.style.overflow='';" style="width:100%;padding:12px;background:transparent;color:var(--text2);border:1.5px solid var(--border2);border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">Close</button>
     </div>
   `;
@@ -10223,6 +10260,41 @@ async function deleteMsgAdmin(id){
 // ??????????????????????????????????????????
 // ?? ENTER KEY on auth inputs ??
 document.addEventListener('DOMContentLoaded', () => {
+  // Handle Firebase email action links (?mode=verifyEmail&oobCode=...)
+  const _urlParams = new URLSearchParams(window.location.search);
+  const _mode = _urlParams.get('mode');
+  const _oobCode = _urlParams.get('oobCode');
+  if(_mode === 'verifyEmail' && _oobCode){
+    // Wait for Firebase to init then apply the code
+    const _tryVerify = setInterval(async () => {
+      if(!window._fbApplyActionCode) return;
+      clearInterval(_tryVerify);
+      try {
+        await window._fbApplyActionCode(_oobCode);
+        // Update Firestore emailVerified field
+        try {
+          const _auth = window._fbAuth;
+          const _db = window._fbDb;
+          const _fns = window._fbFns;
+          if(_auth && _auth.currentUser && _db && _fns){
+            await _fns.updateDoc(_fns.doc(_db,'users',_auth.currentUser.uid),{emailVerified:true});
+          }
+        } catch(e){}
+        // Clear URL params
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showEmailVerifiedModal();
+      } catch(e) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showEmailVerifiedModal('error');
+      }
+    }, 300);
+  }
+  if(_mode === 'resetPassword' && _oobCode){
+    // Redirect to login with forgot tab after clearing params
+    window.history.replaceState({}, document.title, window.location.pathname);
+    setTimeout(()=> openAuthModal('forgot'), 500);
+  }
+
   ['loginEmail','loginPassword'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.addEventListener('keydown', e => { if(e.key==='Enter') submitLogin(); });
