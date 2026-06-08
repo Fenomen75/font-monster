@@ -5403,8 +5403,12 @@ function updateCompareBar(){
     return f?`<div class="compare-chip">${esc(f.name)}<button onclick="removeFromCompare('${id}')">×</button></div>`:'';
   }).join('');
 }
+let _compareCloseTimer=null;
 function openCompare(){
   const modal=document.getElementById('compareModal');
+  // Cancel any pending close timeout to prevent race condition where
+  // the timeout fires after openCompare and hides the modal unexpectedly
+  if(_compareCloseTimer!==null){clearTimeout(_compareCloseTimer);_compareCloseTimer=null;}
   if(currentDetailFont){
     // silently show only the current font - no toast, no bar update
     compareFonts=[currentDetailFont.id];
@@ -5419,7 +5423,8 @@ function closeCompare(){
   const modal=document.getElementById('compareModal');
   modal.classList.remove('open');
   document.body.style.overflow='';
-  setTimeout(()=>{ modal.style.display='none'; },300);
+  if(_compareCloseTimer!==null){clearTimeout(_compareCloseTimer);}
+  _compareCloseTimer=setTimeout(()=>{ modal.style.display='none'; _compareCloseTimer=null; },300);
   // reset so compare bar doesn't linger
   compareFonts=[];
   document.querySelectorAll('[data-compare-btn]').forEach(b=>b.classList.remove('compare-on'));
@@ -6351,7 +6356,7 @@ function showEmailVerifyBanner(){
       </div>
       <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 10px;letter-spacing:-0.03em">Verify your email</h2>
       <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:0 0 24px">To submit fonts, you need to verify your email address first. Check your inbox and click the verification link.</p>
-      <button onclick="resendVerificationEmail().then(()=>{document.getElementById('emailVerifyModal').style.display='none';document.body.style.overflow='';})" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-bottom:10px" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Resend verification email</button>
+      <button onclick="(async()=>{try{await resendVerificationEmail();}catch(e){}finally{document.getElementById('emailVerifyModal').style.display='none';document.body.style.overflow='';}})()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-bottom:10px" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Resend verification email</button>
       <button onclick="document.getElementById('emailVerifyModal').style.display='none';document.body.style.overflow='';" style="width:100%;padding:12px;background:transparent;color:var(--text2);border:1.5px solid var(--border2);border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">Close</button>
     </div>
   `;
