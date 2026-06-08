@@ -255,14 +255,14 @@
       // Firestore doc yoxdursa — admin tərəfindən silinib, girişi blokla
       if (!snap.exists()) {
         await signOut(auth);
-        alert('This account has been removed. Please contact support if you think this is a mistake.');
+        closeAuthModal(); showAccountRemovedModal();
         return;
       }
       const extra = snap.data();
       // Ban check
       if (extra.banned === true) {
         await signOut(auth);
-        alert('Your account has been banned. Please contact support.');
+        closeAuthModal(); showAccountRemovedModal('banned');
         return;
       }
       // Firebase emailVerified true-dursa Firestore-u da yenilə
@@ -4501,6 +4501,18 @@ input[type=range]::-moz-range-progress {
 </div>
 
 <!-- ?? AUTH MODAL ?? -->
+<!-- Account Removed Modal -->
+<div id="accountRemovedOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:20px;padding:40px 36px;max-width:400px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.25);position:relative">
+    <div style="width:60px;height:60px;border-radius:50%;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 10px;letter-spacing:-0.03em" id="accountRemovedTitle">Account Removed</h2>
+    <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:0 0 28px" id="accountRemovedMsg">This account has been removed. If you think this is a mistake, please contact support.</p>
+    <button onclick="closeAccountRemovedModal()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">OK</button>
+  </div>
+</div>
+
 <div class="auth-overlay" id="authOverlay" onclick="closeAuthModal()">
   <div class="auth-modal" onclick="event.stopPropagation()">
     <button class="auth-close" onclick="closeAuthModal()">
@@ -6098,10 +6110,35 @@ async function socialLogin(provider) {
   }
 }
 
+function showAccountRemovedModal(type) {
+  var overlay = document.getElementById('accountRemovedOverlay');
+  var title = document.getElementById('accountRemovedTitle');
+  var msg = document.getElementById('accountRemovedMsg');
+  if (type === 'banned') {
+    title.textContent = 'Account Banned';
+    msg.textContent = 'Your account has been banned. Please contact support for more information.';
+  } else {
+    title.textContent = 'Account Removed';
+    msg.textContent = 'This account has been removed. If you think this is a mistake, please contact support.';
+  }
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeAccountRemovedModal() {
+  var overlay = document.getElementById('accountRemovedOverlay');
+  overlay.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
 function openAuthModal(tab){
   const o=document.getElementById('authOverlay');
   o.classList.add('open');
   document.body.style.overflow='hidden';
+  // Clear login fields on open
+  var le=document.getElementById('loginEmail');
+  var lp=document.getElementById('loginPassword');
+  if(le) le.value='';
+  if(lp) lp.value='';
   switchAuthTab(tab||'login');
   setTimeout(()=>{
     const inp=tab==='signup'?document.getElementById('signupName'):tab==='forgot'?document.getElementById('forgotEmail'):document.getElementById('loginEmail');
