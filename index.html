@@ -377,6 +377,14 @@
 
   window.fbAddComment = async function(fontId, text, rating) {
     if(!window.currentUser) return;
+    // Duplicate guard: eyni istifadəçinin bu fontda artıq şərhi var mı?
+    const dupQ = query(
+      collection(db, 'comments'),
+      where('fontId', '==', fontId),
+      where('userId', '==', window.currentUser.id)
+    );
+    const dupSnap = await getDocs(dupQ);
+    if(!dupSnap.empty) throw new Error('duplicate');
     const ref = await addDoc(collection(db, 'comments'), {
       fontId,
       userId: window.currentUser.id,
@@ -480,20 +488,7 @@
   onDisconnect(sesRef).remove();
   window.addEventListener('pagehide', () => rtSet(sesRef, null));
 
-  // Yalanci sayğac üçün random dəyər generatoru (1500-2000 arası)
-  function _fakeOnlineCount(){
-    return Math.floor(Math.random() * 501) + 1500; // 1500..2000
-  }
-  // Fake sayğacı hər 8-15 saniyədə bir kiçik dəyişikliklə "canlı" göstər
-  let _fakeBase = _fakeOnlineCount();
-  function _animateFakeCounter(){
-    const el = document.getElementById('onlineCount');
-    if(!el) return;
-    // +-1..+-5 arası kiçik dəyişiklik
-    _fakeBase = Math.min(2000, Math.max(1500, _fakeBase + Math.floor(Math.random()*11) - 5));
-    el.textContent = _fakeBase.toLocaleString();
-  }
-
+  // Real Firebase Realtime presence sayı — bütün istifadəçilərə göstərilir
   let _lastRealCount = 1;
   onValue(ref(rtdb, 'presence'), snap => {
     const realCount = snap.exists() ? Object.keys(snap.val()).length : 1;
@@ -501,36 +496,14 @@
     const el = document.getElementById('onlineCount');
     const badge = document.getElementById('onlineBadge');
     if(badge) badge.style.display = 'flex';
-
-    // Admin isə real sayı göstər, deyilsə yalançı sayğac
-    const isAdminNow = window.currentUser && window.currentUser.isAdmin === true;
-    if(isAdminNow){
-      if(el) el.textContent = realCount.toLocaleString();
-      // Fake interval varsa sil
-      if(window._fakeCounterInterval){ clearInterval(window._fakeCounterInterval); window._fakeCounterInterval = null; }
-    } else {
-      if(el) el.textContent = _fakeBase.toLocaleString();
-      // Hər 8-14 saniyədə bir yenilə (artıq interval yoxdursa)
-      if(!window._fakeCounterInterval){
-        window._fakeCounterInterval = setInterval(_animateFakeCounter, 8000 + Math.random()*6000);
-      }
-    }
+    if(el) el.textContent = realCount.toLocaleString();
   });
   // Login/logout zamanı sayğacı yenilə
 
   window._refreshOnlineCounter = function(){
     const el = document.getElementById('onlineCount');
     if(!el) return;
-    const isAdm = window.currentUser && window.currentUser.isAdmin === true;
-    if(isAdm){
-      el.textContent = _lastRealCount.toLocaleString();
-      if(window._fakeCounterInterval){ clearInterval(window._fakeCounterInterval); window._fakeCounterInterval = null; }
-    } else {
-      el.textContent = _fakeBase.toLocaleString();
-      if(!window._fakeCounterInterval){
-        window._fakeCounterInterval = setInterval(_animateFakeCounter, 8000 + Math.random()*6000);
-      }
-    }
+    el.textContent = _lastRealCount.toLocaleString();
   };
 </script>
 <style>
@@ -6367,19 +6340,33 @@ function showEmailVerifyBanner(){
   document.body.style.overflow = 'hidden';
 }
 
+function _clearUserLocalStorage(){
+  // Remove all user-specific keys so a new user logging in on the same browser
+  // cannot see any data belonging to the previous session.
+  localStorage.removeItem('fn_current_user');
+  localStorage.removeItem('fn_users');
+  localStorage.removeItem('tv_liked');
+  localStorage.removeItem('tv_submitted');
+  localStorage.removeItem('tv_admin_requests');
+  localStorage.removeItem('tv_admin_log');
+  localStorage.removeItem('tv_trash');
+  // Remove all cached font data blobs (fn_fontdata_*)
+  Object.keys(localStorage).filter(k=>k.startsWith('fn_fontdata_')).forEach(k=>localStorage.removeItem(k));
+}
+
 function logoutUser(){
   closeUserDropdown();
   if(window.fbLogout){
     window.fbLogout().then(()=>{
       currentUser=null;
       likedFonts=new Set();
-      localStorage.removeItem('fn_current_user');
-      localStorage.setItem('tv_liked','[]');
+      _clearUserLocalStorage();
       showGrid();showToast('Logged out.');
     });
   } else {
-    currentUser=null;localStorage.removeItem('fn_current_user');
+    currentUser=null;
     likedFonts=new Set();
+    _clearUserLocalStorage();
     document.getElementById('userAvatarBtn').style.display='none';
     document.getElementById('loginBtn').style.display='flex';
     showGrid();showToast('Logged out.');renderFonts();
@@ -6601,7 +6588,7 @@ let _efFileList=[];
 function _applyEditFile(f){
   const fext='.'+f.name.split('.').pop().toLowerCase();
   const allowed=['.ttf','.otf','.woff','.woff2'];
-  if(!allowed.includes(fext)){showToast(`✅ "${f.name}" - only TTF, OTF, WOFF, WOFF2 allowed`);return;}
+  if(!allowed.includes(fext)){showToast(`❌ "${f.name}" - only TTF, OTF, WOFF, WOFF2 allowed`);return;}
   if(f.size>20*1024*1024){showToast('⚠ Font file too large - max 20 MB');return;}
   if(_efFileList.find(x=>x.name===f.name)){showToast(`"${f.name}" already added`);return;}
   const r=new FileReader();
@@ -7169,7 +7156,7 @@ function adminRejectEdit(fontId,btn){
   _renderAdminEdits();
   _updateAdminEditsBadge();
   adminLog('reject',name,'Edit rejected');
-  showToast(`✅ "${name}" edit rejected`);
+  showToast(`❌ "${name}" edit rejected`);
   // ?? Email bildirisi gönd?r ??
   sendFontStatusEmail({...rejectedEditFont, name: name+' (Redaktə)'}, 'rejected');
 }
@@ -9303,10 +9290,15 @@ function openDetail(fontId){
 
   // Similar Fonts - 9 font, tam kart stilind?
   const similarContainer = document.getElementById('fdpSimilarFonts');
-  const otherFonts = FONTS.filter(f => f.id !== font.id && f.cat === font.cat);
-  const fallback = FONTS.filter(f => f.id !== font.id && f.cat !== font.cat)
-    .sort(()=>Math.random()-0.5);
-  const pool = [...otherFonts.sort(()=>Math.random()-0.5), ...fallback];
+  // Deterministik sıralama: eyni font hər dəfə eyni "similar" fontları göstərsin
+  function _seededSort(arr, seed){
+    let s=seed|0;
+    return arr.slice().sort(()=>{ s=(s*1664525+1013904223)&0xffffffff; return (s>>>16)/65536 - 0.5; });
+  }
+  const _seed = font.id.split('').reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0);
+  const otherFonts = _seededSort(FONTS.filter(f => f.id !== font.id && f.cat === font.cat), _seed);
+  const fallback = _seededSort(FONTS.filter(f => f.id !== font.id && f.cat !== font.cat), _seed+1);
+  const pool = [...otherFonts, ...fallback];
   const shuffled = pool.slice(0,9);
   if(shuffled.length){
     similarContainer.innerHTML = shuffled.map((sf, idx)=>{
@@ -9465,9 +9457,9 @@ function handleDragLeave(){document.getElementById('fileUploadZone').classList.r
 function handleDrop(e){e.preventDefault();document.getElementById('fileUploadZone').classList.remove('drag-over');Array.from(e.dataTransfer.files||[]).forEach(f=>processFile(f));}
 function processFile(file){
   const ext='.'+file.name.split('.').pop().toLowerCase();
-  if(!['.ttf','.otf','.woff','.woff2'].includes(ext)){showToast(`✅ "${file.name}" - only TTF, OTF, WOFF, WOFF2 allowed`);return;}
+  if(!['.ttf','.otf','.woff','.woff2'].includes(ext)){showToast(`❌ "${file.name}" - only TTF, OTF, WOFF, WOFF2 allowed`);return;}
   const MAX_FONT_SIZE=10*1024*1024;
-  if(file.size>MAX_FONT_SIZE){showToast(`✅ "${file.name}" too large - max 10 MB`);return;}
+  if(file.size>MAX_FONT_SIZE){showToast(`❌ "${file.name}" too large - max 10 MB`);return;}
   if(uploadedFontFiles.find(f=>f.name===file.name)){showToast(`"${file.name}" already added`);return;}
   const reader=new FileReader();
   reader.onload=e=>{
@@ -10109,7 +10101,10 @@ async function submitComment(){
       setRating(0); currentRating=0;
       await renderComments(font.id);
       showToast('✅ Review posted!');
-    }catch(e){ showToast('❌ Error: '+e.message); }
+    }catch(e){
+      if(e.message==='duplicate') showToast('⚠️ You already reviewed this font');
+      else showToast('❌ Error: '+e.message);
+    }
   } else {
     const comments=getComments(font.id);
     const already=comments.find(c=>c.userId===currentUser.id);
