@@ -5698,6 +5698,7 @@ function syncUrl(pushNav){
   if(searchTerm) p.set('q',searchTerm);
   if(alphaFilter) p.set('alpha',alphaFilter);
   if(freeOnly) p.set('free','1');
+  if(activeTag) p.set('tag',activeTag);
   if(activeLicenseFilter) p.set('license',activeLicenseFilter);
   const sort=document.getElementById('sortSel');
   if(sort && sort.value && sort.value!=='popular') p.set('sort',sort.value);
@@ -5734,6 +5735,7 @@ function restoreFromUrl(){
   alphaFilter=p.get('alpha')||'';
   freeOnly=p.get('free')==='1';
   activeLicenseFilter=p.get('license')||null;
+  activeTag=p.get('tag')||'';
   currentPage=parseInt(p.get('page'))||1;
   const sort=p.get('sort')||'popular';
   // UI-ni sinxronlaşdır
@@ -5743,6 +5745,7 @@ function restoreFromUrl(){
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===activeCategory));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===activeCategory));
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(alphaFilter===''?'All':alphaFilter==='#'?'0-9':alphaFilter)));
+  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.toggle('active',b.dataset.tag===activeTag));
   if(typeof renderFonts==='function') renderFonts();
 }
 
@@ -5870,7 +5873,7 @@ function renderFonts(){
   });
 
   // Batch lang detection AFTER all cards are in DOM - prevents 20 simultaneous fetches
-  const _batchFonts = list.filter(f => !_fontLangCache[f.id]);
+  const _batchFonts = list.filter(f => !_LANG_CACHE[f.id]);
   let _batchIdx = 0;
   function _runNextLangBatch(){
     const chunk = _batchFonts.slice(_batchIdx, _batchIdx + 4);
@@ -5921,10 +5924,10 @@ function handleDownloadClick(fontId,fontName){
         a.download=fontName.replace(/\s+/g,'_')+'_fonts.zip';
         document.body.appendChild(a);a.click();document.body.removeChild(a);
         setTimeout(()=>URL.revokeObjectURL(a.href),60000);
-        showToast(`? ${font.fontVariants.length} variant ZIP kimi yükl?ndi`);
+        showToast(`✅ ${font.fontVariants.length} variant ZIP kimi yükləndi`);
       } catch(err){
         console.error(err);
-        showToast('ZIP x?tasi, ayri-ayri yükl?nir.');
+        showToast('ZIP xətası, ayrı-ayrı yüklənir.');
         font.fontVariants.forEach((v,i)=>{
           setTimeout(()=>{
             const a=document.createElement('a');
@@ -6577,8 +6580,7 @@ function closeProfile(){
   document.getElementById('gridLayout').style.display='';
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
-  try{ history.replaceState({page:'grid'},'','/'); }catch(e){}
-  syncUrl(true);
+  syncUrl(false);
   renderFonts();
   if(typeof window._restoreGridScroll==='function') window._restoreGridScroll();
   updatePageMeta({title:'Font·Monster - Free Font Discovery',url:'/'});
@@ -6765,6 +6767,12 @@ async function saveEditFont(){
       if(fi) sub.push({...fi,...updates,adminEditedAt:new Date().toISOString(),pending:false});
     }
     localStorage.setItem("tv_submitted",JSON.stringify(sub));
+    // Update Firestore if available
+    if(window._fbFns && window._fbDb){
+      const {doc, updateDoc} = window._fbFns;
+      const fsUpdates = {...updates, adminEditedAt:new Date().toISOString()};
+      updateDoc(doc(window._fbDb,'submitted_fonts',id),fsUpdates).catch(e=>console.warn('Firestore admin edit error:',e));
+    }
     // Clear any pending edit request for this font
     let reqs=getAdminRequests();
     reqs=reqs.filter(r=>!(r.id===id&&r.requestType==='edit'));
@@ -7116,6 +7124,12 @@ function adminApproveEdit(fontId){
   const idx=sub.findIndex(f=>f.id===fontId);
   const updates={name:req.name,author:req.author,cat:req.cat,license:req.license,tags:req.tags,sourceUrl:req.sourceUrl};
   if(idx>=0){sub[idx]={...sub[idx],...updates,editApprovedAt:new Date().toISOString()};localStorage.setItem("tv_submitted",JSON.stringify(sub));}
+  // Update Firestore if available
+  if(window._fbFns && window._fbDb){
+    const {doc, updateDoc} = window._fbFns;
+    const fsUpdates = {...updates, editApprovedAt:new Date().toISOString()};
+    updateDoc(doc(window._fbDb,'submitted_fonts',fontId),fsUpdates).catch(e=>console.warn('Firestore edit approve error:',e));
+  }
   // Apply to runtime FONTS
   const fi=FONTS.findIndex(f=>f.id===fontId);
   if(fi>=0) Object.assign(FONTS[fi],updates);
@@ -7128,7 +7142,7 @@ function adminApproveEdit(fontId){
   adminLog('edit',req.name,'Edit approved');
   showToast(`✅ "${req.name}" edit approved!`);
   // ?? Email bildirisi gönd?r ??
-  sendFontStatusEmail({...req, name: req.name+' (Redakt?)'}, 'approved');
+  sendFontStatusEmail({...req, name: req.name+' (Redaktə)'}, 'approved');
 }
 function adminRejectEdit(fontId,btn){
   if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
@@ -7157,7 +7171,7 @@ function adminRejectEdit(fontId,btn){
   adminLog('reject',name,'Edit rejected');
   showToast(`✅ "${name}" edit rejected`);
   // ?? Email bildirisi gönd?r ??
-  sendFontStatusEmail({...rejectedEditFont, name: name+' (Redakt?)'}, 'rejected');
+  sendFontStatusEmail({...rejectedEditFont, name: name+' (Redaktə)'}, 'rejected');
 }
 function _updateAdminEditsBadge(){
   const badge=document.getElementById('adminBadgeEdits');
@@ -8804,8 +8818,7 @@ function closeAuthorPage(){
   document.getElementById('gridLayout').style.display='';
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
-  try{ history.replaceState({page:'grid'},'','/'); } catch(e){}
-  syncUrl(true);
+  syncUrl(false);
   renderFonts();
   if(typeof window._restoreGridScroll === 'function') window._restoreGridScroll();
   else window.scrollTo(0,0);
@@ -8827,8 +8840,7 @@ function closeDetail(){
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
   currentDetailFont=null;
-  try{ history.replaceState({page:'grid'},'','/'); } catch(e){}
-  syncUrl(true);
+  syncUrl(false);
   renderFonts();
   // renderFonts-dan sonra scroll bərpa et
   requestAnimationFrame(()=>{
@@ -9490,7 +9502,7 @@ function processFile(file){
     _renderFileList();
     showToast(`✅ "${file.name}" added`);
   };
-  reader.onerror=()=>showToast(`? Could not read "${file.name}"`);
+  reader.onerror=()=>showToast(`❌ Could not read "${file.name}"`);
   reader.readAsDataURL(file);
 }
 function _renderFileList(){
