@@ -6326,6 +6326,10 @@ function showProfile(tab){
   if(!currentUser && window.currentUser) currentUser = window.currentUser;
   if(!currentUser){openAuthModal('login');return;}
   closeUserDropdown();
+  const _adm=document.getElementById('adminPanelOverlay');
+  if(_adm&&_adm.style.display!=='none') closeAdminPanel(true);
+  const _mod=document.getElementById('modPanelOverlay');
+  if(_mod&&_mod.style.display!=='none') closeModPanel(true);
   document.getElementById('gridLayout').style.display='none';
   document.getElementById('fontDetailPage').classList.remove('visible');
   document.getElementById('toolbarBar').style.display='none';
@@ -6889,6 +6893,9 @@ function openAdminPanel(){
 function closeAdminPanel(skipHistory){
   const overlay=document.getElementById('adminPanelOverlay');
   const drawer=document.getElementById('adminPanelDrawer');
+  // editFontModal admin panelin üstündədirsə əvvəl onu bağla
+  const _ef=document.getElementById('editFontModal');
+  if(_ef&&_ef.classList.contains('open')) closeEditFont();
   overlay.style.background='rgba(0,0,0,0)';
   overlay.style.backdropFilter='blur(0px)';
   drawer.style.transform='translate(-50%,-50%) scale(0.96)';
@@ -8218,7 +8225,7 @@ function uploadProfilePhoto(input){
       if(idx>=0){users[idx].photo=dataUrl;saveUsers(users);}
     }
     applyProfilePhoto(dataUrl);
-    showToast('? Profile photo updated');
+    showToast('✅ Profile photo updated');
   };
   reader.readAsDataURL(file);
 }
@@ -8711,6 +8718,8 @@ function closeDetail(){
   if(_pm&&_pm.style.opacity==='1') closePairModal();
   const _adm=document.getElementById('adminPanelOverlay');
   if(_adm&&_adm.style.display!=='none') closeAdminPanel(true);
+  const _mod=document.getElementById('modPanelOverlay');
+  if(_mod&&_mod.style.display!=='none') closeModPanel(true);
   document.getElementById('gridLayout').style.display='';
   document.getElementById('fontDetailPage').classList.remove('visible');
   document.getElementById('toolbarBar').style.display='';
@@ -8767,7 +8776,7 @@ function openAuthorPage(authorName){
   const _adm=document.getElementById('adminPanelOverlay');
   if(_adm&&_adm.style.display!=='none') closeAdminPanel(true);
   const _mod=document.getElementById('modPanelOverlay');
-  if(_mod&&_mod.style.display!=='none') closeModPanel();
+  if(_mod&&_mod.style.display!=='none') closeModPanel(true);
   // Hide other views
   document.getElementById('gridLayout').style.display='none';
   document.getElementById('fontDetailPage').classList.remove('visible');
@@ -9485,7 +9494,7 @@ function _initTagChip(boxId, chipsId, inputId, hiddenId, maxTags){
   function addTag(val){
     const v=val.trim().replace(/,/g,'');
     if(!v) return;
-    if(tags.length>=10){showToast("? Maximum 10 tags allowed");return;}
+    if(tags.length>=10){showToast("⚠️ Maximum 10 tags allowed");return;}
     if(tags.map(t=>t.toLowerCase()).includes(v.toLowerCase())) return;
     tags.push(v.charAt(0).toUpperCase()+v.slice(1));
     renderChips();
@@ -9724,9 +9733,9 @@ async function submitFont(){
       newFont.approvedAt=new Date().toISOString();
     }
     if(submitBtn){submitBtn.textContent='Submit Font';submitBtn.disabled=false;}
-    try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('? X?ta: '+err.message); }
+    try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('❌ Xəta: '+err.message); }
   } else {
-    try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('? X?ta: '+err.message); }
+    try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('❌ Xəta: '+err.message); }
   }
 }
 
@@ -9943,10 +9952,10 @@ async function renderComments(fontId){
 
 async function submitComment(){
   const font=currentDetailFont;
-  if(!font){showToast('? No font selected');return;}
-  if(!currentUser){openAuthModal('login');showToast('? Sign in to post a review');return;}
+  if(!font){showToast('⚠️ No font selected');return;}
+  if(!currentUser){openAuthModal('login');showToast('⚠️ Sign in to post a review');return;}
   const txt=document.getElementById('commentInput').value.trim();
-  if(!txt){showToast('? Write something first');return;}
+  if(!txt){showToast('⚠️ Write something first');return;}
   if(window.fbAddComment){
     try{
       await window.fbAddComment(font.id, txt, currentRating);
@@ -9969,36 +9978,36 @@ async function submitComment(){
       document.getElementById('commentInput').value='';
       setRating(0); currentRating=0;
       await renderComments(font.id);
-      showToast('? Review posted!');
+      showToast('✅ Review posted!');
     }catch(e){ showToast('❌ Error: '+e.message); }
   } else {
     const comments=getComments(font.id);
     const already=comments.find(c=>c.userId===currentUser.id);
-    if(already){showToast('? You already reviewed this font');return;}
+    if(already){showToast('⚠️ You already reviewed this font');return;}
     const newC={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
       userId:currentUser.id,user:currentUser.name||currentUser.email,
       rating:currentRating,text:txt,date:new Date().toISOString(),likes:[]};
     comments.push(newC);saveComments(font.id,comments);
     document.getElementById('commentInput').value='';setRating(0);currentRating=0;
-    renderComments(font.id);showToast('? Review posted!');
+    renderComments(font.id);showToast('✅ Review posted!');
   }
 }
 
 async function deleteComment(fontId, commentId){
   if(window.fbDeleteComment){
-    try{ await window.fbDeleteComment(commentId); await renderComments(fontId); showToast('? Review deleted'); }
-    catch(e){ showToast('? '+e.message); }
+    try{ await window.fbDeleteComment(commentId); await renderComments(fontId); showToast('✅ Review deleted'); }
+    catch(e){ showToast('❌ '+e.message); }
   } else {
     const comments=getComments(fontId).filter(c=>c.id!==commentId);
-    saveComments(fontId,comments);renderComments(fontId);showToast('? Review deleted');
+    saveComments(fontId,comments);renderComments(fontId);showToast('✅ Review deleted');
   }
 }
 
 async function likeComment(fontId, commentId){
-  if(!currentUser){openAuthModal('login');showToast('? Sign in to mark as helpful');return;}
+  if(!currentUser){openAuthModal('login');showToast('⚠️ Sign in to mark as helpful');return;}
   if(window.fbLikeComment){
     try{ await window.fbLikeComment(commentId, currentUser.id); await renderComments(fontId); }
-    catch(e){ showToast('? '+e.message); }
+    catch(e){ showToast('❌ '+e.message); }
   } else {
     const comments=getComments(fontId);
     const c=comments.find(x=>x.id===commentId);
@@ -10055,7 +10064,7 @@ function submitContact(){
   const subject=activeChip?activeChip.dataset.val:'other';
   const msg=document.getElementById('ctMessage').value.trim();
   if(!name||!email||!msg){showToast('⚠️ Please fill in all fields');return;}
-  if(!email.includes('@')){showToast('? Enter a valid email');return;}
+  if(!email.includes('@')){showToast('⚠️ Enter a valid email');return;}
   const btn=document.getElementById('ctSendBtn');
   const btnOrigHTML = btn ? btn.innerHTML : '';
   if(btn){btn.textContent='Sending\u2026';btn.disabled=true;}
@@ -10066,7 +10075,7 @@ function submitContact(){
         document.getElementById('contactSuccess').style.display='';
         if(btn){btn.innerHTML=btnOrigHTML;btn.disabled=false;}
       })
-      .catch(e=>{if(btn){btn.innerHTML=btnOrigHTML;btn.disabled=false;}showToast('? '+e.message);});
+      .catch(e=>{if(btn){btn.innerHTML=btnOrigHTML;btn.disabled=false;}showToast('❌ '+e.message);});
   } else {
     const entry={id:Date.now().toString(36),name,email,subject,msg,date:new Date().toISOString(),read:false};
     try{const msgs=JSON.parse(localStorage.getItem('fontan_contact_msgs')||'[]');msgs.unshift(entry);localStorage.setItem('fontan_contact_msgs',JSON.stringify(msgs));}catch(e){}
@@ -10344,7 +10353,7 @@ function handleTxtUpload(input){
     const pi = document.getElementById('previewText');
     if(pi) pi.value = text;
     document.querySelectorAll('.card-preview').forEach(el => el.textContent = text);
-    document.getElementById('txtUploadLbl').textContent = '? ' + file.name.slice(0,14);
+    document.getElementById('txtUploadLbl').textContent = '📄 ' + file.name.slice(0,14);
     document.getElementById('txtUploadLabel').style.color = 'var(--accent)';
     txtUploadActive = true;
     showToast('Text loaded - showing on all cards');
@@ -11956,11 +11965,11 @@ function _dfManualParse() {
 
   const html = ta.value.trim();
   if (html.length < 200) {
-    if (status) { status.style.color = 'var(--red)'; status.textContent = '? HTML çox qisadir - tam s?hif? HTML-ini yapisdir.'; }
+    if (status) { status.style.color = 'var(--red)'; status.textContent = '⚠️ HTML çox qısadır - tam s?hif? HTML-ini yapisdir.'; }
     return;
   }
 
-  if (btn)    { btn.disabled = true; btn.textContent = '? Parse edilir.'; }
+  if (btn)    { btn.disabled = true; btn.textContent = '⏳ Parse edilir.'; }
   if (status) { status.style.color = 'var(--text3)'; status.textContent = 'Analiz edilir.'; }
 
   setTimeout(() => {
@@ -11970,7 +11979,7 @@ function _dfManualParse() {
       if (!parsed.length) {
         if (status) {
           status.style.color = 'var(--orange)';
-          status.textContent = '? Heç bir font tapilmadi. dafont.com/new.php-nin tam HTML-ini yapisdirdigindan ?min ol.';
+          status.textContent = '⚠️ Heç bir font tapılmadı. dafont.com/new.php-nin tam HTML-ini yapisdirdigindan ?min ol.';
         }
         if (btn) { btn.disabled = false; btn.innerHTML = '⚙️ Parse &amp; Add to Queue'; }
         return;
@@ -12013,7 +12022,7 @@ function _dfManualParse() {
       if (panelEl) panelEl.style.borderColor = 'var(--accent)';
 
     } catch(e) {
-      if (status) { status.style.color = 'var(--red)'; status.textContent = '? Parse x?tasi: ' + e.message; }
+      if (status) { status.style.color = 'var(--red)'; status.textContent = '❌ Parse xətası: ' + e.message; }
       if (btn) { btn.disabled = false; btn.innerHTML = '⚙️ Parse &amp; Add to Queue'; }
     }
   }, 50);
@@ -12028,7 +12037,7 @@ async function _dfFetch() {
   const page = pageInput ? (parseInt(pageInput.value) || 1) : 1;
   window._dfPage = page;
 
-  if (btn) { btn.disabled = true; btn.textContent = '? Loading.'; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading.'; }
   if (sbar) { sbar.style.display = 'block'; sbar.textContent = '⏳ DaFont-dan HTML alınır...'; }
 
   try {
@@ -12209,8 +12218,23 @@ async function _dfSubmitToFirestore(font) {
   window._saveGridScroll = function(){ _savedGridScroll = window.scrollY; };
   window._restoreGridScroll = function(){ setTimeout(function(){ window.scrollTo(0, _savedGridScroll); }, 50); };
 
+  // Hər popstate-də açıq qalan overlay modalları bağlayan helper
+  function _closeAllOverlayModals(){
+    var ao=document.getElementById('authOverlay');
+    if(ao&&ao.classList.contains('open')){ if(typeof closeAuthModal==='function') closeAuthModal(); }
+    var sm=document.getElementById('submitModal');
+    if(sm&&sm.classList.contains('open')){ if(typeof closeSubmit==='function') closeSubmit(); }
+    var co=document.getElementById('contactOverlay');
+    if(co&&co.classList.contains('open')){ if(typeof closeContactModal==='function') closeContactModal(); }
+    var cmp=document.getElementById('compareModal');
+    if(cmp&&cmp.classList.contains('open')){ if(typeof closeCompare==='function') closeCompare(); }
+    var ef=document.getElementById('editFontModal');
+    if(ef&&ef.classList.contains('open')){ if(typeof closeEditFont==='function') closeEditFont(); }
+  }
+
   // Back / Forward düyməsi
   window.addEventListener('popstate', function(e){
+    _closeAllOverlayModals();
     const path = location.pathname;
     const hash = location.hash;
     if(path.startsWith('/font/')){
