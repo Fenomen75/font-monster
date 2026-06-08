@@ -7957,10 +7957,7 @@ async function _adminToggleModerator(uid, email, isModerator){
 async function _adminDeleteUser(uid, name){
   if(!uid) return;
   if(!_isAdmin(currentUser)){ showToast('Access denied'); return; }
-  var msg = 'DELETE USER\n\nDelete "' + name + '"?\n\n';
-  msg += 'This removes their Firestore record and prevents future login.\n';
-  msg += 'IMPORTANT: Also delete from Firebase Console > Authentication > Users.\n\n';
-  msg += 'Cannot be undone.';
+  var msg = 'DELETE USER\n\nDelete "' + name + '"?\n\nFirestore məlumatları silinəcək.\nSilmədən sonra Firebase Auth səhifəsi avtomatik açılacaq — orada da hesabı sil.\n\nGeri qaytarıla bilməz.';
   if(!confirm(msg)) return;
   try{
     var fns = window._fbFns;
@@ -7990,8 +7987,12 @@ async function _adminDeleteUser(uid, name){
         localStorage.setItem('tv_liked','[]');
       }
     }catch(e){ console.warn('localStorage user remove error:',e); }
-    showToast('✅ User deleted. They will be signed out on next login.');
     _renderAdminUsers();
+    // Open Firebase Auth console so admin can delete the Auth account too
+    setTimeout(function(){
+      window.open('https://console.firebase.google.com/project/fontan-7bae4/authentication/users','_blank');
+    }, 500);
+    showToast('✅ Silindi! Firebase Auth səhifəsi açıldı — orada da "' + name + '" i tapıb sil (3 nöqtə → Delete account).');
   }catch(err){
     console.error('Delete user error:', err);
     if(err.code==='permission-denied'||err.message.includes('permission')){
