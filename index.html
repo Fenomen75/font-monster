@@ -9534,6 +9534,13 @@ function openSubmit(){
     showToast('⚠ Please sign up or sign in to submit a font');
     return;
   }
+  const _fbAuthUser = window._fbAuth && window._fbAuth.currentUser;
+  const _isVerified = _fbAuthUser ? _fbAuthUser.emailVerified === true : currentUser.emailVerified === true;
+  if(!_isVerified){
+    showToast('⚠ Please verify your email before submitting a font. Check your inbox.');
+    showEmailVerifyBanner();
+    return;
+  }
   _resetSubmitForm();
   document.getElementById('submitFormWrap').style.display='';
   document.getElementById('submitSuccess').classList.remove('show');
@@ -9613,7 +9620,9 @@ function closeSubmitOutside(e){if(e.target===document.getElementById('submitModa
 async function submitFont(){
   if(!currentUser){closeSubmit();openAuthModal('login');showToast('⚠ Please sign up or sign in to submit a font');return;}
   // Email doğrulanmamışsa submit-i blokla (OAuth login-lər həmişə verified sayılır)
-  if(currentUser.emailVerified !== true){
+  const _fbAuthUser = window._fbAuth && window._fbAuth.currentUser;
+  const _isVerified = _fbAuthUser ? _fbAuthUser.emailVerified === true : currentUser.emailVerified === true;
+  if(!_isVerified){
     showToast('⚠ Please verify your email before submitting a font. Check your inbox.');
     showEmailVerifyBanner();
     return;
