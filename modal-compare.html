@@ -1,0 +1,52 @@
+<div class="cmp-modal" id="compareModal" onclick="if(event.target===this)closeCompare()">
+  <div class="cmp-panel">
+    <div class="cmp-header">
+      <div class="cmp-title">Font Comparison</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;color:var(--text3)" id="cmpFontCount">0 fonts</span>
+        <button class="cmp-close" onclick="closeCompare()">×</button>
+      </div>
+    </div>
+    <div class="cmp-controls">
+      <input type="text" class="cmp-input" id="cmpText" value="The quick brown fox jumps" placeholder="Preview text.">
+      <div class="pv-sep" style="height:24px"></div>
+      <div class="cmp-size-wrap">
+        <label>Size</label>
+        <input type="range" id="cmpSize" min="16" max="96" value="48">
+        <span id="cmpSizeVal">48</span>
+      </div>
+      <div class="pv-sep" style="height:24px"></div>
+      <button class="cmp-add-btn" onclick="toggleCmpSearch(this)">+ Add Font</button>
+      <div id="cmpSearchWrap" style="display:none;position:relative;flex-shrink:0">
+        <input type="text" id="cmpSearchInput" class="cmp-input" style="min-width:160px;width:160px;padding:6px 10px;font-size:13px"
+          placeholder="Type font name." oninput="filterCmpSearch(this.value)" autocomplete="off">
+        <div id="cmpSearchDropdown" style="
+          position:absolute;top:calc(100% + 4px);left:0;right:0;
+          background:var(--surface-solid);border:1px solid var(--border2);
+          border-radius:10px;box-shadow:var(--shadow-lg);z-index:10;
+          max-height:180px;overflow-y:auto;display:none;
+        "></div>
+      </div>
+    </div>
+    <div class="cmp-grid" id="cmpGrid"></div>
+  </div>
+</div>
+
+<footer id="siteFooter">
+  <div style="display:flex;align-items:center;gap:13px">
+    <div class="footer-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" width="10" height="10"><path d="M4 7h16M9 7V5M15 7V5M9 19h6M12 7v12"/></svg>
+      </div>
+      Font<span style="color:rgba(255,255,255,0.5);font-size:1.1em;line-height:1">·</span>Monster
+    </div>
+    <p>Font data via Google Fonts · Free &amp; open-source.</p>
+  </div>
+  <div class="footer-links">
+    <a href="https://fonts.google.com" target="_blank">Google Fonts</a>
+    <a href="https://github.com/google/fonts" target="_blank">GitHub</a>
+    <a href="https://scripts.sil.org/OFL" target="_blank">OFL</a>
+    <a href="javascript:void(0)" onclick="openContactModal()">Contact</a>
+  </div>
+</footer>
+
