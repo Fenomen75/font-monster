@@ -223,6 +223,16 @@ const FONTS_BASE=[
   {id:"rum-raisin",name:"Rum Raisin",author:"Astigmatic",cat:"monospace",gfamily:"Rum+Raisin",weight:"400",tags:["Retro","Vintage","Bold"],license:"ofl",year:2012,popular:60},
   {id:"puppies-play",name:"Puppies Play",author:"Khurasan",cat:"monospace",gfamily:"Puppies+Play",weight:"400",tags:["Playful","Cute","Fun"],license:"ofl",year:2021,popular:56},
   {id:"stalinist-one",name:"Stalinist One",author:"Jovanny Lemonad",cat:"monospace",gfamily:"Stalinist+One",weight:"400",tags:["Soviet","Bold","Decorative"],license:"ofl",year:2012,popular:61},
+  {id:"bungee-shade",name:"Bungee Shade",author:"David Jonathan Ross",cat:"display",gfamily:"Bungee+Shade",weight:"400",tags:["Shadow","Urban","3D"],license:"ofl",year:2015,popular:72},
+  {id:"bungee-inline",name:"Bungee Inline",author:"David Jonathan Ross",cat:"display",gfamily:"Bungee+Inline",weight:"400",tags:["Inline","Urban","Poster"],license:"ofl",year:2015,popular:70},
+  {id:"sigmar",name:"Sigmar",author:"Yanone Kaffeesatz",cat:"display",gfamily:"Sigmar",weight:"400",tags:["Bold","Slab","Display"],license:"ofl",year:2022,popular:65},
+  {id:"pixelify-sans",name:"Pixelify Sans",author:"Stefie Justprince",cat:"display",gfamily:"Pixelify+Sans:wght@400;500;600;700",weight:"700",tags:["Pixel","Retro","Gaming"],license:"ofl",year:2023,popular:71},
+  {id:"host-grotesk",name:"Host Grotesk",author:"Host",cat:"display",gfamily:"Host+Grotesk:ital,wght@0,300;0,400;0,500;0,700;1,400",weight:"400",tags:["Grotesque","Modern","Clean"],license:"ofl",year:2023,popular:66},
+  {id:"jacquard-24",name:"Jacquard 24",author:"Alphabet Type",cat:"display",gfamily:"Jacquard+24",weight:"400",tags:["Pixel","Bitmap","Retro"],license:"ofl",year:2023,popular:64},
+  {id:"silkscreen-bold",name:"Nabla",author:"Arthur Reinders Folmer",cat:"display",gfamily:"Nabla",weight:"400",tags:["Color","Variable","3D"],license:"ofl",year:2022,popular:67},
+  {id:"meow-script",name:"Meow Script",author:"Robert Leuschke",cat:"display",gfamily:"Meow+Script",weight:"400",tags:["Script","Ligatures","Calligraphy"],license:"ofl",year:2021,popular:63},
+  {id:"rubik-glitch",name:"Rubik Glitch",author:"Philipp Hubert",cat:"display",gfamily:"Rubik+Glitch",weight:"400",tags:["Glitch","Experimental","Digital"],license:"ofl",year:2021,popular:66},
+  {id:"honk",name:"Honk",author:"David Jonathan Ross",cat:"display",gfamily:"Honk",weight:"400",tags:["Color","Variable","Funky"],license:"ofl",year:2023,popular:62},
 ];
 
 // ?? SHARED language-support helper (used on both card & detail page) ??
