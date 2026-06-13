@@ -6709,6 +6709,11 @@ function openSubmit(){
     showToast('⚠ Please sign up or sign in to submit a font');
     return;
   }
+  if(currentUser.emailVerified === false){
+    showToast('⚠ Please verify your email before submitting a font. Check your inbox.');
+    showEmailVerifyBanner();
+    return;
+  }
   _resetSubmitForm();
   document.getElementById('submitFormWrap').style.display='';
   document.getElementById('submitSuccess').classList.remove('show');
