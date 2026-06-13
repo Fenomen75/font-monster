@@ -3055,8 +3055,8 @@ function renderFonts(){
             aria-label="${isLiked?'Saved – click to unsave':'Save font'}"
             aria-pressed="${isLiked?'true':'false'}"
             onclick="event.stopPropagation();toggleLike('${font.id}',this)">${isLiked?'♥':'♡'}</button>
-          <a href="${(font.fontData||font.fontUrl)?'#':`https://fonts.google.com/download?family=${encodeURIComponent(font.name)}`}" ${(font.fontData||font.fontUrl)?'':'target="_blank"'} class="dl-btn"
-            onclick="event.stopPropagation();handleDownloadClick('${font.id}','${esc(font.name)}');${(font.fontData||font.fontUrl)?'return false;':''}">
+          <a href="#" class="dl-btn"
+            onclick="event.stopPropagation();event.preventDefault();handleDownloadClick('${font.id}','${esc(font.name)}');return false;">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             ${(font.fontData||font.fontUrl)?'Get Font':'Download'}
           </a>
@@ -3162,6 +3162,11 @@ function handleDownloadClick(fontId,fontName){
         });
       }
     })();
+  } else if(font && font.gfamily){
+    showToast(`⏳ Preparing download...`);
+    downloadGoogleFontZip(font).then(ok=>{
+      if(ok) showToast(`⬇️ ${fontName} downloaded`);
+    });
   } else if(font && (font.fontData || font.fontUrl)){
     const ext=font.fontExt||'.ttf';
     const href = font.fontUrl || font.fontData;
@@ -3183,6 +3188,57 @@ function handleDownloadClick(fontId,fontName){
   }
 }
 
+// Google Fonts üçün birbaşa ZIP download: CSS-dən woff2/ttf url-lərini çıxarıb fetch+zip edir
+async function downloadGoogleFontZip(font){
+  try{
+    const family=font.gfamily||font.name.replace(/\s+/g,'+');
+    const cssUrl=`https://fonts.googleapis.com/css2?family=${family}&display=swap`;
+    const resp=await fetch(cssUrl,{headers:{'User-Agent':'Mozilla/5.0'}});
+    let css=await resp.text();
+    // Bezi shilder/userAgent format-larinda woff2 yoxdur; ttf üçün fallback istəyirik
+    if(!/url\(/.test(css)){
+      throw new Error('No font URLs found in CSS');
+    }
+    // Her @font-face blokunu ayri-ayri parse et (weight/style/subset meta-sini saxlamaq üçün)
+    const faceBlocks=css.match(/@font-face\s*{[^}]*}/g)||[];
+    const seen=new Set();
+    const files=[];
+    for(const block of faceBlocks){
+      const urlMatch=block.match(/url\(([^)]+)\)/);
+      if(!urlMatch) continue;
+      let url=urlMatch[1].replace(/['"]/g,'');
+      if(seen.has(url)) continue;
+      seen.add(url);
+      const weightMatch=block.match(/font-weight:\s*([0-9]+)/);
+      const styleMatch=block.match(/font-style:\s*(\w+)/);
+      const weight=weightMatch?weightMatch[1]:'400';
+      const style=styleMatch&&styleMatch[1]==='italic'?'italic':'normal';
+      const ext=url.split('.').pop().split('?')[0];
+      files.push({url,weight,style,ext});
+    }
+    if(files.length===0) throw new Error('No font files parsed');
+    const zip=new JSZip();
+    const folder=zip.folder(font.name.replace(/\s+/g,'_'));
+    await Promise.all(files.map(async f=>{
+      const res=await fetch(f.url);
+      const buf=await res.arrayBuffer();
+      const fname=`${font.name.replace(/\s+/g,'_')}-${f.weight}${f.style==='italic'?'Italic':''}.${f.ext}`;
+      folder.file(fname,buf);
+    }));
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=font.name.replace(/\s+/g,'_')+'_fonts.zip';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+    return true;
+  }catch(err){
+    console.error('downloadGoogleFontZip error:',err);
+    showToast('⚠ Download failed, opening Google Fonts...');
+    window.open(`https://fonts.google.com/specimen/${encodeURIComponent(font.name)}`,'_blank');
+    return false;
+  }
+}
 function updateCounts(){
   ["all","sans-serif","serif","display","handwriting","monospace"].forEach(c=>{
     const el=document.getElementById(`sc-${c}`);
@@ -6099,8 +6155,8 @@ function openAuthorPage(authorName){
               <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${font.id}',this)" aria-label="${isLiked?'Saved – click to unsave':'Save font'}" aria-pressed="${isLiked?'true':'false'}">
                 ${isLiked?'♥':'♡'}
               </button>
-              <a class="dl-btn" href="https://fonts.google.com/download?family=${encodeURIComponent(font.name)}" target="_blank"
-                onclick="event.stopPropagation();handleDownloadClick('${font.id}','${esc(font.name)}')">
+              <a class="dl-btn" href="#"
+                onclick="event.stopPropagation();event.preventDefault();handleDownloadClick('${font.id}','${esc(font.name)}');return false;">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Get
               </a>
@@ -6242,8 +6298,8 @@ function openDetail(fontId){
             Download${(font.fontVariants&&font.fontVariants.length>1)?' ZIP':''}
           </button>`;
         } else {
-          return `<a href="https://fonts.google.com/download?family=${encodeURIComponent(font.name)}" target="_blank" class="fdp-dl"
-            onclick="handleDownloadClick('${font.id}','${esc(font.name)}');updateDetailDlCount('${font.id}')">
+          return `<a href="#" class="fdp-dl"
+            onclick="event.preventDefault();handleDownloadClick('${font.id}','${esc(font.name)}');updateDetailDlCount('${font.id}')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download ZIP
           </a>
@@ -6430,16 +6486,16 @@ function openDetail(fontId){
     (font.fontVariants&&font.fontVariants.length>0)?font.fontVariants.length:getWeights(font).length;
   const _gfBtn=document.getElementById('fdpGfBtn');
   if(_gfBtn){_gfBtn.style.display=_isUploadedFont?'none':'';_gfBtn.href=`https://fonts.google.com/specimen/${encodeURIComponent(font.name)}`;}
-  document.getElementById('fdpDlMainBtn').href=(font.fontData||font.fontUrl)?'#':`https://fonts.google.com/download?family=${encodeURIComponent(font.name)}`;
+  document.getElementById('fdpDlMainBtn').href='#';
   if(font.fontData||font.fontUrl){
     document.getElementById('fdpDlMainBtn').removeAttribute('target');
     const _dlLabel=(font.fontVariants&&font.fontVariants.length>1)?('Download All ('+font.fontVariants.length+')' ):'Download Font';
     document.getElementById('fdpDlMainBtn').innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> '+_dlLabel;
     document.getElementById('fdpDlMainBtn').onclick=e=>{e.preventDefault();handleDownloadClick(font.id,font.name);updateDetailDlCount(font.id);};
   } else {
-    document.getElementById('fdpDlMainBtn').setAttribute('target','_blank');
+    document.getElementById('fdpDlMainBtn').removeAttribute('target');
     document.getElementById('fdpDlMainBtn').innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Font';
-    document.getElementById('fdpDlMainBtn').onclick=()=>{handleDownloadClick(font.id,font.name);updateDetailDlCount(font.id);};
+    document.getElementById('fdpDlMainBtn').onclick=e=>{e.preventDefault();handleDownloadClick(font.id,font.name);updateDetailDlCount(font.id);};
   }
   // fdpGfBtn href yuxarida _isUploadedFont yoxlamasi il? set edildi
   window.scrollTo(0,0);
@@ -6472,8 +6528,8 @@ function openDetail(fontId){
             <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${sf.id}',this)" aria-label="${isLiked?'Saved – click to unsave':'Save font'}" aria-pressed="${isLiked?'true':'false'}">
               ${isLiked?'♥':'♡'}
             </button>
-            <a class="dl-btn" href="https://fonts.google.com/download?family=${encodeURIComponent(sf.name)}" target="_blank"
-              onclick="event.stopPropagation();handleDownloadClick('${sf.id}','${esc(sf.name)}')" title="Download">
+            <a class="dl-btn" href="#"
+              onclick="event.stopPropagation();event.preventDefault();handleDownloadClick('${sf.id}','${esc(sf.name)}');return false;" title="Download">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Get
             </a>
