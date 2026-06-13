@@ -134,6 +134,21 @@ const FONTS_BASE=[
   {id:"teachers",name:"Teachers",author:"Omnibus-Type",cat:"sans-serif",gfamily:"Teachers:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400",weight:"400",tags:["Humanist","Friendly","Variable"],license:"ofl",year:2023,popular:67},
   {id:"reddit-mono",name:"Reddit Mono",author:"Reddit",cat:"monospace",gfamily:"Reddit+Mono:wght@300;400;500;600;700",weight:"400",tags:["Code","Neutral","Variable"],license:"ofl",year:2024,popular:70},
   {id:"urbanist",name:"Urbanist",author:"Corey Hu",cat:"sans-serif",gfamily:"Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400",weight:"400",tags:["Geometric","Clean","Variable"],license:"ofl",year:2020,popular:78},
+  {id:"bungee",name:"Bungee",author:"David Jonathan Ross",cat:"display",gfamily:"Bungee",weight:"400",tags:["Bold","Urban","Poster"],license:"ofl",year:2015,popular:76},
+  {id:"boogaloo",name:"Boogaloo",author:"John Vargas Beltrán",cat:"display",gfamily:"Boogaloo",weight:"400",tags:["Retro","Fun","Casual"],license:"ofl",year:2012,popular:75},
+  {id:"audiowide",name:"Audiowide",author:"Astigmatic",cat:"display",gfamily:"Audiowide",weight:"400",tags:["Tech","Futuristic","Gaming"],license:"ofl",year:2012,popular:72},
+  {id:"graduate",name:"Graduate",author:"Eduardo Tunni",cat:"display",gfamily:"Graduate",weight:"400",tags:["College","Varsity","Bold"],license:"ofl",year:2013,popular:73},
+  {id:"titan-one",name:"Titan One",author:"Rodrigo Fuenzalida",cat:"display",gfamily:"Titan+One",weight:"400",tags:["Bold","Rounded","Fun"],license:"ofl",year:2013,popular:71},
+  {id:"turret-road",name:"Turret Road",author:"Ultracuts",cat:"display",gfamily:"Turret+Road:wght@400;700",weight:"700",tags:["Futuristic","Tech","Sci-Fi"],license:"ofl",year:2019,popular:68},
+  {id:"bowlby-one",name:"Bowlby One",author:"Cyreal",cat:"display",gfamily:"Bowlby+One",weight:"400",tags:["Bold","Condensed","Poster"],license:"ofl",year:2011,popular:70},
+  {id:"shrikhand",name:"Shrikhand",author:"Jonny Pinhorn",cat:"display",gfamily:"Shrikhand",weight:"400",tags:["Bold","Gujarati","Display"],license:"ofl",year:2016,popular:69},
+  {id:"monoton",name:"Monoton",author:"Vernon Adams",cat:"display",gfamily:"Monoton",weight:"400",tags:["Retro","Neon","Decorative"],license:"ofl",year:2011,popular:68},
+  {id:"modak",name:"Modak",author:"Ek Type",cat:"display",gfamily:"Modak",weight:"400",tags:["Bold","Devanagari","Playful"],license:"ofl",year:2015,popular:67},
+  {id:"vast-shadow",name:"Vast Shadow",author:"Astigmatic",cat:"display",gfamily:"Vast+Shadow",weight:"400",tags:["Shadow","Retro","Western"],license:"ofl",year:2012,popular:66},
+  {id:"baumans",name:"Baumans",author:"Cyreal",cat:"display",gfamily:"Baumans",weight:"400",tags:["Futuristic","Geometric","Tech"],license:"ofl",year:2012,popular:64},
+  {id:"megrim",name:"Megrim",author:"Daniel Johnson",cat:"display",gfamily:"Megrim",weight:"400",tags:["Geometric","Art-Deco","Minimal"],license:"ofl",year:2011,popular:65},
+  {id:"fascinate-inline",name:"Fascinate Inline",author:"Astigmatic",cat:"display",gfamily:"Fascinate+Inline",weight:"400",tags:["Retro","Inline","Decorative"],license:"ofl",year:2011,popular:65},
+  {id:"black-han-sans",name:"Black Han Sans",author:"Jongsoon Yang",cat:"display",gfamily:"Black+Han+Sans",weight:"400",tags:["Bold","Korean","Strong"],license:"ofl",year:2018,popular:70},
 ];
 
 // ?? SHARED language-support helper (used on both card & detail page) ??
