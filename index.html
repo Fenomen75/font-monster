@@ -1563,6 +1563,22 @@
   </div>
 </div>
 
+<!-- Email Verification Required Modal -->
+<div class="modal-overlay" id="verifyEmailModal" onclick="if(event.target===this)closeVerifyEmailModal()">
+  <div class="modal" style="max-width:420px;text-align:center;padding:32px 28px">
+    <button class="modal-close" onclick="closeVerifyEmailModal()">×</button>
+    <div style="font-size:42px;margin-bottom:8px">📧</div>
+    <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">Verify your email</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:22px">
+      Please check your inbox and click the verification link before submitting a font.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" onclick="resendVerificationEmail()" style="width:100%;justify-content:center">Resend verification email</button>
+      <button class="btn" onclick="closeVerifyEmailModal()" style="width:100%;justify-content:center">Got it</button>
+    </div>
+  </div>
+</div>
+
 <!-- ?? ADMIN PANEL ?? -->
 <!-- ?? MODERATOR PANEL ?? -->
 <div id="modPanelOverlay" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0);backdrop-filter:blur(0px);transition:background .3s,backdrop-filter .3s" onclick="closeModPanel()">
@@ -3488,6 +3504,15 @@ async function resendVerificationEmail(){
     showToast('❌ Error: '+e.message);
     btn.textContent='Resend Email';btn.disabled=false;
   }
+}
+
+function showVerifyEmailModal(){
+  document.getElementById('verifyEmailModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeVerifyEmailModal(){
+  document.getElementById('verifyEmailModal').classList.remove('open');
+  document.body.style.overflow='';
 }
 
 // ?? Email dogrulama banner-i (login etmis amma dogrulamamis) ??
@@ -6710,8 +6735,7 @@ function openSubmit(){
     return;
   }
   if(currentUser.emailVerified === false){
-    showToast('⚠ Please verify your email before submitting a font. Check your inbox.');
-    showEmailVerifyBanner();
+    showVerifyEmailModal();
     return;
   }
   _resetSubmitForm();
@@ -6794,8 +6818,7 @@ async function submitFont(){
   if(!currentUser){closeSubmit();openAuthModal('login');showToast('⚠ Please sign up or sign in to submit a font');return;}
   // Email doğrulanmamışsa submit-i blokla (OAuth login-lər həmişə verified sayılır)
   if(currentUser.emailVerified === false){
-    showToast('⚠ Please verify your email before submitting a font. Check your inbox.');
-    showEmailVerifyBanner();
+    showVerifyEmailModal();
     return;
   }
   const name=document.getElementById('sf-name').value.trim();
