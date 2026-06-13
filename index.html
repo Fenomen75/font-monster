@@ -268,10 +268,9 @@
         isAdmin: extra.isAdmin === true,
         isModerator: extra.isModerator === true
       };
-      currentUser = user;
-      window.currentUser = currentUser;
-      likedFonts = new Set(user.saved);
-      window.likedFonts = likedFonts;
+      window.currentUser = user;
+      window.currentUser = window.currentUser;
+      window.likedFonts = new Set(user.saved);
       // Persist locally for offline/reload fallback.
       // isAdmin and isModerator are NOT cached — they must always come from Firestore.
       // Caching them would allow anyone to spoof admin access via browser console.
@@ -290,10 +289,9 @@
       // Mark auth as initialized; renderFonts already ran at page load from line 9235
       _authInitialized = true;
     } else {
-      currentUser = null;
       window.currentUser = null;
-      likedFonts = new Set();
-      window.likedFonts = likedFonts;
+      window.currentUser = null;
+      window.likedFonts = new Set();
       const loginBtn = document.getElementById('loginBtn');
       const avatarBtn = document.getElementById('userAvatarBtn');
       if(loginBtn) loginBtn.style.display = 'flex';

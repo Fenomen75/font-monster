@@ -349,8 +349,8 @@ function incrementDownload(id){DL_COUNTS[id]=(DL_COUNTS[id]||0)+1;window.DL_COUN
 
 let FONTS=[...FONTS_BASE],activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
 // Buq 4 düzəlişi: type="module" script defer kimi işləyir — onAuthStateChanged gəlməzdən
-// əvvəl currentUser null qalır. localStorage cache-dən ilkin dəyəri oxuyuruq ki yarış vəziyyəti olmasın.
-let currentUser=(function(){
+// əvvəl window.currentUser null qalır. localStorage cache-dən ilkin dəyəri oxuyuruq ki yarış vəziyyəti olmasın.
+window.currentUser=(function(){
   try{
     var c=localStorage.getItem('fn_current_user');
     if(!c) return null;
@@ -362,7 +362,7 @@ let currentUser=(function(){
     return u;
   }catch(e){return null;}
 })();
-window.currentUser=currentUser; // Firebase onAuthStateChanged gəldikdə üzərinə yazacaq
+window.currentUser=window.currentUser; // Firebase onAuthStateChanged gəldikdə üzərinə yazacaq
 let likedFonts=new Set(),loadedFonts=new Set(),debounceTimer,currentDetailFont=null;
 let activeDetailWeight='400',pvMode='text',pvBold=false,pvItalic=false,pvAlign='left';
 let pvBgColor='#ffffff',pvTextColor='#111111',pvBgImage=null;
@@ -391,7 +391,7 @@ function syncSubmittedFonts(){
       if(stored) f.fontData=stored;
     }
     if(!f.pending) FONTS.push(f); // approved ? everyone sees
-    else if(currentUser && f.submittedById===currentUser.id) FONTS.push(f); // pending ? only submitter
+    else if(window.currentUser && f.submittedById===window.currentUser.id) FONTS.push(f); // pending ? only submitter
     // Re-inject @font-face for uploaded fonts (reloads page, localStorage fonts need re-injection)
     if(f.fontVariants&&f.fontVariants.length>0) injectVariantFaces(f);
     else if(f.fontUrl) injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');
@@ -411,13 +411,13 @@ async function syncSubmittedFontsFromFirestore(){
     const approvedFonts = approvedSnap.docs.map(d=>({id:d.id,...d.data()}));
     // Load pending fonts: admin/moderator sees ALL, regular user sees only own
     let pendingFonts = [];
-    if(currentUser){
-      if(_isAdmin(currentUser) || currentUser.isModerator){
+    if(window.currentUser){
+      if(_isAdmin(window.currentUser) || window.currentUser.isModerator){
         const allPendingQ = query(collection(db,'submitted_fonts'), where('pending','==',true));
         const allPendingSnap = await getDocs(allPendingQ);
         pendingFonts = allPendingSnap.docs.map(d=>({id:d.id,...d.data()}));
       } else {
-        const pendingQ = query(collection(db,'submitted_fonts'), where('submittedById','==',currentUser.id), where('pending','==',true));
+        const pendingQ = query(collection(db,'submitted_fonts'), where('submittedById','==',window.currentUser.id), where('pending','==',true));
         const pendingSnap = await getDocs(pendingQ);
         pendingFonts = pendingSnap.docs.map(d=>({id:d.id,...d.data()}));
       }
@@ -765,7 +765,7 @@ function isNewFont(f){
   return false;
 }
 function getFiltered(){
-  let list=FONTS.filter(f=>!f.pending||(currentUser&&f.submittedById===currentUser.id));
+  let list=FONTS.filter(f=>!f.pending||(window.currentUser&&f.submittedById===window.currentUser.id));
   if(activeCategory==="new")list=list.filter(isNewFont);
   else if(activeCategory!=="all")list=list.filter(f=>f.cat===activeCategory);
   if(activeLicenseFilter)list=list.filter(f=>f.license===activeLicenseFilter);
@@ -1254,7 +1254,7 @@ function debouncedFilter(){
   debounceTimer=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();currentPage=1;renderFonts();syncUrl();},155);
 }
 function toggleLike(id,btn){
-  if(!currentUser){openAuthModal('login');showToast('Sign in to save fonts');return;}
+  if(!window.currentUser){openAuthModal('login');showToast('Sign in to save fonts');return;}
   if(likedFonts.has(id)){
     likedFonts.delete(id);
     if(btn){btn.textContent='♡';btn.classList.remove('liked');btn.setAttribute('aria-label','Save font');btn.setAttribute('aria-pressed','false');}
@@ -1264,17 +1264,17 @@ function toggleLike(id,btn){
     if(btn){btn.textContent='♥';btn.classList.add('liked');btn.setAttribute('aria-label','Saved – click to unsave');btn.setAttribute('aria-pressed','true');}
     showToast('❤️ Saved');
   }
-  currentUser.saved=[...likedFonts];
-  saveCurrentUser(currentUser);
+  window.currentUser.saved=[...likedFonts];
+  saveCurrentUser(window.currentUser);
   if(window.fbToggleSave){
     window.fbToggleSave(id).catch(e=>console.warn('fbToggleSave error:',e));
   } else {
     const users=getUsers();
-    const idx=users.findIndex(u=>u.id===currentUser.id);
-    if(idx>=0){users[idx].saved=currentUser.saved;saveUsers(users);}
+    const idx=users.findIndex(u=>u.id===window.currentUser.id);
+    if(idx>=0){users[idx].saved=window.currentUser.saved;saveUsers(users);}
   }
   const sc=document.getElementById('profileSavedCount');
-  if(sc)sc.textContent=currentUser.saved.length;
+  if(sc)sc.textContent=window.currentUser.saved.length;
   localStorage.setItem("tv_liked",JSON.stringify([...likedFonts]));
   const lb=document.getElementById('fdpLikeBtn');
   if(lb&&lb.dataset.id===id){lb.className='fdp-like'+(likedFonts.has(id)?' liked':'');lb.innerHTML=likedFonts.has(id)?'♥ Saved':'♡ Save';lb.setAttribute('aria-label',likedFonts.has(id)?'Saved – click to unsave':'Save font');lb.setAttribute('aria-pressed',likedFonts.has(id)?'true':'false');}
@@ -1283,7 +1283,7 @@ function toggleLike(id,btn){
 // ??????????????????????????????????????????
 // AUTH SYSTEM
 // ??????????????????????????????????????????
-// currentUser is declared at top of main globals block (line ~4973)
+// window.currentUser is declared at top of main globals block (line ~4973)
 
 function getUsers(){try{return JSON.parse(localStorage.getItem('fn_users')||'[]');}catch(e){return[];}}
 function saveUsers(u){try{localStorage.setItem('fn_users',JSON.stringify(u));}catch(e){}}
@@ -1306,11 +1306,11 @@ async function _sha256(str){
 }
 
 function initAuth(){
-  currentUser=getCurrentUser();
-  if(currentUser){updateNavForUser(currentUser);}
+  window.currentUser=getCurrentUser();
+  if(window.currentUser){updateNavForUser(window.currentUser);}
   // Sync likedFonts from user account
-  if(currentUser){
-    likedFonts=new Set(currentUser.saved||[]);
+  if(window.currentUser){
+    likedFonts=new Set(window.currentUser.saved||[]);
   }
   syncSubmittedFonts();
   // Check admin URL
@@ -1358,8 +1358,8 @@ async function socialLogin(provider) {
       isAdmin: extra.isAdmin === true,
       isModerator: extra.isModerator === true
     };
-    currentUser = user;
-    window.currentUser = currentUser;
+    window.currentUser = user;
+    window.currentUser = window.currentUser;
     likedFonts = new Set(user.saved);
     window.likedFonts = likedFonts;
     saveCurrentUser(user); // isAdmin/isModerator bu funksiya tərəfindən cache-ə yazılmır
@@ -1466,9 +1466,9 @@ function submitLogin(){
       const user=users.find(u=>u.email===email&&u.passwordHash===hash);
       if(!user){if(btn){btn.textContent='Sign In';btn.disabled=false;}err.textContent='Incorrect email or password.';return;}
       const safeUser={...user};delete safeUser.passwordHash;
-      currentUser=safeUser;saveCurrentUser(safeUser);
-      likedFonts=new Set(currentUser.saved||[]);
-      updateNavForUser(currentUser);closeAuthModal();
+      window.currentUser=safeUser;saveCurrentUser(safeUser);
+      likedFonts=new Set(window.currentUser.saved||[]);
+      updateNavForUser(window.currentUser);closeAuthModal();
       syncSubmittedFonts();showToast(`👋 Welcome back, ${user.name}!`);
     })();
   }
@@ -1506,8 +1506,8 @@ function submitSignup(){
       const newUser={id:'u_'+Date.now(),name,email,passwordHash,saved:[],joined:new Date().toISOString()};
       users.push(newUser);saveUsers(users);
       const safeUser={...newUser};delete safeUser.passwordHash;
-      currentUser=safeUser;saveCurrentUser(safeUser);
-      updateNavForUser(currentUser);closeAuthModal();
+      window.currentUser=safeUser;saveCurrentUser(safeUser);
+      updateNavForUser(window.currentUser);closeAuthModal();
       syncSubmittedFonts();showToast(`🎉 Account created! Welcome, ${name}!`);
     })();
   }
@@ -1517,7 +1517,7 @@ function submitSignup(){
 async function resendVerificationEmail(){
   const btn=document.getElementById('resendVerifyBtn');
   if(!btn) return;
-  const fbUser = window._fbAuth && window._fbAuth.currentUser;
+  const fbUser = window._fbAuth && window._fbAuth.window.currentUser;
   if(!fbUser){showToast('❌ Error: user not found');return;}
   btn.textContent='Sending.';btn.disabled=true;
   try{
@@ -1580,14 +1580,14 @@ function logoutUser(){
   closeUserDropdown();
   if(window.fbLogout){
     window.fbLogout().then(()=>{
-      currentUser=null;
+      window.currentUser=null;
       likedFonts=new Set();
       localStorage.removeItem('fn_current_user');
       localStorage.setItem('tv_liked','[]');
       showGrid();showToast('Logged out.');
     });
   } else {
-    currentUser=null;localStorage.removeItem('fn_current_user');
+    window.currentUser=null;localStorage.removeItem('fn_current_user');
     likedFonts=new Set();
     document.getElementById('userAvatarBtn').style.display='none';
     document.getElementById('loginBtn').style.display='flex';
@@ -1632,8 +1632,8 @@ document.addEventListener('click',e=>{
 
 // ?? PROFILE PAGE
 function showProfile(tab){
-  if(!currentUser && window.currentUser) currentUser = window.currentUser;
-  if(!currentUser){openAuthModal('login');return;}
+  if(!window.currentUser && window.currentUser) window.currentUser = window.currentUser;
+  if(!window.currentUser){openAuthModal('login');return;}
   closeUserDropdown();
   const _adm=document.getElementById('adminPanelOverlay');
   if(_adm&&_adm.style.display!=='none') closeAdminPanel(true);
@@ -1659,24 +1659,24 @@ function showProfile(tab){
   updatePageMeta({ title: 'My Profile – Font·Monster', url: '/profile' });
 }
 function renderProfilePage(){
-  if(!currentUser && window.currentUser) currentUser = window.currentUser;
-  if(!currentUser)return;
-  document.getElementById('profileName').textContent=currentUser.name;
-  document.getElementById('profileEmail').textContent=currentUser.email;
-  const saved=currentUser.saved||[];
+  if(!window.currentUser && window.currentUser) window.currentUser = window.currentUser;
+  if(!window.currentUser)return;
+  document.getElementById('profileName').textContent=window.currentUser.name;
+  document.getElementById('profileEmail').textContent=window.currentUser.email;
+  const saved=window.currentUser.saved||[];
   document.getElementById('profileSavedCount').textContent=saved.length;
   const myFonts=getMySubmittedFonts();
   document.getElementById('profileMyFontsCount').textContent=myFonts.length;
-  applyProfilePhoto(currentUser.photo||null);
+  applyProfilePhoto(window.currentUser.photo||null);
   renderProfileSaved(saved);
 }
 
 function getMySubmittedFonts(){
-  if(!currentUser && window.currentUser) currentUser = window.currentUser;
-  if(!currentUser) return [];
+  if(!window.currentUser && window.currentUser) window.currentUser = window.currentUser;
+  if(!window.currentUser) return [];
   try{
     const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
-    return sub.filter(f=>f.submittedById===currentUser.id);
+    return sub.filter(f=>f.submittedById===window.currentUser.id);
   }catch(e){return [];}
 }
 
@@ -1698,7 +1698,7 @@ function renderProfileSaved(saved){
           <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(f.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(f.author)}</span> · ${f.year}</div>
         </div>
         <div class="card-actions" style="position:relative;z-index:2">
-          <button class="icon-btn liked" aria-label="Saved – click to unsave" aria-pressed="true" onclick="event.stopPropagation();toggleLike('${f.id}',this);renderProfileSaved(currentUser?.saved||[])">♥</button>
+          <button class="icon-btn liked" aria-label="Saved – click to unsave" aria-pressed="true" onclick="event.stopPropagation();toggleLike('${f.id}',this);renderProfileSaved(window.currentUser?.saved||[])">♥</button>
         </div>
       </div>
       <div class="card-preview-area">
@@ -2002,8 +2002,8 @@ async function saveEditFont(){
     ...sub[idx],...updates,
     requestType:'edit',
     editRequestAt:new Date().toISOString(),
-    submittedByName:currentUser?currentUser.name:sub[idx].submittedByName,
-    submittedById:currentUser?currentUser.id:sub[idx].submittedById
+    submittedByName:window.currentUser?window.currentUser.name:sub[idx].submittedByName,
+    submittedById:window.currentUser?window.currentUser.id:sub[idx].submittedById
   };
   if(existingReqIdx>=0) reqs[existingReqIdx]=editReq;
   else reqs.push(editReq);
@@ -2036,7 +2036,7 @@ function deleteMyFont(fontId){
 
 // ?? MODERATOR PANEL ??????????????????????????????????????????????????????????
 function openModPanel(){
-  if(!_isModerator(currentUser)){ showToast('🚫 Access denied'); return; }
+  if(!_isModerator(window.currentUser)){ showToast('🚫 Access denied'); return; }
   const overlay=document.getElementById('modPanelOverlay');
   const drawer=document.getElementById('modPanelDrawer');
   overlay.style.display='flex';
@@ -2069,7 +2069,7 @@ function closeModPanel(skipHistory){
   }
 }
 function _renderModPanel(){
-  if(!_isModerator(currentUser)){ return; }
+  if(!_isModerator(window.currentUser)){ return; }
   const content=document.getElementById('modPanelContent');
   // Pull pending submissions
   let pending=[];
@@ -2125,7 +2125,7 @@ function _drawModPending(content, pending){
     </div>`;
 }
 function _modApprove(fontId){
-  if(!_isModerator(currentUser)){ showToast('🚫 Access denied'); return; }
+  if(!_isModerator(window.currentUser)){ showToast('🚫 Access denied'); return; }
   // Call adminApprove which handles localStorage + Firestore + renderFonts
   adminApprove(fontId);
   // Remove row from mod panel immediately
@@ -2144,7 +2144,7 @@ function _modApprove(fontId){
   }, 250);
 }
 function _modReject(fontId, btn){
-  if(!_isModerator(currentUser)){ showToast('🚫 Access denied'); return; }
+  if(!_isModerator(window.currentUser)){ showToast('🚫 Access denied'); return; }
   if(btn.dataset.confirm!=='yes'){
     btn.textContent='Are you sure?';
     btn.dataset.confirm='yes';
@@ -2173,7 +2173,7 @@ let _adminActiveTab='pending';
 
 function openAdminPanel(){
   // ?? SECURITY: server-side guard via Firestore Rules; client guard as extra layer ??
-  if(!_isAdmin(currentUser)){
+  if(!_isAdmin(window.currentUser)){
     showToast('🚫 Access denied');
     return;
   }
@@ -2340,7 +2340,7 @@ function adminApproveEdit(fontId){
   sendFontStatusEmail({...req, name: req.name+' (Redakt?)'}, 'approved');
 }
 function adminRejectEdit(fontId,btn){
-  if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
+  if(!_isAdmin(window.currentUser)){ showToast('🚫 Access denied'); return; }
   if(btn.dataset.confirmReject!=='yes'){
     btn.textContent='Are you sure?';
     btn.dataset.confirmReject='yes';
@@ -2619,7 +2619,7 @@ async function sendFontStatusEmail(fontData, status){
 // ????????????????????????????????????????????????????????????????????????????
 
 function adminApprove(fontId){
-  if(!_isAdmin(currentUser) && !currentUser?.isModerator){ showToast('🚫 Access denied'); return; }
+  if(!_isAdmin(window.currentUser) && !window.currentUser?.isModerator){ showToast('🚫 Access denied'); return; }
   let sub=_allSub();
   const idx=sub.findIndex(f=>f.id===fontId);
   if(idx<0) return;
@@ -2646,7 +2646,7 @@ function adminApprove(fontId){
   sendFontStatusEmail(approvedFont, 'approved');
 }
 function adminReject(fontId,ev){
-  if(!_isAdmin(currentUser) && !currentUser?.isModerator){ showToast('🚫 Access denied'); return; }
+  if(!_isAdmin(window.currentUser) && !window.currentUser?.isModerator){ showToast('🚫 Access denied'); return; }
   let sub=_allSub();
   const f=sub.find(x=>x.id===fontId);
   if(!f) return;
@@ -2726,7 +2726,7 @@ function _updateTrashBadge(){
   badge.style.display=count>0?'inline-flex':'none';
 }
 function adminDeleteFont(fontId,btn){
-  if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
+  if(!_isAdmin(window.currentUser)){ showToast('🚫 Access denied'); return; }
   // Two-step confirmation
   if(!btn||btn.dataset.confirmDelete!=='yes'){
     if(btn){
@@ -2773,7 +2773,7 @@ function adminDeleteFont(fontId,btn){
   }
 }
 function adminRestoreFont(fontId){
-  if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
+  if(!_isAdmin(window.currentUser)){ showToast('🚫 Access denied'); return; }
   const trash=_getTrash();
   const f=trash.find(x=>x.id===fontId);
   if(!f) return;
@@ -3220,7 +3220,7 @@ async function _adminToggleBan(uid, email, isBanned){
 }
 
 async function _adminToggleModerator(uid, email, isModerator){
-  if(!_isAdmin(currentUser)){ showToast('🚫 Access denied'); return; }
+  if(!_isAdmin(window.currentUser)){ showToast('🚫 Access denied'); return; }
   if(!uid) return;
   const action = isModerator ? 'remove moderator from' : 'make moderator';
   if(!confirm(`Are you sure you want to ${action}:\n\n${email}\n\nModerators can approve/reject font submissions without admin panel access.`)) return;
@@ -3238,7 +3238,7 @@ async function _adminToggleModerator(uid, email, isModerator){
 
 async function _adminDeleteUser(uid, name){
   if(!uid) return;
-  if(!_isAdmin(currentUser)){ showToast('Access denied'); return; }
+  if(!_isAdmin(window.currentUser)){ showToast('Access denied'); return; }
   var msg = 'DELETE USER\n\nDelete "' + name + '"?\n\n';
   msg += 'This removes their Firestore record and prevents future login.\n';
   msg += 'IMPORTANT: Also delete from Firebase Console > Authentication > Users.\n\n';
@@ -3518,18 +3518,18 @@ function uploadProfilePhoto(input){
   const reader=new FileReader();
   reader.onload=e=>{
     const dataUrl=e.target.result;
-    if(!currentUser)return;
-    currentUser.photo=dataUrl;
-    saveCurrentUser(currentUser);
+    if(!window.currentUser)return;
+    window.currentUser.photo=dataUrl;
+    saveCurrentUser(window.currentUser);
     // Sync to Firestore if available
     if(window._fbFns && window._fbAuth && window._fbDb){
       const {doc, updateDoc} = window._fbFns;
       const db = window._fbDb;
-      const uid = currentUser.id;
+      const uid = window.currentUser.id;
       updateDoc(doc(db,'users',uid),{photo:dataUrl}).catch(e=>console.warn('Photo Firestore update:',e));
     } else {
       const users=getUsers();
-      const idx=users.findIndex(u=>u.id===currentUser.id);
+      const idx=users.findIndex(u=>u.id===window.currentUser.id);
       if(idx>=0){users[idx].photo=dataUrl;saveUsers(users);}
     }
     applyProfilePhoto(dataUrl);
@@ -4083,9 +4083,9 @@ function openAuthorPage(authorName){
   updatePageMeta({ title: authorName + ' — Font·Monster', description: 'Browse fonts by ' + authorName + ' on Font·Monster.', url: '/author/' + encodeURIComponent(authorName) });
 
   // Match by exact author name OR by the submitter's user id (for user-uploaded fonts)
-  const authorUser = currentUser && (currentUser.name === authorName) ? currentUser : null;
+  const authorUser = window.currentUser && (window.currentUser.name === authorName) ? window.currentUser : null;
   const authorFonts = FONTS.filter(f => {
-    if(f.pending && !(currentUser && f.submittedById === currentUser.id)) return false;
+    if(f.pending && !(window.currentUser && f.submittedById === window.currentUser.id)) return false;
     if(f.author === authorName) return true;
     if(authorUser && f.submittedById === authorUser.id) return true;
     return false;
@@ -4116,7 +4116,7 @@ function openAuthorPage(authorName){
         loadFont(font);
         const lic = LICENSE_META[font.license]||{label:font.license,cls:'lic-demo'};
         const isLiked = likedFonts.has(font.id);
-        const isOwner = currentUser && (font.submittedById === currentUser.id || _isAdmin(currentUser));
+        const isOwner = window.currentUser && (font.submittedById === window.currentUser.id || _isAdmin(window.currentUser));
         return `<div class="font-card" style="margin-bottom:0;cursor:pointer" onclick="openDetail('${font.id}')">
           <div class="card-header">
             <div class="card-header-shimmer"></div>
@@ -4617,7 +4617,7 @@ function openDetail(fontId){
     currentRating=0;
     document.querySelectorAll('.star-btn').forEach(s=>s.classList.remove('on'));
     const hint=document.getElementById('commentLoginHint');
-    if(hint) hint.textContent=currentUser?`Posting as ${currentUser.name||currentUser.email}`:'Sign in to post a review';
+    if(hint) hint.textContent=window.currentUser?`Posting as ${window.currentUser.name||window.currentUser.email}`:'Sign in to post a review';
     renderComments(fontId);
   },120);
 }
@@ -4755,12 +4755,12 @@ function _resetSubmitForm(){
   clearFile();clearFontImg();
 }
 function openSubmit(){
-  if(!currentUser){
+  if(!window.currentUser){
     openAuthModal('login');
     showToast('⚠ Please sign up or sign in to submit a font');
     return;
   }
-  if(currentUser.emailVerified === false){
+  if(window.currentUser.emailVerified === false){
     showVerifyEmailModal();
     return;
   }
@@ -4841,9 +4841,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 function closeSubmitOutside(e){if(e.target===document.getElementById('submitModal')&&e.type!=='touchmove')closeSubmit();}
 async function submitFont(){
-  if(!currentUser){closeSubmit();openAuthModal('login');showToast('⚠ Please sign up or sign in to submit a font');return;}
+  if(!window.currentUser){closeSubmit();openAuthModal('login');showToast('⚠ Please sign up or sign in to submit a font');return;}
   // Email doğrulanmamışsa submit-i blokla (OAuth login-lər həmişə verified sayılır)
-  if(currentUser.emailVerified === false){
+  if(window.currentUser.emailVerified === false){
     showVerifyEmailModal();
     return;
   }
@@ -4874,9 +4874,9 @@ async function submitFont(){
     id,name,author,cat,gfamily,weight:'400',tags,license,year,popular:60,sourceUrl:url||'',
     description:description||'',
     pending:true,isNew:true,
-    submittedById:currentUser.id,
-    submittedByName:currentUser.name,
-    submittedByEmail:currentUser.email,
+    submittedById:window.currentUser.id,
+    submittedByName:window.currentUser.name,
+    submittedByEmail:window.currentUser.email,
     submittedAt:new Date().toISOString()
   };
   if(previewImg)newFont.previewImg=previewImg;
@@ -5165,7 +5165,7 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
 })();
 
 renderFonts();renderRecentList();
-// initAuth loads currentUser from localStorage for offline/non-Firebase fallback
+// initAuth loads window.currentUser from localStorage for offline/non-Firebase fallback
 // Firebase onAuthStateChanged will override this when it fires
 if(typeof initAuth === 'function') initAuth();
 setTimeout(injectAllFallingLetters, 300);
@@ -5222,9 +5222,9 @@ async function renderComments(fontId){
   list.innerHTML=comments.slice().reverse().map(c=>{
     const stars='★'.repeat(c.rating||0)+'☆'.repeat(5-(c.rating||0));
     const likeCount=c.likes?c.likes.length:0;
-    const likedByMe=currentUser&&c.likes&&c.likes.includes(currentUser.id);
-    const isOwn=currentUser&&c.userId===currentUser.id;
-    const isAdmin=_isAdmin(currentUser);
+    const likedByMe=window.currentUser&&c.likes&&c.likes.includes(window.currentUser.id);
+    const isOwn=window.currentUser&&c.userId===window.currentUser.id;
+    const isAdmin=_isAdmin(window.currentUser);
     return `<div class="comment-card" id="cmt-${c.id}">
       <div class="comment-header">
         <span class="comment-author">${esc(c.user)}</span>
@@ -5248,16 +5248,16 @@ async function renderComments(fontId){
 async function submitComment(){
   const font=currentDetailFont;
   if(!font){showToast('⚠️ No font selected');return;}
-  if(!currentUser){openAuthModal('login');showToast('⚠️ Sign in to post a review');return;}
+  if(!window.currentUser){openAuthModal('login');showToast('⚠️ Sign in to post a review');return;}
   const txt=document.getElementById('commentInput').value.trim();
   if(!txt){showToast('⚠️ Write something first');return;}
   if(window.fbAddComment){
     try{
       await window.fbAddComment(font.id, txt, currentRating);
       // Also save to localStorage so reviews appear even if Firebase re-fetch is slow
-      const _newC={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),userId:currentUser.id,user:currentUser.name||currentUser.email,rating:currentRating,text:txt,date:new Date().toISOString(),likes:[]};
+      const _newC={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),userId:window.currentUser.id,user:window.currentUser.name||window.currentUser.email,rating:currentRating,text:txt,date:new Date().toISOString(),likes:[]};
       const _lsC=getComments(font.id);
-      if(!_lsC.find(c=>c.userId===currentUser.id&&c.text===txt)){_lsC.push(_newC);saveComments(font.id,_lsC);}
+      if(!_lsC.find(c=>c.userId===window.currentUser.id&&c.text===txt)){_lsC.push(_newC);saveComments(font.id,_lsC);}
       // Update local rating cache
       if(currentRating > 0) {
         const existing = RATING_CACHE[font.id];
@@ -5277,10 +5277,10 @@ async function submitComment(){
     }catch(e){ showToast('❌ Error: '+e.message); }
   } else {
     const comments=getComments(font.id);
-    const already=comments.find(c=>c.userId===currentUser.id);
+    const already=comments.find(c=>c.userId===window.currentUser.id);
     if(already){showToast('⚠️ You already reviewed this font');return;}
     const newC={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      userId:currentUser.id,user:currentUser.name||currentUser.email,
+      userId:window.currentUser.id,user:window.currentUser.name||window.currentUser.email,
       rating:currentRating,text:txt,date:new Date().toISOString(),likes:[]};
     comments.push(newC);saveComments(font.id,comments);
     document.getElementById('commentInput').value='';setRating(0);currentRating=0;
@@ -5299,16 +5299,16 @@ async function deleteComment(fontId, commentId){
 }
 
 async function likeComment(fontId, commentId){
-  if(!currentUser){openAuthModal('login');showToast('⚠️ Sign in to mark as helpful');return;}
+  if(!window.currentUser){openAuthModal('login');showToast('⚠️ Sign in to mark as helpful');return;}
   if(window.fbLikeComment){
-    try{ await window.fbLikeComment(commentId, currentUser.id); await renderComments(fontId); }
+    try{ await window.fbLikeComment(commentId, window.currentUser.id); await renderComments(fontId); }
     catch(e){ showToast('❌ '+e.message); }
   } else {
     const comments=getComments(fontId);
     const c=comments.find(x=>x.id===commentId);
     if(!c)return;if(!c.likes)c.likes=[];
-    const idx=c.likes.indexOf(currentUser.id);
-    if(idx>=0)c.likes.splice(idx,1);else c.likes.push(currentUser.id);
+    const idx=c.likes.indexOf(window.currentUser.id);
+    if(idx>=0)c.likes.splice(idx,1);else c.likes.push(window.currentUser.id);
     saveComments(fontId,comments);renderComments(fontId);
   }
 }
@@ -5334,11 +5334,11 @@ function openContactModal(){
   document.body.style.overflow='hidden';
   document.getElementById('contactFormWrap').style.display='';
   document.getElementById('contactSuccess').style.display='none';
-  if(currentUser){
+  if(window.currentUser){
     const n=document.getElementById('ctName');
     const e=document.getElementById('ctEmail');
-    if(n&&!n.value) n.value=currentUser.name||'';
-    if(e&&!e.value) e.value=currentUser.email||'';
+    if(n&&!n.value) n.value=window.currentUser.name||'';
+    if(e&&!e.value) e.value=window.currentUser.email||'';
   }
 }
 function closeContactModal(){
