@@ -1156,11 +1156,24 @@ function handleDownloadClick(fontId,fontName){
   } else if(font && (font.fontData || font.fontUrl)){
     const ext=font.fontExt||'.ttf';
     const href = font.fontUrl || font.fontData;
-    const a=document.createElement('a');
-    a.href=href;
-    a.download=fontName.replace(/\s+/g,'_')+ext;
-    if(font.fontUrl) a.target='_blank';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    const filename = fontName.replace(/\s+/g,'_')+ext;
+    if(font.fontUrl && !href.startsWith('data:')){
+      // Fetch as blob so browser downloads directly instead of opening a new tab
+      showToast('⏳ Downloading '+fontName+ext+'…');
+      fetch(href)
+        .then(function(r){ return r.blob(); })
+        .then(function(blob){
+          const a=document.createElement('a');
+          a.href=URL.createObjectURL(blob);
+          a.download=filename;
+          document.body.appendChild(a);a.click();document.body.removeChild(a);
+          setTimeout(function(){ URL.revokeObjectURL(a.href); },60000);
+        })
+        .catch(function(){
+          const a=document.createElement('a');
+          a.href=href;a.download=filename;
+          document.body.appendChild(a);a.click();document.body.removeChild(a);
+        });
     showToast(`⬇️ Downloading ${fontName}${ext}.`);
   } else {
     showToast(`⬇️ Downloading ${fontName}.`);
