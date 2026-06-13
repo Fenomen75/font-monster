@@ -1192,35 +1192,30 @@ function handleDownloadClick(fontId,fontName){
           setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
           showToast(`✅ ${fontName}${ext} yükləndi`);
         } else {
-          // Fallback: fetch Google Fonts zip as blob to avoid page navigation
+          // Fallback: blob download to avoid page navigation
           showToast(`⬇️ ${fontName} yüklənir...`);
           try{
-            const zipRes = await fetch(`https://fonts.google.com/download?family=${encodeURIComponent(fontName)}`);
-            const zipBlob = await zipRes.blob();
-            const a2 = document.createElement('a');
-            a2.href = URL.createObjectURL(zipBlob);
-            a2.download = fontName.replace(/\s+/g,'_') + '.zip';
-            document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
-            setTimeout(()=>URL.revokeObjectURL(a2.href),60000);
-          } catch(e2){
-            // Last resort - open in new tab, not current page
-            window.open(`https://fonts.google.com/download?family=${encodeURIComponent(fontName)}`,'_blank');
-          }
+            const zipRes=await fetch(`https://fonts.google.com/download?family=${encodeURIComponent(fontName)}`);
+            const zipBlob=await zipRes.blob();
+            const az=document.createElement('a');
+            az.href=URL.createObjectURL(zipBlob);
+            az.download=fontName.replace(/\s+/g,'_')+'.zip';
+            document.body.appendChild(az);az.click();document.body.removeChild(az);
+            setTimeout(()=>URL.revokeObjectURL(az.href),60000);
+          }catch(e2){ window.open(`https://fonts.google.com/download?family=${encodeURIComponent(fontName)}`,'_blank'); }
         }
       } catch(err){
         console.error('Font download error:', err);
         showToast(`⬇️ ${fontName} yüklənir...`);
         try{
-          const zipRes2 = await fetch(`https://fonts.google.com/download?family=${encodeURIComponent(fontName)}`);
-          const zipBlob2 = await zipRes2.blob();
-          const a3 = document.createElement('a');
-          a3.href = URL.createObjectURL(zipBlob2);
-          a3.download = fontName.replace(/\s+/g,'_') + '.zip';
-          document.body.appendChild(a3); a3.click(); document.body.removeChild(a3);
-          setTimeout(()=>URL.revokeObjectURL(a3.href),60000);
-        } catch(e3){
-          window.open(`https://fonts.google.com/download?family=${encodeURIComponent(fontName)}`,'_blank');
-        }
+          const zipRes3=await fetch(`https://fonts.google.com/download?family=${encodeURIComponent(fontName)}`);
+          const zipBlob3=await zipRes3.blob();
+          const ac=document.createElement('a');
+          ac.href=URL.createObjectURL(zipBlob3);
+          ac.download=fontName.replace(/\s+/g,'_')+'.zip';
+          document.body.appendChild(ac);ac.click();document.body.removeChild(ac);
+          setTimeout(()=>URL.revokeObjectURL(ac.href),60000);
+        }catch(e3){ window.open(`https://fonts.google.com/download?family=${encodeURIComponent(fontName)}`,'_blank'); }
       }
     })();
   }
