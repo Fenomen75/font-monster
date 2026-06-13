@@ -298,7 +298,10 @@ function resolveFontLangs(font, callback) {
 function seededRand(seed){
   let x=Math.sin(seed+1)*10000;return x-Math.floor(x);
 }
-function getDownloadCounts(){
+// Baseline numbers used only until real stats load from Firestore (or for
+// fonts that have no real download_stats doc yet). These are marked as
+// "estimated" in the UI via DL_IS_ESTIMATED / fmtDlCountFor().
+function _estimatedDownloadCounts(){
   const s={};
   FONTS_BASE.forEach((f,i)=>{
     const base=Math.floor((f.popular/100)*920000+seededRand(i)*80000);
@@ -306,16 +309,39 @@ function getDownloadCounts(){
   });
   return s;
 }
-function getYesterdayDownloads(){
+function _estimatedYesterdayDownloads(){
   const s={};
   FONTS_BASE.forEach((f,i)=>{
     s[f.id]=Math.floor(120+seededRand(i+999)*680);
   });
   return s;
 }
-let DL_COUNTS=getDownloadCounts();
+let DL_COUNTS=_estimatedDownloadCounts();
 window.DL_COUNTS = DL_COUNTS;
-let DL_YESTERDAY=getYesterdayDownloads();
+let DL_YESTERDAY=_estimatedYesterdayDownloads();
+// true => the count for this font is still the seeded estimate, not real data
+let DL_IS_ESTIMATED={};
+FONTS_BASE.forEach(f=>DL_IS_ESTIMATED[f.id]=true);
+window.DL_IS_ESTIMATED=DL_IS_ESTIMATED;
+
+// Load real per-font download totals from Firestore ('download_stats/{fontId}')
+// and overlay them on top of the estimated baseline.
+async function loadDownloadStatsCache(){
+  if(!window._fbDb || !window._fbFns) return;
+  try{
+    const {collection, getDocs}=window._fbFns;
+    const snap=await getDocs(collection(window._fbDb,'download_stats'));
+    snap.docs.forEach(d=>{
+      const data=d.data();
+      if(typeof data.total==='number'){
+        DL_COUNTS[d.id]=data.total;
+        DL_IS_ESTIMATED[d.id]=false;
+      }
+      if(typeof data.yesterday==='number') DL_YESTERDAY[d.id]=data.yesterday;
+    });
+    window.DL_COUNTS=DL_COUNTS;
+  }catch(e){ console.warn('download_stats load error:',e); }
+}
 // Cache for average ratings: { fontId: { avg: 4.2, count: 5 } }
 let RATING_CACHE = {};
 window.RATING_CACHE = RATING_CACHE;
@@ -345,7 +371,22 @@ function getFontAvgRating(fontId) {
   return RATING_CACHE[fontId] || null;
 }
 function fmtDlCount(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return Math.round(n/1000)+'K';return String(n);}
-function incrementDownload(id){DL_COUNTS[id]=(DL_COUNTS[id]||0)+1;window.DL_COUNTS[id]=DL_COUNTS[id];}
+// Like fmtDlCount but prefixes "~" while the figure is still the seeded estimate
+function fmtDlCountFor(fontId){
+  return (DL_IS_ESTIMATED[fontId]?'~':'')+fmtDlCount(DL_COUNTS[fontId]||0);
+}
+function incrementDownload(id){
+  DL_COUNTS[id]=(DL_COUNTS[id]||0)+1;
+  window.DL_COUNTS[id]=DL_COUNTS[id];
+  DL_IS_ESTIMATED[id]=false;
+  if(window._fbDb && window._fbFns){
+    try{
+      const {doc, setDoc, increment}=window._fbFns;
+      setDoc(doc(window._fbDb,'download_stats',id), {total:increment(1)}, {merge:true})
+        .catch(e=>console.warn('download_stats write error:',e));
+    }catch(e){console.warn('download_stats write error:',e);}
+  }
+}
 
 let FONTS=[...FONTS_BASE],activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
 // Buq 4 düzəlişi: type="module" script defer kimi işləyir — onAuthStateChanged gəlməzdən
@@ -524,6 +565,12 @@ function getWeights(font){
 }
 
 // DARK MODE
+const ICON_SVG_MOON='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" stroke="none"/>';
+const ICON_SVG_SUN='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+function _setDarkIcon(isDark){
+  const icon=document.getElementById('darkIcon');
+  if(icon) icon.innerHTML=isDark?ICON_SVG_MOON:ICON_SVG_SUN;
+}
 function toggleDark(){
   // theme-color meta-sını da yenilə
   setTimeout(function(){
@@ -533,12 +580,7 @@ function toggleDark(){
   darkMode=!darkMode;
   document.documentElement.setAttribute('data-theme',darkMode?'dark':'');
   localStorage.setItem("tv_dark",darkMode?'1':'0');
-  const icon=document.getElementById('darkIcon');
-  if(darkMode){
-    icon.innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" stroke="none"/>';
-  } else {
-    icon.innerHTML='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-  }
+  _setDarkIcon(darkMode);
   showToast(darkMode?'🌙 Dark mode':'☀️ Light mode');
 }
 
@@ -748,8 +790,17 @@ function renderCompareCols(){
     </div>`;
   }).join('');
 }
-document.getElementById('cmpSize').oninput=renderCompareCols;
-document.getElementById('cmpText').oninput=renderCompareCols;
+function _debounce(fn,ms){
+  let t;
+  return function(...args){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,args),ms); };
+}
+const _renderCompareColsDebounced=_debounce(renderCompareCols,150);
+document.getElementById('cmpSize').oninput=function(){
+  // keep the size label live while debouncing the (expensive) grid rebuild
+  document.getElementById('cmpSizeVal').textContent=this.value;
+  _renderCompareColsDebounced();
+};
+document.getElementById('cmpText').oninput=_renderCompareColsDebounced;
 
 // FILTER
 let alphaFilter='';let freeOnly=false;let currentPage=1;let perPage=20;
@@ -978,37 +1029,23 @@ function switchCardChar(btn,chars,fname,fw){
   wrap.querySelectorAll('.cc-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
 }
-function renderFonts(){
-  window._lastRenderFontsAt = Date.now();
-  const grid=document.getElementById('fontGrid');grid.innerHTML="";
-  const allList=getFiltered();updateCounts();
-  const pp=parseInt(perPage)||0;
-  const total=allList.length;
-  const maxPage=pp>0?Math.ceil(total/pp):1;
-  if(currentPage>maxPage)currentPage=1;
-  const list=pp>0?allList.slice((currentPage-1)*pp,currentPage*pp):allList;
-  const title=document.getElementById('resultTitle');
-  if(!total){document.getElementById('emptyState').classList.add('show');title.innerHTML='<strong>0</strong> fonts';renderPagination(0,1,pp);return;}
-  document.getElementById('emptyState').classList.remove('show');
-  const from=pp>0?(currentPage-1)*pp+1:1,to=pp>0?Math.min(currentPage*pp,total):total;
-  title.innerHTML=`<strong>${total}</strong> font${total!==1?'s':''}${pp>0&&total>pp?` <span style="color:var(--text3);font-size:.78em">· showing ${from}-${to}</span>`:''}${activeLicenseFilter?` · <span style="color:var(--text3)">${LICENSE_META[activeLicenseFilter]?.label||''} only</span>`:''}`;
-  const glyphs='ABCDEFGHJKLMNOPQRST'.split('');
-  list.forEach((font,i)=>{
-    loadFont(font);
-    const card=document.createElement('div');card.className='font-card';
-    card.style.animationDelay=`${Math.min(i*0.03,0.28)}s`;
-    const isLiked=likedFonts.has(font.id),isCom=!FONTS_BASE.find(f=>f.id===font.id);
-    const isNew=isNewFont(font);
-    const top3ids=FONTS_BASE.slice().sort((a,b)=>(b.popular||0)-(a.popular||0)).slice(0,3).map(f=>f.id);
-    const isHot=!isNew && !isCom && top3ids.includes(font.id);
-    const txt=previewText||font.name;
-    // For uploaded fonts with variants, use the FIRST variant (as user ordered them)
-    const _cardVariant=(font.fontVariants&&font.fontVariants.length>0)?font.fontVariants[0]:null;
-    const _cardFamily=_cardVariant?(_cardVariant._familyName||(font.name+' '+parseVariantStyle(_cardVariant.name||'').label)):font.name;
-    const _cardWeight=_cardVariant?String(parseVariantStyle(_cardVariant.name||'').weight||font.weight||'400'):(font.weight||'400');
-    const fs=`font-family:'${_cardFamily}',sans-serif;font-weight:${_cardWeight};font-size:${fontSize}px;`;
-    const dlCount=DL_COUNTS[font.id]||0,isInCmp=compareFonts.includes(font.id);
-    card.innerHTML=`
+// ── Font kartının bütün HTML-ini qaytarır ────────────────────────────────────
+// renderFonts() bu funksiyaya istinad edir; kart dizaynını dəyişmək üçün
+// yalnız bu funksiyaya baxmaq kifayətdir.
+function _buildCardHTML(font, opts){
+  const {isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp,glyphs}=opts;
+  const ratingHTML=(()=>{
+    const r=getFontAvgRating(font.id);
+    if(!r||r.count===0)return '';
+    const full=Math.round(r.avg);
+    return `<span style="color:#f5a623;font-size:10px;letter-spacing:0.5px" title="${r.avg.toFixed(1)} stars from ${r.count} review${r.count!==1?'s':''}">${'★'.repeat(full)}${'☆'.repeat(5-full)}</span><span style="font-size:10px;color:var(--text3)">${r.avg.toFixed(1)}</span>`;
+  })();
+  const langHTML=(()=>{
+    const uniq=_LANG_CACHE[font.id]||getFontLangs(font);
+    return uniq.map((l,i)=>{const c=_LANG_COLORS[i%_LANG_COLORS.length];return`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:980px;background:${c.bg};border:1px solid ${c.border};color:${c.text};letter-spacing:.02em;white-space:nowrap">${l}</span>`;}).join('')+`<span id="lang-count-${font.id}" style="font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;margin-left:3px">· .</span>`;
+  })();
+  const tagsHTML=font.tags.map(t=>`<span class="tag" style="cursor:pointer" onclick="event.stopPropagation();(function(tag){activeTag=tag;searchTerm='';document.getElementById('searchInput').value='';activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;document.querySelectorAll('#tagList .sb-item').forEach(function(b){b.classList.toggle('active',b.dataset.tag===tag);});document.querySelectorAll('.cat').forEach(function(b){b.classList.toggle('active',b.dataset.cat==='all');});document.querySelectorAll('.alpha-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()==='All');});renderFonts();syncUrl(true);showToast('&#34;'+tag+'&#34; fonts');}('${esc(t)}'))" title="Filter by ${esc(t)}">${esc(t)}</span>`).join('');
+  return `
       <div class="card-header">
         <div class="card-header-shimmer"></div>
         <div class="ch-fall"></div>
@@ -1019,8 +1056,8 @@ function renderFonts(){
         <div class="card-actions" style="position:relative;z-index:2">
           <div class="dl-count">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            ${fmtDlCount(dlCount)}
-            <span style="opacity:0.45;font-size:9px;margin-left:2px;border-left:1px solid rgba(255,255,255,0.2);padding-left:5px" title="Yesterday downloads">yesterday +${fmtDlCount(DL_YESTERDAY[font.id]||0)}</span>
+            ${fmtDlCountFor(font.id)}
+            <span style="opacity:0.45;font-size:9px;margin-left:2px;border-left:1px solid rgba(255,255,255,0.2);padding-left:5px" title="Yesterday downloads (estimated)">yesterday +${fmtDlCount(DL_YESTERDAY[font.id]||0)}</span>
           </div>
           <button class="icon-btn ${isInCmp?'compare-on':''}" title="Compare" data-compare-btn="${font.id}"
             onclick="event.stopPropagation();addToCompare('${font.id}')">
@@ -1044,9 +1081,9 @@ function renderFonts(){
         </div>
       </div>
       <div class="card-footer" onclick="openDetail('${font.id}')">
-        <div class="tags">${font.tags.map(t=>`<span class="tag" style="cursor:pointer" onclick="event.stopPropagation();(function(tag){activeTag=tag;searchTerm='';document.getElementById('searchInput').value='';activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;document.querySelectorAll('#tagList .sb-item').forEach(function(b){b.classList.toggle('active',b.dataset.tag===tag);});document.querySelectorAll('.cat').forEach(function(b){b.classList.toggle('active',b.dataset.cat==='all');});document.querySelectorAll('.alpha-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()==='All');});renderFonts();syncUrl(true);showToast('&#34;'+tag+'&#34; fonts');}('${esc(t)}'))" title="Filter by ${esc(t)}">${esc(t)}</span>`).join('')}</div>
+        <div class="tags">${tagsHTML}</div>
         <div style="display:flex;align-items:center;gap:6px">
-          ${(()=>{const r=getFontAvgRating(font.id);if(!r||r.count===0)return '';const full=Math.round(r.avg);return `<span style="color:#f5a623;font-size:10px;letter-spacing:0.5px" title="${r.avg.toFixed(1)} stars from ${r.count} review${r.count!==1?'s':''}">${'★'.repeat(full)}${'☆'.repeat(5-full)}</span><span style="font-size:10px;color:var(--text3)">${r.avg.toFixed(1)}</span>`;})()}
+          ${ratingHTML}
           ${licBadge(font.license)}
         </div>
       </div>
@@ -1062,17 +1099,46 @@ function renderFonts(){
             <button class="cc-tab" onclick="switchCardChar(this,'!@#\$%&amp;*(){}[]?','${esc(font.name)}','${font.weight}')">!@</button>
           </div>
           <div style="width:1px;height:18px;background:var(--border2);flex-shrink:0;margin:0 3px"></div>
-          ${(()=>{
-            const uniq = _LANG_CACHE[font.id] || getFontLangs(font);
-            return uniq.map((l,i)=>{const c=_LANG_COLORS[i%_LANG_COLORS.length];return`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:980px;background:${c.bg};border:1px solid ${c.border};color:${c.text};letter-spacing:.02em;white-space:nowrap">${l}</span>`;}).join('')+`<span id="lang-count-${font.id}" style="font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;margin-left:3px">· .</span>`;
-          })()}
+          ${langHTML}
         </div>
       </div>`;
+}
+
+function renderFonts(){
+  window._lastRenderFontsAt = Date.now();
+  const grid=document.getElementById('fontGrid');grid.innerHTML="";
+  const allList=getFiltered();updateCounts();
+  const pp=parseInt(perPage)||0;
+  const total=allList.length;
+  const maxPage=pp>0?Math.ceil(total/pp):1;
+  if(currentPage>maxPage)currentPage=1;
+  const list=pp>0?allList.slice((currentPage-1)*pp,currentPage*pp):allList;
+  const title=document.getElementById('resultTitle');
+  if(!total){document.getElementById('emptyState').classList.add('show');title.innerHTML='<strong>0</strong> fonts';renderPagination(0,1,pp);return;}
+  document.getElementById('emptyState').classList.remove('show');
+  const from=pp>0?(currentPage-1)*pp+1:1,to=pp>0?Math.min(currentPage*pp,total):total;
+  title.innerHTML=`<strong>${total}</strong> font${total!==1?'s':''}${pp>0&&total>pp?` <span style="color:var(--text3);font-size:.78em">· showing ${from}-${to}</span>`:''}${activeLicenseFilter?` · <span style="color:var(--text3)">${LICENSE_META[activeLicenseFilter]?.label||''} only</span>`:''}`;
+  const glyphs='ABCDEFGHJKLMNOPQRST'.split('');
+  const top3ids=FONTS_BASE.slice().sort((a,b)=>(b.popular||0)-(a.popular||0)).slice(0,3).map(f=>f.id);
+  list.forEach((font,i)=>{
+    loadFont(font);
+    const card=document.createElement('div');card.className='font-card';
+    card.style.animationDelay=`${Math.min(i*0.03,0.28)}s`;
+    const isLiked=likedFonts.has(font.id),isCom=!FONTS_BASE.find(f=>f.id===font.id);
+    const isNew=isNewFont(font);
+    const isHot=!isNew && !isCom && top3ids.includes(font.id);
+    const txt=previewText||font.name;
+    const _cardVariant=(font.fontVariants&&font.fontVariants.length>0)?font.fontVariants[0]:null;
+    const _cardFamily=_cardVariant?(_cardVariant._familyName||(font.name+' '+parseVariantStyle(_cardVariant.name||'').label)):font.name;
+    const _cardWeight=_cardVariant?String(parseVariantStyle(_cardVariant.name||'').weight||font.weight||'400'):(font.weight||'400');
+    const fs=`font-family:'${_cardFamily}',sans-serif;font-weight:${_cardWeight};font-size:${fontSize}px;`;
+    const dlCount=DL_COUNTS[font.id]||0,isInCmp=compareFonts.includes(font.id);
+    card.innerHTML=_buildCardHTML(font,{isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp,glyphs});
     grid.appendChild(card);
   });
 
   // Batch lang detection AFTER all cards are in DOM - prevents 20 simultaneous fetches
-  const _batchFonts = list.filter(f => !_fontLangCache[f.id]);
+  const _batchFonts = list.filter(f => !_GLYPH_COUNT_CACHE[f.id]);
   let _batchIdx = 0;
   function _runNextLangBatch(){
     const chunk = _batchFonts.slice(_batchIdx, _batchIdx + 4);
@@ -1098,8 +1164,8 @@ function handleDownloadClick(fontId,fontName){
   incrementDownload(fontId);
   const font=FONTS.find(f=>f.id===fontId);
   if(font && font.fontVariants && font.fontVariants.length > 1){
-    // Çoxlu variant - ZIP kimi yükl?
-    showToast(`⏳ ZIP hazirlanir.`);
+    // Çoxlu variant - ZIP kimi yüklə
+    showToast(`⏳ ZIP hazırlanır...`);
     (async()=>{
       try{
         const zip=new JSZip();
@@ -1123,10 +1189,10 @@ function handleDownloadClick(fontId,fontName){
         a.download=fontName.replace(/\s+/g,'_')+'_fonts.zip';
         document.body.appendChild(a);a.click();document.body.removeChild(a);
         setTimeout(()=>URL.revokeObjectURL(a.href),60000);
-        showToast(`? ${font.fontVariants.length} variant ZIP kimi yükl?ndi`);
+        showToast(`✅ ${font.fontVariants.length} variant ZIP kimi yükləndi`);
       } catch(err){
         console.error(err);
-        showToast('ZIP x?tasi, ayri-ayri yükl?nir.');
+        showToast('ZIP xətası, ayrı-ayrı yüklənir.');
         font.fontVariants.forEach((v,i)=>{
           setTimeout(()=>{
             const a=document.createElement('a');
@@ -1159,7 +1225,7 @@ function handleDownloadClick(fontId,fontName){
   const card=document.querySelector(`#prev-${fontId}`)?.closest('.font-card');
   if(card){
     const c=card.querySelector('.dl-count');
-    if(c)c.innerHTML=`<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${fmtDlCount(DL_COUNTS[fontId])}`;
+    if(c)c.innerHTML=`<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${fmtDlCountFor(fontId)}`;
   }
 }
 
@@ -2889,33 +2955,39 @@ function _renderAdminTrash(){
 }
 
 
-// ?? ACTIVITY LOG ?????????????????????????????????????????????
+// ── ACTIVITY LOG ─────────────────────────────────────────────
 function _getLog(){try{return JSON.parse(localStorage.getItem('tv_admin_log')||'[]');}catch(e){return[];}}
 function _saveLog(arr){try{localStorage.setItem('tv_admin_log',JSON.stringify(arr.slice(-200)));}catch(e){}}
 function adminLog(action, fontName, detail){
+  const entry={action, fontName, detail, at:new Date().toISOString(), by:(window.currentUser&&window.currentUser.email)||'unknown'};
+  // local cache for instant UI / offline fallback
   const log=_getLog();
-  log.unshift({action, fontName, detail, at:new Date().toISOString()});
+  log.unshift(entry);
   _saveLog(log);
+  // persist to Firestore so the log is shared across devices
+  if(window._fbFns && window._fbDb){
+    try{
+      const {collection, addDoc, serverTimestamp}=window._fbFns;
+      addDoc(collection(window._fbDb,'admin_log'), {...entry, at:serverTimestamp()})
+        .catch(e=>console.warn('admin_log write error:',e));
+    }catch(e){console.warn('admin_log write error:',e);}
+  }
 }
-function _renderAdminLog(){
-  const view=document.getElementById('adminView_log');
-  const log=_getLog();
+const _ADMIN_LOG_ICON={approve:'✅',reject:'❌',delete:'🗑️',restore:'↩️',edit:'✏️',import:'📥',export:'📤',empty_trash:'🗑️'};
+const _ADMIN_LOG_COLOR={approve:'var(--green)',reject:'var(--red)',delete:'var(--red)',restore:'var(--green)',edit:'var(--accent)',import:'var(--purple)',export:'var(--blue)',empty_trash:'var(--red)'};
+function _renderLogList(log){
   if(!log.length){
-    view.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--text3)">'+
+    return '<div style="text-align:center;padding:60px 20px;color:var(--text3)">'+
       '<div style="font-size:40px;margin-bottom:14px">🗑️</div>'+
       '<div style="font-size:15px;font-weight:600;color:var(--text2)">No activity yet</div>'+
       '<div style="font-size:13px;margin-top:6px">Admin actions will appear here.</div></div>';
-    return;
   }
-  const icon={approve:'✅',reject:'❌',delete:'🗑️',restore:'↩️',edit:'✏️',import:'📥',export:'📤',empty_trash:'🗑️'};
-  const color={approve:'var(--green)',reject:'var(--red)',delete:'var(--red)',restore:'var(--green)',edit:'var(--accent)',import:'var(--purple)',export:'var(--blue)',empty_trash:'var(--red)'};
-  view.innerHTML=
-    '<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'+
+  return '<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'+
     '<button onclick="adminClearLog(this)" style="background:var(--surface3);border:1px solid var(--border2);color:var(--text3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans)">Clear log</button></div>'+
     '<div style="display:flex;flex-direction:column;gap:4px">'+
     log.map(e=>{
-      const ic=icon[e.action]||'·';
-      const col=color[e.action]||'var(--text2)';
+      const ic=_ADMIN_LOG_ICON[e.action]||'·';
+      const col=_ADMIN_LOG_COLOR[e.action]||'var(--text2)';
       const dt=new Date(e.at);
       const dateStr=dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
       const timeStr=dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
@@ -2924,17 +2996,50 @@ function _renderAdminLog(){
         '<div style="flex:1;min-width:0">'+
         '<span style="font-size:13px;font-weight:600;color:'+col+'">'+esc(e.fontName||'-')+'</span>'+
         (e.detail?'<span style="font-size:12px;color:var(--text3);margin-left:6px">'+esc(e.detail)+'</span>':'')+
+        (e.by?'<span style="font-size:11px;color:var(--text3);margin-left:6px">· '+esc(e.by)+'</span>':'')+
         '</div>'+
         '<span style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0">'+dateStr+' · '+timeStr+'</span>'+
         '</div>';
     }).join('')+
     '</div>';
 }
+async function _renderAdminLog(){
+  const view=document.getElementById('adminView_log');
+  // show local cache immediately so the panel isn't empty while Firestore loads
+  view.innerHTML=_renderLogList(_getLog());
+  if(!window._fbFns || !window._fbDb) return;
+  try{
+    const {collection, getDocs, query, orderBy, limit}=window._fbFns;
+    let q=collection(window._fbDb,'admin_log');
+    if(orderBy) q=query(q, orderBy('at','desc'), ...(limit?[limit(200)]:[]));
+    const snap=await getDocs(q);
+    const log=snap.docs.map(d=>{
+      const data=d.data();
+      const at=data.at && data.at.toDate ? data.at.toDate().toISOString() : (data.at||new Date().toISOString());
+      return {...data, at, _id:d.id};
+    }).sort((a,b)=>new Date(b.at)-new Date(a.at));
+    if(log.length) view.innerHTML=_renderLogList(log);
+  }catch(e){
+    console.warn('admin_log read error:',e);
+    // keep local cache rendering on failure
+  }
+}
 function adminClearLog(btn){
   if(btn.dataset.c!=='yes'){btn.textContent='Sure?';btn.dataset.c='yes';setTimeout(()=>{if(btn.dataset.c==='yes'){btn.textContent='Clear log';btn.dataset.c='';}},3000);return;}
   btn.dataset.c='';
   _saveLog([]);
-  _renderAdminLog();
+  if(window._fbFns && window._fbDb){
+    (async()=>{
+      try{
+        const {collection, getDocs, doc, deleteDoc}=window._fbFns;
+        const snap=await getDocs(collection(window._fbDb,'admin_log'));
+        await Promise.all(snap.docs.map(d=>deleteDoc(doc(window._fbDb,'admin_log',d.id))));
+      }catch(e){console.warn('admin_log clear error:',e);}
+      _renderAdminLog();
+    })();
+  } else {
+    _renderAdminLog();
+  }
   showToast('Log cleared');
 }
 
@@ -3292,8 +3397,12 @@ function _filterAdminUsers(q){
 }
 // ????????????????????????????????????????????????????????????????????????????
 
-// ?? REAL LANGUAGE COUNT ??
-const _fontLangCache = {};
+// ── REAL LANGUAGE GLYPH-COUNT CACHE ──
+// NOT a duplicate of _LANG_CACHE: _LANG_CACHE stores the list of detected
+// language *labels* (e.g. ['Latin','Cyrillic']) for the language tags shown
+// on cards/detail. _GLYPH_COUNT_CACHE stores a numeric *glyph count* per font
+// (used for the "X characters supported" stat), computed via canvas glyph tests.
+const _GLYPH_COUNT_CACHE = {};
 const SUBSET_LANG_COUNT = {
   'latin':100,'latin-ext':200,'cyrillic':9,'cyrillic-ext':6,
   'greek':2,'greek-ext':2,'vietnamese':1,'arabic':25,'hebrew':3,
@@ -3343,8 +3452,8 @@ const CANVAS_SCRIPT_TESTS = [
 ];
 
 async function detectFontLangCount(font) {
-  if (_fontLangCache[font.id] !== undefined) return _fontLangCache[font.id];
-  _fontLangCache[font.id] = null;
+  if (_GLYPH_COUNT_CACHE[font.id] !== undefined) return _GLYPH_COUNT_CACHE[font.id];
+  _GLYPH_COUNT_CACHE[font.id] = null;
 
   // Google Fonts: fetch CSS and parse subset comments
   if (font.gfamily && !font.pending) {
@@ -3354,8 +3463,8 @@ async function detectFontLangCount(font) {
       const css = await resp.text();
       const subsets = [...new Set((css.match(/\/\* ([a-z][a-z-]*) \*\//g)||[]).map(s=>s.slice(3,-3)))];
       const count = subsets.reduce((s,sub)=>s+(SUBSET_LANG_COUNT[sub]||0),0);
-      _fontLangCache[font.id] = count || null;
-      return _fontLangCache[font.id];
+      _GLYPH_COUNT_CACHE[font.id] = count || null;
+      return _GLYPH_COUNT_CACHE[font.id];
     } catch(e) {}
   }
 
@@ -3365,8 +3474,8 @@ async function detectFontLangCount(font) {
   for (const t of CANVAS_SCRIPT_TESTS) {
     if (_canvasTestChar(font.name, font.weight||'400', t.char)) count += t.count;
   }
-  _fontLangCache[font.id] = count || null;
-  return _fontLangCache[font.id];
+  _GLYPH_COUNT_CACHE[font.id] = count || null;
+  return _GLYPH_COUNT_CACHE[font.id];
 }
 
 function updateCardLangCount(fontId) {
@@ -3779,7 +3888,7 @@ function renderPvCanvas(){
           <div style="font-family:var(--sans);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${subColor}">About this font</div>
           <div style="${bs}font-size:${Math.max(14,Math.min(sz,28))}px;line-height:1.65;text-align:${pvAlign};word-break:break-word;border-top:1px solid ${sepColor};padding-top:16px">${esc(descText)}</div>
         </div>`
-      : `<div style="padding:32px 28px;${bs}font-size:${Math.max(14,Math.min(sz,28))}px;color:${subColor};font-style:italic;text-align:${pvAlign}">No description available for this font.</div>`;
+      : `<div style="padding:32px 28px;font-family:var(--sans);font-size:13px;color:${subColor};font-style:italic">No description available for this font.</div>`;
   }
 }
 
@@ -4090,6 +4199,15 @@ function openAuthorPage(authorName){
     if(authorUser && f.submittedById === authorUser.id) return true;
     return false;
   });
+
+  renderAuthorPage(authorName, authorFonts);
+
+  document.getElementById('authorPage').style.display='block';
+  window.scrollTo(0,0);
+}
+
+// Renders the author page header (avatar, stats) and the font grid for the given author
+function renderAuthorPage(authorName, authorFonts){
   const cats = [...new Set(authorFonts.map(f=>f.cat))];
   const totalDl = authorFonts.reduce((s,f)=>s+(DL_COUNTS[f.id]||0),0);
   const initials = authorName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
@@ -4112,48 +4230,60 @@ function openAuthorPage(authorName){
   } else {
     grid.innerHTML = authorFonts
       .slice().sort((a,b)=>(b.popular||0)-(a.popular||0))
-      .map(font => {
-        loadFont(font);
-        const lic = LICENSE_META[font.license]||{label:font.license,cls:'lic-demo'};
-        const isLiked = likedFonts.has(font.id);
-        const isOwner = window.currentUser && (font.submittedById === window.currentUser.id || _isAdmin(window.currentUser));
-        return `<div class="font-card" style="margin-bottom:0;cursor:pointer" onclick="openDetail('${font.id}')">
-          <div class="card-header">
-            <div class="card-header-shimmer"></div>
-            <div class="ch-fall"></div>
-            <div style="position:relative;z-index:2;flex:1;min-width:0">
-              <div class="card-name">${esc(font.name)}</div>
-              <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(font.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(font.author)}</span> · ${font.year}</div>
-            </div>
-            <div class="card-actions" style="position:relative;z-index:2">
-              ${isOwner?`<button class="icon-btn" onclick="event.stopPropagation();openEditFont('${font.id}')" title="Edit font" style="color:var(--accent);background:var(--blue-dim);border:1px solid var(--border2);border-radius:8px;width:30px;height:30px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:''}
-              <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${font.id}',this)" aria-label="${isLiked?'Saved – click to unsave':'Save font'}" aria-pressed="${isLiked?'true':'false'}">
-                ${isLiked?'♥':'♡'}
-              </button>
-              <a class="dl-btn" href="#"
-                onclick="event.stopPropagation();event.preventDefault();handleDownloadClick('${font.id}','${esc(font.name)}');return false;">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Get
-              </a>
-            </div>
-          </div>
-          <div class="card-preview-area">
-            <div class="card-preview" style="font-family:'${font.name}',sans-serif;font-size:36px">${esc(font.name)}</div>
-          </div>
-          <div class="card-footer">
-            <div class="tags">${font.tags.slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
-            <span class="lic-badge ${lic.cls}">${lic.label}</span>
-          </div>
-        </div>`;
-      }).join('');
+      .map(_renderAuthorFontCard).join('');
   }
-
-  document.getElementById('authorPage').style.display='block';
-  window.scrollTo(0,0);
 }
 
+// Single font card used in the author page grid
+function _renderAuthorFontCard(font){
+  loadFont(font);
+  const lic = LICENSE_META[font.license]||{label:font.license,cls:'lic-demo'};
+  const isLiked = likedFonts.has(font.id);
+  const isOwner = window.currentUser && (font.submittedById === window.currentUser.id || _isAdmin(window.currentUser));
+  return `<div class="font-card" style="margin-bottom:0;cursor:pointer" onclick="openDetail('${font.id}')">
+    <div class="card-header">
+      <div class="card-header-shimmer"></div>
+      <div class="ch-fall"></div>
+      <div style="position:relative;z-index:2;flex:1;min-width:0">
+        <div class="card-name">${esc(font.name)}</div>
+        <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(font.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(font.author)}</span> · ${font.year}</div>
+      </div>
+      <div class="card-actions" style="position:relative;z-index:2">
+        ${isOwner?`<button class="icon-btn" onclick="event.stopPropagation();openEditFont('${font.id}')" title="Edit font" style="color:var(--accent);background:var(--blue-dim);border:1px solid var(--border2);border-radius:8px;width:30px;height:30px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:''}
+        <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${font.id}',this)" aria-label="${isLiked?'Saved – click to unsave':'Save font'}" aria-pressed="${isLiked?'true':'false'}">
+          ${isLiked?'♥':'♡'}
+        </button>
+        <a class="dl-btn" href="#"
+          onclick="event.stopPropagation();event.preventDefault();handleDownloadClick('${font.id}','${esc(font.name)}');return false;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Get
+        </a>
+      </div>
+    </div>
+    <div class="card-preview-area">
+      <div class="card-preview" style="font-family:'${font.name}',sans-serif;font-size:36px">${esc(font.name)}</div>
+    </div>
+    <div class="card-footer">
+      <div class="tags">${font.tags.slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+      <span class="lic-badge ${lic.cls}">${lic.label}</span>
+    </div>
+  </div>`;
+}
 function openDetail(fontId){
   const font=FONTS.find(f=>f.id===fontId);if(!font)return;
+  const {licM, dlCount} = _detailInit(font, fontId);
+  _detailRenderHero(font);
+  _detailRenderHeader(font, dlCount, licM);
+  _detailResetPreviewControls(font);
+  const weights = _detailRenderWeights(font);
+  _detailBuildCharmap(font);
+  _detailRenderInfoBox(font, weights, licM);
+  _detailShowPage(font, fontId, dlCount);
+  _detailRenderExtras(font, fontId);
+}
+
+// 1/8 — state setup: globals, preview defaults, breadcrumb, derived license/download values
+function _detailInit(font, fontId){
   currentDetailFont=font;activeDetailWeight=font.weight||'400';activeDetailVariantIdx=0;
   activeVariantFamily=(font.fontVariants&&font.fontVariants.length>0)?(font.fontVariants[0]._familyName||null):null;
   pvMode='text';pvBold=false;pvItalic=false;pvAlign='left';pvBgColor='#ffffff';pvTextColor='#111111';
@@ -4163,7 +4293,11 @@ function openDetail(fontId){
   document.getElementById('fdpBreadcrumb').textContent=font.name;
   const licM=LICENSE_META[font.license]||{label:font.license,cls:'lic-demo'};
   const dlCount=DL_COUNTS[font.id]||0;
+  return {licM, dlCount};
+}
 
+// 2/8 — hero banner (image or auto-generated color banner)
+function _detailRenderHero(font){
   // Banner - s?kil varsa göst?r, yoxsa auto banner
   const heroBgPalettes = [
     {bg:'#0a0a0a',text:'#ffffff'},
@@ -4248,6 +4382,10 @@ function openDetail(fontId){
         </div>
       </div>`;
 
+}
+
+// 3/8 — title/author/tags/actions header bar
+function _detailRenderHeader(font, dlCount, licM){
   // Ad, mü?llif, actions - fdpHero-da (üst bar)
   document.getElementById('fdpHero').removeAttribute('style');
   document.getElementById('fdpHero').innerHTML=`
@@ -4292,6 +4430,10 @@ function openDetail(fontId){
       </button>
     </div>`;
 
+}
+
+// 4/8 — reset the preview controls (text/size/style/overlay) to defaults
+function _detailResetPreviewControls(font){
   // Reset controls
   document.getElementById('fdpPvInput').value=previewText||font.name;
   document.getElementById('fdpSizeRange').value=56;document.getElementById('fdpSizeVal').textContent=56;
@@ -4314,6 +4456,10 @@ function openDetail(fontId){
   document.querySelector('.pv-style-bar').style.display='';
   pvOverlayTextColor='#ffffff'; pvOverlayAlign='left'; pvOverlayPos='center';
 
+}
+
+// 5/8 — weight / variant list, returns the resolved weights array
+function _detailRenderWeights(font){
   // Weights
   const weights=getWeights(font);const pvTxt=previewText||font.name;
   // Uploaded fontlar üçün fontVariants-i weight list kimi göst?r
@@ -4346,6 +4492,11 @@ function openDetail(fontId){
       </div>`).join('');
   }
 
+  return weights;
+}
+
+// 6/8 — charmap tab rebuild + render
+function _detailBuildCharmap(font){
   // Charmap - rebuild tabs based on this font's language support
   activeCharTab='upper';
   activeVariantFamily=null;
@@ -4386,9 +4537,10 @@ function openDetail(fontId){
   renderCharmap(font);
 
   // Code (CSS snippet panel removed - skip)
+}
 
-
-
+// 7/8 — sidebar info box (category/designer/year/license/weights/downloads/languages)
+function _detailRenderInfoBox(font, weights, licM){
   // Language support - unified cache (same as card & glyph preview)
   // Placeholder rendered immediately, then updated once detection completes
   const uniqueLangs = _LANG_CACHE[font.id] || getFontLangs(font);
@@ -4408,7 +4560,7 @@ function openDetail(fontId){
     ${clickRow('Year', font.year, `closeDetail();document.getElementById('searchInput').value='${font.year}';searchTerm='${font.year}';currentPage=1;document.getElementById('sortSel').value='newest';refreshCustomSelect('sortSel');renderFonts();syncUrl(true);window.scrollTo({top:0,behavior:'smooth'})`)}
     ${clickRow('License', licM.label, `closeDetail();filterLicense('${font.license}');window.scrollTo({top:0,behavior:'smooth'})`)}
     <div class="fdp-info-row"><span class="fdp-info-key">Weights</span><span class="fdp-info-val">${weights.length} variant${weights.length!==1?'s':''}</span></div>
-    <div class="fdp-info-row"><span class="fdp-info-key">Downloads</span><span class="fdp-info-val" id="fdpDlCountVal">${fmtDlCount(dlCount)}</span></div>
+    <div class="fdp-info-row"><span class="fdp-info-key">Downloads</span><span class="fdp-info-val" id="fdpDlCountVal">${fmtDlCountFor(font.id)}</span></div>
     <div class="fdp-info-row" style="flex-direction:column;align-items:flex-start;gap:6px;padding:10px 14px">
       <span class="fdp-info-key" style="margin-bottom:2px">Languages</span>
       <div id="fdpLangBadges" style="display:flex;flex-wrap:wrap;gap:4px">
@@ -4427,6 +4579,10 @@ function openDetail(fontId){
     }).join('');
   });
 
+}
+
+// 8/8a — page switching, URL routing, SEO meta, quick-download panel
+function _detailShowPage(font, fontId, dlCount){
   // Grid scroll mövqeyini yadda saxla
   if(typeof window._saveGridScroll === 'function') window._saveGridScroll();
   document.getElementById('gridLayout').style.display='none';
@@ -4479,6 +4635,10 @@ function openDetail(fontId){
     document.querySelectorAll('#fdpLeft input[type=range], .fdp-sidebar input[type=range]').forEach(r=>{syncRangeSlider(r);r.addEventListener('input',()=>syncRangeSlider(r),{once:false});});
   },130);
 
+}
+
+// 8/8b — similar fonts, popularity chart, font-of-the-day, trending tags, stats, comments
+function _detailRenderExtras(font, fontId){
   // Similar Fonts - 9 font, tam kart stilind?
   const similarContainer = document.getElementById('fdpSimilarFonts');
   const otherFonts = FONTS.filter(f => f.id !== font.id && f.cat === font.cat);
@@ -4623,7 +4783,7 @@ function openDetail(fontId){
 }
 
 function updateDetailDlCount(fontId){
-  const el=document.getElementById('fdpDlCountVal');if(el)el.textContent=fmtDlCount(DL_COUNTS[fontId]||0);
+  const el=document.getElementById('fdpDlCountVal');if(el)el.textContent=fmtDlCountFor(fontId);
 }
 function copyDetailCSS(){
   const blk=document.getElementById('fdpCodeBlock'); if(!blk) return;
@@ -4847,13 +5007,23 @@ async function submitFont(){
     showVerifyEmailModal();
     return;
   }
+  const newFont=_buildNewFontFromForm();
+  if(!newFont) return;
+  if(uploadedFontFiles.length > 0){
+    await _uploadSubmittedFontFiles(newFont);
+  }
+  try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('❌ Xəta: '+err.message); }
+}
+
+// 1/7 — read & validate the submit form, build the draft font object (or null if invalid)
+function _buildNewFontFromForm(){
   const name=document.getElementById('sf-name').value.trim();
   const author=document.getElementById('sf-author').value.trim();
   const cat=document.getElementById('sf-cat').value;
   const license=document.getElementById('sf-license').value;
   const url=document.getElementById('sf-url').value.trim();
   const description=(document.getElementById('sf-description')?.value||'').trim();
-  if(!name||!author||!cat||!license){showToast('⚠️ Please fill in all required fields');return;}
+  if(!name||!author||!cat||!license){showToast('⚠️ Please fill in all required fields');return null;}
   let id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
   // ID artıq mövcuddursa rəqəmli suffix əlavə et
   if(FONTS.find(f=>f.id===id)){
@@ -4880,158 +5050,176 @@ async function submitFont(){
     submittedAt:new Date().toISOString()
   };
   if(previewImg)newFont.previewImg=previewImg;
+  return newFont;
+}
 
-  // Helper to finalize submission after optional Storage upload
-  async function _finalizeSubmit(font){
-    // Compute detectedLangs from opentype unicodeSet if available
-    if(!font.detectedLangs && uploadedFontData && uploadedFontData.unicodeSet && uploadedFontData.unicodeSet.size>0){
-      const set=uploadedFontData.unicodeSet;
-      font.detectedLangs=(typeof LANG_SUPPORT_LIST!=='undefined'?LANG_SUPPORT_LIST:[])
-        .filter(l=>{
-          const chars=l.chars||'';
-          const arr=typeof chars==='string'?[...chars]:chars;
-          return arr.some(ch=>set.has(ch.codePointAt(0)));
-        })
-        .map(l=>l.label);
-      if(!font.detectedLangs.length) font.detectedLangs=['Latin'];
-      _LANG_CACHE[font.id]=font.detectedLangs;
-    }
-    // Add to runtime FONTS (current user sees it immediately)
-    FONTS.push(font);
-    DL_COUNTS[font.id]=0;
-    // Inject font face immediately for current session
-    if(!font.previewImg){
-      if(font.fontVariants&&font.fontVariants.length>0) injectVariantFaces(font);
-      else if(font.fontData) injectCustomFontFace(font.id,font.name,font.fontData,font.fontExt||'.ttf');
-      else if(font.fontUrl) injectCustomFontFaceUrl(font.id,font.name,font.fontUrl,font.fontExt||'.ttf');
-    }
-    // Storage obyektini hazırla (binary-siz)
-    const fontForStorage={...font};
-    if(fontForStorage.fontUrl || fontForStorage.fontData){
-      fontForStorage.pending=false;
-      fontForStorage.status='approved';
-      if(!fontForStorage.approvedAt) fontForStorage.approvedAt=new Date().toISOString();
-    }
-    // fontData-nı ayrı saxla (5MB limit)
-    if(font.fontData){
-      try{localStorage.setItem('fn_fontdata_'+font.id, font.fontData);}catch(e){console.warn('fontData storage failed (quota?):',e);}
-      delete fontForStorage.fontData;
-      fontForStorage._hasFontData=true;
-    }
-    if(font.fontUrl) delete fontForStorage.fontData;
-
-    // ── PRIMARY: Firestore ──────────────────────────────────────────────────
-    // Firebase mövcuddursa əvvəlcə Firestore-a yaz; localStorage yalnız
-    // offline/fallback cache rolunu oynayır. Fərqli brauzer/cihazdan adminlər
-    // yalnız Firestore-dakı fontu görə bilər.
-    let savedToFirestore = false;
-    if(window._fbFns && window._fbDb){
-      const {doc, setDoc, getDoc} = window._fbFns;
-      const db = window._fbDb;
-      const cloudFont={...fontForStorage};
-      delete cloudFont.fontData;
-      if(cloudFont.fontUrl){ cloudFont.pending=false; cloudFont.status='approved'; }
-      try{
-        const existing = await getDoc(doc(db,'submitted_fonts',font.id));
-        if(existing.exists()){
-          console.warn('submitFont: font ID already exists in Firestore, skipping write:', font.id);
-          savedToFirestore = true; // mövcuddur, yazma tələb olunmur
-        } else {
-          await setDoc(doc(db,'submitted_fonts',font.id), cloudFont);
-          savedToFirestore = true;
-          console.log('✅ Firestore primary save:', font.id, 'pending:', cloudFont.pending);
-        }
-      }catch(e){
-        console.warn('Firestore submitFont error, falling back to localStorage:', e.message);
-        showToast('⚠ Cloud sync olmadı, lokal saxlandı. Internet bərpasında yenidən cəhd olunacaq.');
-      }
-    }
-
-    // ── FALLBACK: localStorage ──────────────────────────────────────────────
-    // Həmişə local cache-ə yaz: cari sessiya üçün + Firestore offline olduqda
+// 2/7 — upload selected font file(s) (Firebase Storage, with dataUrl fallback), mutates newFont
+async function _uploadSubmittedFontFiles(newFont){
+  const submitBtn = document.querySelector('#submitModal .submit-btn');
+  if(submitBtn){submitBtn.textContent='Uploading.';submitBtn.disabled=true;}
+  let primaryUrl=null, primaryExt=null, primaryName=null;
+  const fontVariants=[]; // bütün variantlarin URL-l?ri
+  for(let i=0;i<uploadedFontFiles.length;i++){
+    const fd=uploadedFontFiles[i];
+    newFont.gfamily = null;
+    if(submitBtn) submitBtn.textContent=`Uploading ${i+1}/${uploadedFontFiles.length}.`;
     try{
-      const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
-      // Mövcuddursa update et, yoxsa əlavə et
-      const existIdx=sub.findIndex(x=>x.id===fontForStorage.id);
-      if(existIdx>=0) sub[existIdx]={...sub[existIdx],...fontForStorage};
-      else sub.push(fontForStorage);
-      localStorage.setItem("tv_submitted",JSON.stringify(sub));
-    }catch(e){console.warn('localStorage fallback save error:',e);}
-
-    // Admin queue — yalnız Firebase yoxdursa (tam offline vəziyyət)
-    if(!font.fontUrl && !font.fontData && !savedToFirestore){
-      try{const reqs=getAdminRequests();reqs.push({...fontForStorage,requestType:'add'});saveAdminRequests(reqs);}catch(e){}
+      const fRef2=window._fbStorageRef(window._fbStorage,'fonts/'+(newFont.id+(i>0?('_'+i):'')+fd.ext));
+      await window._fbUploadBytes(fRef2, fd.file);
+      const url2=await window._fbGetDownloadURL(fRef2);
+      fontVariants.push({url:url2, ext:fd.ext, name:fd.name});
+      if(!primaryUrl){ primaryUrl=url2; primaryExt=fd.ext; primaryName=null; }
+      console.log('✅ Firebase Storage upload ok:', fd.name);
+    }catch(e){
+      console.warn('Storage upload failed, falling back to dataUrl:', e.message);
+      if(fd.dataUrl) fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
     }
-    ['sf-name','sf-author','sf-tags','sf-year','sf-url','sf-description'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
-    const sfBox=document.getElementById('sf-tags-box');
-    if(sfBox&&sfBox._tags){sfBox._tags.length=0;sfBox._renderChips();}
-    document.getElementById('sf-tags-input').value='';
-    document.getElementById('sf-cat').value='';refreshCustomSelect('sf-cat');document.getElementById('sf-license').value='';refreshCustomSelect('sf-license');
-    document.getElementById('licenseHint').textContent='';document.getElementById('licenseHint').classList.remove('show');
-    clearFile();clearFontImg();
-    document.getElementById('submitFormWrap').style.display='none';
-    document.getElementById('submitSuccess').classList.add('show');
-    renderFonts();
   }
-
-  // Upload font file(s) - Firebase Storage istifade et
-  if(uploadedFontFiles.length > 0){
-    const submitBtn = document.querySelector('#submitModal .submit-btn');
-    if(submitBtn){submitBtn.textContent='Uploading.';submitBtn.disabled=true;}
-    let primaryUrl=null, primaryExt=null, primaryName=null;
-    const fontVariants=[]; // bütün variantlarin URL-l?ri
-    for(let i=0;i<uploadedFontFiles.length;i++){
-      const fd=uploadedFontFiles[i];
-      newFont.gfamily = null;
-      if(submitBtn) submitBtn.textContent=`Uploading ${i+1}/${uploadedFontFiles.length}.`;
-      try{
-        const fRef2=window._fbStorageRef(window._fbStorage,'fonts/'+(newFont.id+(i>0?('_'+i):'')+fd.ext));
-        await window._fbUploadBytes(fRef2, fd.file);
-        const url2=await window._fbGetDownloadURL(fRef2);
-        fontVariants.push({url:url2, ext:fd.ext, name:fd.name});
-        if(!primaryUrl){ primaryUrl=url2; primaryExt=fd.ext; primaryName=null; }
-        console.log('✅ Firebase Storage upload ok:', fd.name);
-      }catch(e){
-        console.warn('Storage upload failed, falling back to dataUrl:', e.message);
-        if(fd.dataUrl) fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
+  // dataUrl fallback - PHP upload isl?m?dikd? uploadedFontFiles-dan variant qur
+  if(!fontVariants.length && uploadedFontFiles.length>0){
+    uploadedFontFiles.forEach(fd=>{
+      if(fd.dataUrl) fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
+    });
+  }
+  if(primaryUrl){
+    newFont.fontUrl=primaryUrl;
+    newFont.fontExt=primaryExt;
+    if(fontVariants.length > 0) newFont.fontVariants=fontVariants;
+    if(primaryName && primaryName.trim()){
+      const sfNameEl=document.getElementById('sf-name');
+      if(sfNameEl&&!sfNameEl.value.trim()) sfNameEl.value=primaryName.trim();
+      if(!newFont.name||newFont.name.replace(/-/g,' ').trim()===newFont.id.replace(/-/g,' ').trim()){
+        newFont.name=primaryName.trim();
+        newFont.id=primaryName.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
       }
     }
-    // dataUrl fallback - PHP upload isl?m?dikd? uploadedFontFiles-dan variant qur
-    if(!fontVariants.length && uploadedFontFiles.length>0){
-      uploadedFontFiles.forEach(fd=>{
-        if(fd.dataUrl) fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
-      });
-    }
-    if(primaryUrl){
-      newFont.fontUrl=primaryUrl;
-      newFont.fontExt=primaryExt;
-      if(fontVariants.length > 0) newFont.fontVariants=fontVariants;
-      if(primaryName && primaryName.trim()){
-        const sfNameEl=document.getElementById('sf-name');
-        if(sfNameEl&&!sfNameEl.value.trim()) sfNameEl.value=primaryName.trim();
-        if(!newFont.name||newFont.name.replace(/-/g,' ').trim()===newFont.id.replace(/-/g,' ').trim()){
-          newFont.name=primaryName.trim();
-          newFont.id=primaryName.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-        }
-      }
-      newFont.pending=false;
-      newFont.status='approved';
-      newFont.approvedAt=new Date().toISOString();
-    } else if(fontVariants.length > 0){
-      // PHP isl?m?di, amma dataUrl fallback var - bunlari da approved kimi qeyd et
-      newFont.fontVariants=fontVariants;
-      // Birinci varianti primary kimi saxla (preview üçün)
-      newFont.fontData=fontVariants[0].url;
-      newFont.fontExt=fontVariants[0].ext;
-      newFont.pending=false;
-      newFont.status='approved';
-      newFont.approvedAt=new Date().toISOString();
-    }
-    if(submitBtn){submitBtn.textContent='Submit Font';submitBtn.disabled=false;}
-    try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('❌ Xəta: '+err.message); }
-  } else {
-    try{ await _finalizeSubmit(newFont); }catch(err){ console.error('finalize error:',err); showToast('❌ Xəta: '+err.message); }
+    newFont.pending=false;
+    newFont.status='approved';
+    newFont.approvedAt=new Date().toISOString();
+  } else if(fontVariants.length > 0){
+    // PHP isl?m?di, amma dataUrl fallback var - bunlari da approved kimi qeyd et
+    newFont.fontVariants=fontVariants;
+    // Birinci varianti primary kimi saxla (preview üçün)
+    newFont.fontData=fontVariants[0].url;
+    newFont.fontExt=fontVariants[0].ext;
+    newFont.pending=false;
+    newFont.status='approved';
+    newFont.approvedAt=new Date().toISOString();
   }
+  if(submitBtn){submitBtn.textContent='Submit Font';submitBtn.disabled=false;}
+}
+
+// 3/7 — compute detectedLangs from the parsed opentype unicode set, if available
+function _computeDetectedLangsForSubmission(font){
+  if(!font.detectedLangs && uploadedFontData && uploadedFontData.unicodeSet && uploadedFontData.unicodeSet.size>0){
+    const set=uploadedFontData.unicodeSet;
+    font.detectedLangs=(typeof LANG_SUPPORT_LIST!=='undefined'?LANG_SUPPORT_LIST:[])
+      .filter(l=>{
+        const chars=l.chars||'';
+        const arr=typeof chars==='string'?[...chars]:chars;
+        return arr.some(ch=>set.has(ch.codePointAt(0)));
+      })
+      .map(l=>l.label);
+    if(!font.detectedLangs.length) font.detectedLangs=['Latin'];
+    _LANG_CACHE[font.id]=font.detectedLangs;
+  }
+}
+
+// 4/7 — build the storage-safe copy of the font (binary data stripped/relocated)
+function _prepFontForStorage(font){
+  const fontForStorage={...font};
+  if(fontForStorage.fontUrl || fontForStorage.fontData){
+    fontForStorage.pending=false;
+    fontForStorage.status='approved';
+    if(!fontForStorage.approvedAt) fontForStorage.approvedAt=new Date().toISOString();
+  }
+  // fontData-nı ayrı saxla (5MB limit)
+  if(font.fontData){
+    try{localStorage.setItem('fn_fontdata_'+font.id, font.fontData);}catch(e){console.warn('fontData storage failed (quota?):',e);}
+    delete fontForStorage.fontData;
+    fontForStorage._hasFontData=true;
+  }
+  if(font.fontUrl) delete fontForStorage.fontData;
+  return fontForStorage;
+}
+
+// 5/7 — write to Firestore (primary store); returns true if a doc now exists there
+async function _persistSubmittedFontToFirestore(font, fontForStorage){
+  if(!(window._fbFns && window._fbDb)) return false;
+  const {doc, setDoc, getDoc} = window._fbFns;
+  const db = window._fbDb;
+  const cloudFont={...fontForStorage};
+  delete cloudFont.fontData;
+  if(cloudFont.fontUrl){ cloudFont.pending=false; cloudFont.status='approved'; }
+  try{
+    const existing = await getDoc(doc(db,'submitted_fonts',font.id));
+    if(existing.exists()){
+      console.warn('submitFont: font ID already exists in Firestore, skipping write:', font.id);
+      return true; // mövcuddur, yazma tələb olunmur
+    }
+    await setDoc(doc(db,'submitted_fonts',font.id), cloudFont);
+    console.log('✅ Firestore primary save:', font.id, 'pending:', cloudFont.pending);
+    return true;
+  }catch(e){
+    console.warn('Firestore submitFont error, falling back to localStorage:', e.message);
+    showToast('⚠ Cloud sync olmadı, lokal saxlandı. Internet bərpasında yenidən cəhd olunacaq.');
+    return false;
+  }
+}
+
+// 6/7 — localStorage cache + offline admin queue fallback
+function _persistSubmittedFontLocally(font, fontForStorage, savedToFirestore){
+  // ── FALLBACK: localStorage ──────────────────────────────────────────────
+  // Həmişə local cache-ə yaz: cari sessiya üçün + Firestore offline olduqda
+  try{
+    const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
+    // Mövcuddursa update et, yoxsa əlavə et
+    const existIdx=sub.findIndex(x=>x.id===fontForStorage.id);
+    if(existIdx>=0) sub[existIdx]={...sub[existIdx],...fontForStorage};
+    else sub.push(fontForStorage);
+    localStorage.setItem("tv_submitted",JSON.stringify(sub));
+  }catch(e){console.warn('localStorage fallback save error:',e);}
+
+  // Admin queue — yalnız Firebase yoxdursa (tam offline vəziyyət)
+  if(!font.fontUrl && !font.fontData && !savedToFirestore){
+    try{const reqs=getAdminRequests();reqs.push({...fontForStorage,requestType:'add'});saveAdminRequests(reqs);}catch(e){}
+  }
+}
+
+// 7/7 — clear the submit form and show the success state
+function _resetSubmitForm(){
+  ['sf-name','sf-author','sf-tags','sf-year','sf-url','sf-description'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
+  const sfBox=document.getElementById('sf-tags-box');
+  if(sfBox&&sfBox._tags){sfBox._tags.length=0;sfBox._renderChips();}
+  document.getElementById('sf-tags-input').value='';
+  document.getElementById('sf-cat').value='';refreshCustomSelect('sf-cat');document.getElementById('sf-license').value='';refreshCustomSelect('sf-license');
+  document.getElementById('licenseHint').textContent='';document.getElementById('licenseHint').classList.remove('show');
+  clearFile();clearFontImg();
+  document.getElementById('submitFormWrap').style.display='none';
+  document.getElementById('submitSuccess').classList.add('show');
+}
+
+// Helper to finalize submission after optional Storage upload
+async function _finalizeSubmit(font){
+  _computeDetectedLangsForSubmission(font);
+  // Add to runtime FONTS (current user sees it immediately)
+  FONTS.push(font);
+  DL_COUNTS[font.id]=0;
+  // Inject font face immediately for current session
+  if(!font.previewImg){
+    if(font.fontVariants&&font.fontVariants.length>0) injectVariantFaces(font);
+    else if(font.fontData) injectCustomFontFace(font.id,font.name,font.fontData,font.fontExt||'.ttf');
+    else if(font.fontUrl) injectCustomFontFaceUrl(font.id,font.name,font.fontUrl,font.fontExt||'.ttf');
+  }
+  const fontForStorage=_prepFontForStorage(font);
+  // ── PRIMARY: Firestore ──────────────────────────────────────────────────
+  // Firebase mövcuddursa əvvəlcə Firestore-a yaz; localStorage yalnız
+  // offline/fallback cache rolunu oynayır. Fərqli brauzer/cihazdan adminlər
+  // yalnız Firestore-dakı fontu görə bilər.
+  const savedToFirestore = await _persistSubmittedFontToFirestore(font, fontForStorage);
+  _persistSubmittedFontLocally(font, fontForStorage, savedToFirestore);
+  _resetSubmitForm();
+  renderFonts();
 }
 
 // TOAST
@@ -5084,9 +5272,22 @@ function injectVariantFaces(font){
   return true;
 }
 let toastT;
+let _toastQueue=[];
+let _toastShowing=false;
 function showToast(msg){
+  _toastQueue.push(msg);
+  if(!_toastShowing) _showNextToast();
+}
+function _showNextToast(){
+  if(!_toastQueue.length){_toastShowing=false;return;}
+  _toastShowing=true;
+  const msg=_toastQueue.shift();
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>{
+    t.classList.remove('show');
+    setTimeout(_showNextToast,250);
+  },2200);
 }
 
 // KEYBOARD (single unified handler)
@@ -5136,7 +5337,7 @@ allTags.slice(0,18).forEach(tag=>{
 });
 
 // init dark icon
-if(darkMode){document.getElementById('darkIcon').innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" stroke="none"/>';}
+if(darkMode){_setDarkIcon(true);}
 
 // ?? APPLE RANGE SLIDERS - sync fill percentage ??
 function syncRangeSlider(input){
@@ -5165,6 +5366,8 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
 })();
 
 renderFonts();renderRecentList();
+// Load real download counts from Firestore in the background; re-render once available
+loadDownloadStatsCache().then(()=>{ if(typeof renderFonts==='function') renderFonts(); });
 // initAuth loads window.currentUser from localStorage for offline/non-Firebase fallback
 // Firebase onAuthStateChanged will override this when it fires
 if(typeof initAuth === 'function') initAuth();
