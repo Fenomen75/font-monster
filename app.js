@@ -3779,7 +3779,7 @@ function renderPvCanvas(){
           <div style="font-family:var(--sans);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${subColor}">About this font</div>
           <div style="${bs}font-size:${Math.max(14,Math.min(sz,28))}px;line-height:1.65;text-align:${pvAlign};word-break:break-word;border-top:1px solid ${sepColor};padding-top:16px">${esc(descText)}</div>
         </div>`
-      : `<div style="padding:32px 28px;font-family:var(--sans);font-size:13px;color:${subColor};font-style:italic">No description available for this font.</div>`;
+      : `<div style="padding:32px 28px;${bs}font-size:${Math.max(14,Math.min(sz,28))}px;color:${subColor};font-style:italic;text-align:${pvAlign}">No description available for this font.</div>`;
   }
 }
 
