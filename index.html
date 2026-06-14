@@ -503,6 +503,21 @@
   });
   // Login/logout zamanı sayğacı yenilə
 
+  // Debug: presence node-larina baxmaq ucun console-dan cagir: debugPresence()
+  window.debugPresence = function(){
+    onValue(ref(rtdb, 'presence'), snap => {
+      const val = snap.val() || {};
+      const now = Date.now();
+      const rows = Object.entries(val).map(([sessionId, data]) => {
+        const t = data && data.t;
+        const ageSec = t ? Math.round((now - t) / 1000) : 'unknown';
+        return { sessionId, t, ageSeconds: ageSec };
+      });
+      console.log('Total presence nodes:', rows.length);
+      console.table(rows);
+    }, { onlyOnce: true });
+  };
+
   window._refreshOnlineCounter = function(){
     const el = document.getElementById('onlineCount');
     if(!el) return;
