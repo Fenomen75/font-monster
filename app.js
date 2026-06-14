@@ -3606,8 +3606,8 @@ function resetHeroBanner(){
       <div style="position:absolute;bottom:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:4px 6px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
-            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.max(16,s-8)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A-</button>
-            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.min(160,s+8)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A+</button>
+            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.max(16,s-16)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A-</button>
+            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.min(400,s+16)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A+</button>
           </div>
           <div id="heroBannerColorWrap" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
             <div id="heroBannerColorDot" style="width:10px;height:10px;border-radius:50%;background:${pal.bg};border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
@@ -4259,8 +4259,8 @@ function _detailRenderHero(font){
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <!-- Zoom slider -->
             <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:4px 6px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
-            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.max(16,s-8)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A-</button>
-            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.min(160,s+8)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A+</button>
+            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.max(16,s-16)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A-</button>
+            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.min(400,s+16)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A+</button>
           </div>
             <!-- Color hue slider -->
             <div id="heroBannerColorWrap" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
@@ -6097,14 +6097,17 @@ document.head.appendChild(aiStyle);
       searchRoot2.querySelectorAll('button').forEach(function(btn){
         var t = btn.textContent.trim();
         if(t !== 'A-' && t !== 'A+') return;
-        var delta = (t === 'A+') ? 8 : -8;
+        var delta = (t === 'A+') ? 16 : -16;
         function doZoom(e){
           e.preventDefault();
           e.stopPropagation();
           var b = document.getElementById('heroBannerText');
           if(!b) return;
           var cur = parseFloat(b.style.fontSize) || 48;
-          b.style.fontSize = Math.min(160, Math.max(16, cur + delta)) + 'px';
+          var nv = Math.min(400, Math.max(16, cur + delta));
+          b.style.fontSize = nv + 'px';
+          var slider = (document.getElementById('fdpHeroInner')||document).querySelector('.hb-zoom') || document.querySelector('.hb-zoom');
+          if(slider) slider.value = nv;
         }
         btn.addEventListener('touchstart', doZoom, {passive: false});
         btn.addEventListener('click', doZoom);
