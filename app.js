@@ -1180,7 +1180,7 @@ async function downloadGoogleFontZip(font){
   }
 }
 function updateCounts(){
-  ["all","sans-serif","serif","display","handwriting","monospace"].forEach(c=>{
+  ["all","sans-serif","serif","display","handwriting","monospace","other"].forEach(c=>{
     const el=document.getElementById(`sc-${c}`);
     if(el)el.textContent=c==="all"?FONTS.length:FONTS.filter(f=>f.cat===c).length;
   });
