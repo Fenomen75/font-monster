@@ -200,7 +200,7 @@ nav{
   cursor:pointer;border:1px solid var(--border2);background:var(--surface-solid);
   color:var(--text2);transition:all .18s;font-family:var(--sans);letter-spacing:0em;
 }
-.cat:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cat:hover:not(.active){background:var(--accent);color:#fff;border-color:var(--accent)}
 .cat:active{transform:scale(0.97)}
 .cat.active{
   background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;
@@ -1434,7 +1434,7 @@ footer p{font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:-0.01em}
   font-family:var(--sans);letter-spacing:-0.01em;white-space:nowrap;
   position:relative;
 }
-.cat:hover{background:var(--accent);color:#fff !important;border-color:var(--accent)}
+.cat:hover:not(.active){background:var(--accent-hover);color:#fff !important;border-color:var(--accent-hover)}
 .cat:active{transform:scale(0.95)}
 .cat.active {
   background:var(--surface-solid);
