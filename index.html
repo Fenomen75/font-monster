@@ -447,10 +447,14 @@
           // Real Firebase download counts override the simulated ones
           if(window.DL_COUNTS !== undefined) {
             window.DL_COUNTS[d.id] = data.downloads;
+            if(window.DL_IS_ESTIMATED !== undefined) {
+              window.DL_IS_ESTIMATED[d.id] = false;
+            }
           }
         }
       });
-      // DL_COUNTS updated in-place; no full re-render needed
+      // Re-render so real counts replace ~estimated ones
+      if(typeof renderFonts === 'function') renderFonts();
       console.log('✅ Font stats synced from Firestore');
     } catch(e) { console.warn('Font stats sync error:', e); }
   };
