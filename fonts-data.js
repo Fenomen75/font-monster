@@ -452,4 +452,40 @@ const FONTS_BASE=[
   {id:"hahmlet",name:"Hahmlet",author:"Yoonsung Kim",cat:"serif",gfamily:"Hahmlet:wght@300;400;600;700",weight:"400",tags:["Korean","Variable","Reading"],license:"ofl",year:2020,popular:57},
   {id:"vesper-libre",name:"Vesper Libre",author:"Eduardo Tunni",cat:"serif",gfamily:"Vesper+Libre:wght@400;500;700;900",weight:"400",tags:["Slab","Bold","Display"],license:"ofl",year:2012,popular:58},
   {id:"londrina-outline",name:"Londrina Outline",author:"Marcelo Magalhães",cat:"display",gfamily:"Londrina+Outline",weight:"400",tags:["Outline","Display","Bold"],license:"ofl",year:2014,popular:56},
+  // === 30 NEW FONTS ===
+  // --- sans-serif (6) ---
+  {id:"funnel-display",name:"Funnel Display",author:"Khajag Apelian",cat:"sans-serif",gfamily:"Funnel+Display:wght@300;400;600;700;800",weight:"400",tags:["Wide","Variable","Modern"],license:"ofl",year:2023,popular:71},
+  {id:"anybody",name:"Anybody",author:"Mathieu Desjardins",cat:"sans-serif",gfamily:"Anybody:ital,wght@0,300;0,400;0,700;0,900;1,400",weight:"400",tags:["Variable","Wide","Display"],license:"ofl",year:2022,popular:68},
+  {id:"encode-sans",name:"Encode Sans",author:"Impallari Type",cat:"sans-serif",gfamily:"Encode+Sans:wght@300;400;500;600;700",weight:"400",tags:["Condensed","Variable","Clean"],license:"ofl",year:2015,popular:74},
+  {id:"plus-jakarta",name:"Plus Jakarta Sans",author:"Tokotype",cat:"sans-serif",gfamily:"Plus+Jakarta+Sans:wght@300;400;500;600;700;800",weight:"400",tags:["Modern","UI","Variable"],license:"ofl",year:2020,popular:81},
+  {id:"inder",name:"Inder",author:"Sorkin Type",cat:"sans-serif",gfamily:"Inder",weight:"400",tags:["Devanagari","Clean","Geometric"],license:"ofl",year:2012,popular:62},
+  {id:"palanquin",name:"Palanquin",author:"Pria Ravichandran",cat:"sans-serif",gfamily:"Palanquin:wght@300;400;500;600;700",weight:"400",tags:["Devanagari","Thin","Modern"],license:"ofl",year:2015,popular:65},
+  // --- serif (6) ---
+  {id:"playfair-display-sc",name:"Playfair Display SC",author:"Claus Eggers Sørensen",cat:"serif",gfamily:"Playfair+Display+SC:wght@400;700;900",weight:"700",tags:["SmallCaps","Elegant","Display"],license:"ofl",year:2012,popular:78},
+  {id:"rufina",name:"Rufina",author:"Particular Type",cat:"serif",gfamily:"Rufina:wght@400;700",weight:"400",tags:["Bodoni","Display","Elegant"],license:"ofl",year:2013,popular:69},
+  {id:"gloock",name:"Gloock",author:"Production Type",cat:"serif",gfamily:"Gloock",weight:"400",tags:["Display","High-Contrast","Editorial"],license:"ofl",year:2023,popular:74},
+  {id:"cactus-classical-serif",name:"Cactus Classical Serif",author:"Fontworks",cat:"serif",gfamily:"Cactus+Classical+Serif",weight:"400",tags:["Japanese","Classic","Reading"],license:"ofl",year:2022,popular:60},
+  {id:"farro",name:"Farro",author:"Łukasz Dziedzic",cat:"serif",gfamily:"Farro:wght@300;400;500;700",weight:"400",tags:["Humanist","Slab","Variable"],license:"ofl",year:2019,popular:63},
+  {id:"overlock",name:"Overlock",author:"Dario Manuel Muhafara",cat:"serif",gfamily:"Overlock:ital,wght@0,400;0,700;0,900;1,400",weight:"400",tags:["Rounded","Slab","Friendly"],license:"ofl",year:2011,popular:67},
+  // --- display (6) ---
+  {id:"protest-strike",name:"Protest Strike",author:"Rodrigo Fuenzalida",cat:"display",gfamily:"Protest+Strike",weight:"400",tags:["Bold","Condensed","Impact"],license:"ofl",year:2023,popular:71},
+  {id:"league-spartan",name:"League Spartan",author:"The League of Moveable Type",cat:"display",gfamily:"League+Spartan:wght@300;400;700;900",weight:"700",tags:["Geometric","Bold","Display"],license:"ofl",year:2020,popular:77},
+  {id:"new-rocker",name:"New Rocker",author:"Impallari Type",cat:"display",gfamily:"New+Rocker",weight:"400",tags:["Rock","Vintage","Decorative"],license:"ofl",year:2012,popular:63},
+  {id:"wallpoet",name:"Wallpoet",author:"Lars Berggren",cat:"display",gfamily:"Wallpoet",weight:"400",tags:["Graffiti","Bold","Urban"],license:"ofl",year:2012,popular:62},
+  {id:"moirai-one",name:"Moirai One",author:"JAMO",cat:"display",gfamily:"Moirai+One",weight:"400",tags:["Korean","Bold","Display"],license:"ofl",year:2022,popular:65},
+  {id:"zen-dots",name:"Zen Dots",author:"Yoshimichi Ohira",cat:"display",gfamily:"Zen+Dots",weight:"400",tags:["Pixel","Japanese","Geometric"],license:"ofl",year:2021,popular:66},
+  // --- handwriting (6) ---
+  {id:"grey-qo",name:"Grey Qo",author:"Robert Leuschke",cat:"handwriting",gfamily:"Grey+Qo",weight:"400",tags:["Script","Thin","Elegant"],license:"ofl",year:2021,popular:68},
+  {id:"herr-von-muellerhoff",name:"Herr Von Muellerhoff",author:"Sudtipos",cat:"handwriting",gfamily:"Herr+Von+Muellerhoff",weight:"400",tags:["Script","Vintage","Romantic"],license:"ofl",year:2011,popular:65},
+  {id:"licorice",name:"Licorice",author:"Robert Leuschke",cat:"handwriting",gfamily:"Licorice",weight:"400",tags:["Script","Thin","Elegant"],license:"ofl",year:2021,popular:63},
+  {id:"babylonica",name:"Babylonica",author:"Robert Leuschke",cat:"handwriting",gfamily:"Babylonica",weight:"400",tags:["Script","Casual","Fun"],license:"ofl",year:2021,popular:61},
+  {id:"freckle-face",name:"Freckle Face",author:"Astigmatic",cat:"handwriting",gfamily:"Freckle+Face",weight:"400",tags:["Brush","Fun","Casual"],license:"ofl",year:2013,popular:64},
+  {id:"hachi-maru-pop",name:"Hachi Maru Pop",author:"Fontworks",cat:"handwriting",gfamily:"Hachi+Maru+Pop",weight:"400",tags:["Japanese","Rounded","Playful"],license:"ofl",year:2020,popular:67},
+  // --- monospace (6) ---
+  {id:"cascadia-code",name:"Cascadia Code",author:"Microsoft",cat:"monospace",gfamily:"Cascadia+Code:ital,wght@0,300;0,400;0,700;1,400",weight:"400",tags:["Ligatures","Windows","Modern"],license:"ofl",year:2019,popular:84},
+  {id:"victor-mono",name:"Victor Mono",author:"Rune Bjørnerås",cat:"monospace",gfamily:"Victor+Mono:ital,wght@0,300;0,400;0,700;1,400",weight:"400",tags:["Italic","Ligatures","Code"],license:"ofl",year:2019,popular:78},
+  {id:"dm-display",name:"Nanum Gothic Coding",author:"Sandoll",cat:"monospace",gfamily:"Nanum+Gothic+Coding:wght@400;700",weight:"400",tags:["Korean","Code","Clean"],license:"ofl",year:2012,popular:70},
+  {id:"sentient-two",name:"Syne Tactile",author:"Lucas Descroix",cat:"monospace",gfamily:"Syne+Tactile",weight:"400",tags:["Experimental","Unusual","Display"],license:"ofl",year:2019,popular:62},
+  {id:"museomoderno",name:"MuseoModerno",author:"CheapProFonts",cat:"monospace",gfamily:"MuseoModerno:wght@300;400;500;700",weight:"400",tags:["Geometric","Monospaced","Display"],license:"ofl",year:2020,popular:66},
+  {id:"yanone-kaffeesatz",name:"Yanone Kaffeesatz",author:"Jan Gerner",cat:"monospace",gfamily:"Yanone+Kaffeesatz:wght@300;400;500;700",weight:"400",tags:["Condensed","Retro","Variable"],license:"ofl",year:2010,popular:83},
 ];
