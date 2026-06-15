@@ -324,7 +324,15 @@ function syncSubmittedFonts(){
   }
   const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
   sub.forEach(f=>{
-    if(FONTS_BASE.find(b=>b.id===f.id)) return;
+    const baseMatch=FONTS_BASE.find(b=>b.id===f.id);
+    if(baseMatch){
+      // Admin edit override for a built-in font - apply onto runtime copy
+      if(f.adminEditedAt){
+        const fi=FONTS.findIndex(x=>x.id===f.id);
+        if(fi>=0) Object.assign(FONTS[fi],f);
+      }
+      return;
+    }
     // Restore fontData from its separate key if it was stored there
     if(f._hasFontData && !f.fontData){
       const stored=localStorage.getItem('fn_fontdata_'+f.id);
@@ -387,7 +395,16 @@ try{
   // Only load APPROVED submitted fonts at init; pending loaded after auth
   const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
   sub.forEach(f=>{
-    if(!FONTS_BASE.find(b=>b.id===f.id)&&!f.pending){
+    const baseMatch=FONTS_BASE.find(b=>b.id===f.id);
+    if(baseMatch){
+      // Admin edit override for a built-in font - apply onto runtime copy
+      if(f.adminEditedAt){
+        const fi=FONTS.findIndex(x=>x.id===f.id);
+        if(fi>=0) Object.assign(FONTS[fi],f);
+      }
+      return;
+    }
+    if(!f.pending){
       if(f._hasFontData && !f.fontData){const stored=localStorage.getItem('fn_fontdata_'+f.id);if(stored)f.fontData=stored;}
       FONTS.push(f);
       if(f.fontVariants&&f.fontVariants.length>0) injectVariantFaces(f);
@@ -718,7 +735,7 @@ function getFiltered(){
   let list=FONTS.filter(f=>!f.pending||(window.currentUser&&f.submittedById===window.currentUser.id));
   if(activeCategory==="new")list=list.filter(isNewFont);
   else if(activeCategory!=="all")list=list.filter(f=>f.cat===activeCategory);
-  if(activeLicenseFilter)list=list.filter(f=>f.license===activeLicenseFilter);
+  if(activeLicenseFilter)list=list.filter(f=>activeLicenseFilter==='free'?['free','ofl','apache'].includes(f.license):f.license===activeLicenseFilter);
   if(freeOnly)list=list.filter(f=>f.license==='free'||f.license==='ofl'||f.license==='apache');
   if(alphaFilter==='#')list=list.filter(f=>/^[0-9]/.test(f.name));
   else if(alphaFilter)list=list.filter(f=>f.name.toUpperCase().startsWith(alphaFilter));
@@ -2481,10 +2498,7 @@ function _adminPrevSize(fontId, val){
 }
 function _renderAdminAll(){
   let _adminAllFilter=window._adminAllFilter||(window._adminAllFilter={q:'',status:'all',cat:''});
-  const allSub=_allSub();
-  const subIds=new Set(allSub.map(f=>f.id));
-  // Built-in fontlar da admin-ə görünsün ki, hər hansı fontu edit edə bilsin
-  const allList=[...allSub,...FONTS_BASE.filter(f=>!subIds.has(f.id))];
+  const allList=_allSub();
   const view=document.getElementById('adminView_all');
   if(!allList.length){
     view.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:14px">📭</div><div style="font-size:15px;font-weight:600;color:var(--text2)">No fonts yet</div></div>';
@@ -4352,6 +4366,10 @@ function _detailRenderHeader(font, dlCount, licM){
         onclick="toggleLike('${font.id}',this);this.innerHTML=likedFonts.has('${font.id}')?'♥ Saved':'♡ Save';this.className='fdp-like'+(likedFonts.has('${font.id}')?' liked':'');this.setAttribute('aria-label',likedFonts.has('${font.id}')?'Saved – click to unsave':'Save font');this.setAttribute('aria-pressed',likedFonts.has('${font.id}')?'true':'false')">
         ${likedFonts.has(font.id)?'♥ Saved':'♡ Save'}
       </button>
+      ${_isAdmin(window.currentUser)?`<button class="fdp-like" onclick="adminEditFontDirect('${font.id}')" title="Edit font (admin)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit
+      </button>`:''}
     </div>`;
 
 }
