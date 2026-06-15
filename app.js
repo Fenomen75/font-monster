@@ -1848,6 +1848,26 @@ function _resetEditModal(){
   document.getElementById('ef-year').value='';
   _efFileData=null; _efImgData=null;
 }
+// Mövcud font faylının olduğunu modalda göstərir (real fayl seçilməyib, sadəcə indikator)
+function _showExistingFontFile(f){
+  const hasFile=!!(f.fontData||f.fontUrl||(f.fontVariants&&f.fontVariants.length>0));
+  if(!hasFile) return;
+  const zone=document.getElementById('efFileUploadZone');
+  const sel=document.getElementById('efFuzSelected');
+  const nm=document.getElementById('efFuzSelectedName');
+  let label='Current font file';
+  if(f.fontVariants&&f.fontVariants.length>0){
+    label=f.fontVariants.length>1?`${f.fontVariants.length} variants on file`:(f.fontVariants[0].name||'Current font file');
+  } else if(f.fontUrl){
+    label=f.fontUrl.split('/').pop().split('?')[0]||'Current font file';
+  }
+  zone.style.display='none';
+  sel.style.display='flex';
+  sel.style.flexDirection='';
+  sel.style.alignItems='';
+  sel.style.gap='';
+  nm.innerHTML=`<span style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(label)}</span>`;
+}
 
 // ?? EDIT FONT ??
 function openEditFont(fontId){
@@ -1866,6 +1886,7 @@ function openEditFont(fontId){
   document.getElementById('ef-url').value=f.sourceUrl||'';
   const efDesc=document.getElementById('ef-description');if(efDesc)efDesc.value=f.description||'';
   if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
+  _showExistingFontFile(f);
   document.getElementById('ef-admin-notice').style.display='none';
   document.getElementById('ef-user-notice').style.display='';
   document.getElementById('ef-review-notice').style.display='flex';
@@ -2461,14 +2482,17 @@ function _adminPrevSize(fontId, val){
 function _renderAdminAll(){
   let _adminAllFilter=window._adminAllFilter||(window._adminAllFilter={q:'',status:'all',cat:''});
   const allSub=_allSub();
+  const subIds=new Set(allSub.map(f=>f.id));
+  // Built-in fontlar da admin-ə görünsün ki, hər hansı fontu edit edə bilsin
+  const allList=[...allSub,...FONTS_BASE.filter(f=>!subIds.has(f.id))];
   const view=document.getElementById('adminView_all');
-  if(!allSub.length){
+  if(!allList.length){
     view.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:14px">📭</div><div style="font-size:15px;font-weight:600;color:var(--text2)">No fonts yet</div></div>';
     return;
   }
-  const cats=[...new Set(allSub.map(f=>f.cat).filter(Boolean))].sort();
+  const cats=[...new Set(allList.map(f=>f.cat).filter(Boolean))].sort();
   const q=_adminAllFilter.q.toLowerCase();
-  const filtered=allSub.filter(f=>{
+  const filtered=allList.filter(f=>{
     if(q&&!f.name.toLowerCase().includes(q)&&!(f.author||'').toLowerCase().includes(q)) return false;
     if(_adminAllFilter.status==='live'&&f.pending) return false;
     if(_adminAllFilter.status==='pending'&&!f.pending) return false;
@@ -2499,7 +2523,7 @@ function _renderAdminAll(){
     '<select onchange="window._adminAllFilter.cat=this.value;_renderAdminAll()" style="'+selStyle+'">'+
     '<option value="">All categories</option>'+catOpts+
     '</select>'+
-    '<span style="font-size:12px;color:var(--text3);white-space:nowrap">'+filtered.length+' of '+allSub.length+'</span>'+
+    '<span style="font-size:12px;color:var(--text3);white-space:nowrap">'+filtered.length+' of '+allList.length+'</span>'+
     '</div>'+
     (filtered.length?filtered.map(row).join(''):'<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px">No results</div>');
 }
@@ -2670,6 +2694,7 @@ function adminEditFontDirect(fontId){
   document.getElementById('ef-url').value=f.sourceUrl||f.url||'';
   const efDescAdmin=document.getElementById('ef-description');if(efDescAdmin)efDescAdmin.value=f.description||'';
   if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
+  _showExistingFontFile(f);
   // Show admin notice, hide user review notice
   document.getElementById('ef-admin-notice').style.display='';
   document.getElementById('ef-user-notice').style.display='none';
