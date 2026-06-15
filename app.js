@@ -203,7 +203,7 @@ function seededRand(seed){
 function _estimatedDownloadCounts(){
   const s={};
   FONTS_BASE.forEach((f,i)=>{
-    const base=Math.floor((f.popular/100)*920000+seededRand(i)*80000);
+    const base=Math.max(0,Math.floor((f.popular/100)*920000+seededRand(i)*80000));
     s[f.id]=base;
   });
   return s;
@@ -239,6 +239,17 @@ async function loadDownloadStatsCache(){
       if(typeof data.yesterday==='number') DL_YESTERDAY[d.id]=data.yesterday;
     });
     window.DL_COUNTS=DL_COUNTS;
+    // Update all visible dl-count elements so real numbers replace the "~estimated" ones
+    document.querySelectorAll('[data-font-id]').forEach(function(card){
+      const fid=card.dataset.fontId;
+      if(!fid) return;
+      const el=card.querySelector('.dl-count');
+      if(!el) return;
+      const ystVal=DL_YESTERDAY[fid];
+      const ystHtml=(!DL_IS_ESTIMATED[fid]&&ystVal)?
+        '<span style="opacity:0.45;font-size:9px;margin-left:2px;border-left:1px solid rgba(255,255,255,0.2);padding-left:5px" title="Yesterday downloads">yesterday +'+fmtDlCount(ystVal)+'</span>':'';
+      el.innerHTML='<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'+fmtDlCountFor(fid)+ystHtml;
+    });
   }catch(e){ console.warn('download_stats load error:',e); }
 }
 // Cache for average ratings: { fontId: { avg: 4.2, count: 5 } }
