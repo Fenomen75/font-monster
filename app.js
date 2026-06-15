@@ -1964,7 +1964,6 @@ async function saveEditFont(){
   }
   let sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
   const idx=sub.findIndex(f=>f.id===id);
-  if(idx<0){showToast('⚠️ Font not found'); closeEditFont(); return;}
 
   // Admin direct edit - bypass approval queue
   if(window._adminDirectEditId===id){
@@ -1975,7 +1974,8 @@ async function saveEditFont(){
     } else {
       // Built-in font - add an override entry to tv_submitted
       const fi=FONTS.find(f=>f.id===id);
-      if(fi) sub.push({...fi,...updates,adminEditedAt:new Date().toISOString(),pending:false});
+      if(!fi){showToast('⚠️ Font not found'); closeEditFont(); return;}
+      sub.push({...fi,...updates,adminEditedAt:new Date().toISOString(),pending:false});
     }
     localStorage.setItem("tv_submitted",JSON.stringify(sub));
     // Clear any pending edit request for this font
@@ -1999,6 +1999,7 @@ async function saveEditFont(){
   }
 
   // Regular user edit - send to admin queue for approval
+  if(idx<0){showToast('⚠️ Font not found'); closeEditFont(); return;}
   const reqs=getAdminRequests();
   const existingReqIdx=reqs.findIndex(r=>r.id===id&&r.requestType==='edit');
   const editReq={
