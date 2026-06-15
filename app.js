@@ -194,25 +194,16 @@ function resolveFontLangs(font, callback) {
   callback(_LANG_CACHE[font.id]);
 }
 
-function seededRand(seed){
-  let x=Math.sin(seed+1)*10000;return x-Math.floor(x);
-}
-// Baseline numbers used only until real stats load from Firestore (or for
-// fonts that have no real download_stats doc yet). These are marked as
-// "estimated" in the UI via DL_IS_ESTIMATED / fmtDlCountFor().
+// Real download counts only — no fake estimated numbers
+// Fonts without a Firestore download_stats doc show 0 until someone downloads
 function _estimatedDownloadCounts(){
   const s={};
-  FONTS_BASE.forEach((f,i)=>{
-    const base=Math.floor((f.popular/100)*920000+seededRand(i)*80000);
-    s[f.id]=base;
-  });
+  FONTS_BASE.forEach(f=>{ s[f.id]=0; });
   return s;
 }
 function _estimatedYesterdayDownloads(){
   const s={};
-  FONTS_BASE.forEach((f,i)=>{
-    s[f.id]=Math.floor(120+seededRand(i+999)*680);
-  });
+  FONTS_BASE.forEach(f=>{ s[f.id]=0; });
   return s;
 }
 let DL_COUNTS=_estimatedDownloadCounts();
@@ -272,7 +263,7 @@ function getFontAvgRating(fontId) {
 function fmtDlCount(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return Math.round(n/1000)+'K';return String(n);}
 // Like fmtDlCount but prefixes "~" while the figure is still the seeded estimate
 function fmtDlCountFor(fontId){
-  return (DL_IS_ESTIMATED[fontId]?'~':'')+fmtDlCount(DL_COUNTS[fontId]||0);
+  return fmtDlCount(DL_COUNTS[fontId]||0);
 }
 function incrementDownload(id){
   DL_COUNTS[id]=(DL_COUNTS[id]||0)+1;
