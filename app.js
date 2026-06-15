@@ -278,10 +278,13 @@ function incrementDownload(id){
   DL_COUNTS[id]=(DL_COUNTS[id]||0)+1;
   window.DL_COUNTS[id]=DL_COUNTS[id];
   DL_IS_ESTIMATED[id]=false;
+  // Also increment local yesterday counter so the UI reflects the real click immediately
+  DL_YESTERDAY[id]=(DL_YESTERDAY[id]||0)+1;
   if(window._fbDb && window._fbFns){
     try{
       const {doc, setDoc, increment}=window._fbFns;
-      setDoc(doc(window._fbDb,'download_stats',id), {total:increment(1)}, {merge:true})
+      // Write both total and today's rolling yesterday counter
+      setDoc(doc(window._fbDb,'download_stats',id), {total:increment(1), yesterday:increment(1)}, {merge:true})
         .catch(e=>console.warn('download_stats write error:',e));
     }catch(e){console.warn('download_stats write error:',e);}
   }
@@ -973,7 +976,7 @@ function _buildCardHTML(font, opts){
           <div class="dl-count">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             ${fmtDlCountFor(font.id)}
-            <span style="opacity:0.45;font-size:9px;margin-left:2px;border-left:1px solid rgba(255,255,255,0.2);padding-left:5px" title="Yesterday downloads (estimated)">yesterday +${fmtDlCount(DL_YESTERDAY[font.id]||0)}</span>
+            ${!DL_IS_ESTIMATED[font.id]&&DL_YESTERDAY[font.id]?`<span style="opacity:0.45;font-size:9px;margin-left:2px;border-left:1px solid rgba(255,255,255,0.2);padding-left:5px" title="Yesterday downloads">yesterday +${fmtDlCount(DL_YESTERDAY[font.id])}</span>`:''}
           </div>
           <button class="icon-btn ${isInCmp?'compare-on':''}" title="Compare" data-compare-btn="${font.id}"
             onclick="event.stopPropagation();addToCompare('${font.id}')">
@@ -4344,7 +4347,7 @@ function _detailRenderHeader(font, dlCount, licM){
         ${font.tags.map(t=>`<span class="fdp-chip" style="cursor:pointer;transition:background .15s,color .15s" onclick="showGrid();(function(tag){activeTag=tag;searchTerm='';document.getElementById('searchInput').value='';activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;document.querySelectorAll('#tagList .sb-item').forEach(function(b){b.classList.toggle('active',b.dataset.tag===tag);});document.querySelectorAll('.cat').forEach(function(b){b.classList.toggle('active',b.dataset.cat==='all');});document.querySelectorAll('.alpha-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()==='All');});renderFonts();syncUrl(true);showToast('&#34;'+tag+'&#34; fonts');}('${esc(t)}'))" onmouseover="this.style.background='var(--blue-dim)';this.style.color='var(--accent)'" onmouseout="this.style.background='';this.style.color=''" title="Filter by ${esc(t)}">${esc(t)}</span>`).join('')}
         <span class="fdp-chip" style="display:inline-flex;align-items:center;gap:4px">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          ${fmtDlCount(dlCount)} downloads
+          ${fmtDlCountFor(font.id)} downloads
         </span>
       </div>
     </div>
@@ -4560,7 +4563,17 @@ function _detailShowPage(font, fontId, dlCount){
   sampleEl.textContent=previewText||font.name;
   sampleEl.style.fontFamily=`'${font.name}',sans-serif`;
   document.getElementById('fdpDlPanelDl').textContent=fmtDlCount(dlCount);
-  document.getElementById('fdpDlPanelYst').textContent='+'+fmtDlCount(DL_YESTERDAY[font.id]||0);
+  const _ystEl=document.getElementById('fdpDlPanelYst');
+  if(_ystEl){
+    const _ystVal=DL_YESTERDAY[font.id]||0;
+    const _ystRow=_ystEl.closest('.fdp-stat')||_ystEl.parentElement;
+    if(!DL_IS_ESTIMATED[font.id]&&_ystVal>0){
+      _ystEl.textContent='+'+fmtDlCount(_ystVal);
+      if(_ystRow) _ystRow.style.display='';
+    } else {
+      if(_ystRow) _ystRow.style.display='none';
+    }
+  }
   // Uploaded font üçün variant sayi, Google Font üçün weight sayi
   const _isUploadedFont=!!(font.fontData||font.fontUrl||(font.fontVariants&&font.fontVariants.length));
   document.getElementById('fdpDlPanelWt').textContent=
