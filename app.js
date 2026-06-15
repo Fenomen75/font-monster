@@ -750,7 +750,12 @@ function getFiltered(){
     const scoreB=rb?rb.avg*(1+Math.log(rb.count+1)):0;
     return scoreB-scoreA;
   });
-  return[...list].sort((a,b)=>b.popular-a.popular);
+  // Default (popular): sort by download count desc; tie-break with popular score
+  return[...list].sort((a,b)=>{
+    const dlDiff=(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0);
+    if(dlDiff!==0)return dlDiff;
+    return b.popular-a.popular;
+  });
 }
 
 // RENDER
