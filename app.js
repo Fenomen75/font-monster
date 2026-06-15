@@ -1988,10 +1988,16 @@ async function saveEditFont(){
     if(fi>=0) Object.assign(FONTS[fi],updates);
     syncSubmittedFonts();
     renderFonts();
-    // Close modal - admin panel stays visible underneath
+    // Font detail page açıqdırsa, yenilənmiş məlumatla yenidən render et
+    const _fdp=document.getElementById('fontDetailPage');
+    if(_fdp && _fdp.classList.contains('visible') && currentDetailFont && currentDetailFont.id===id){
+      openDetail(id);
+    }
+    // Close modal - admin panel stays visible underneath (if it was open)
     document.getElementById('editFontModal').classList.remove('open');
+    const _adminOpen=document.getElementById('adminPanelOverlay').style.display==='flex';
     window._adminPanelWasOpen=false;
-    document.body.style.overflow='hidden';
+    document.body.style.overflow=_adminOpen?'hidden':'';
     _renderAdminAll();
     adminLog('edit',updates.name,'Admin direct edit');
     showToast(`✅ "${updates.name}" updated`);
@@ -2706,6 +2712,7 @@ function adminEditFontDirect(fontId){
   document.getElementById('ef-license').value=f.license||'';refreshCustomSelect('ef-license');
   document.getElementById('ef-year').value=f.year||'';
   document.getElementById('ef-tags').value=(f.tags||[]).join(', ');
+  setTimeout(()=>_setTagChipValues('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',f.tags||[]),50);
   document.getElementById('ef-url').value=f.sourceUrl||f.url||'';
   const efDescAdmin=document.getElementById('ef-description');if(efDescAdmin)efDescAdmin.value=f.description||'';
   if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
@@ -2715,7 +2722,7 @@ function adminEditFontDirect(fontId){
   document.getElementById('ef-user-notice').style.display='none';
   document.getElementById('ef-review-notice').style.display='none';
   window._adminDirectEditId=fontId;
-  window._adminPanelWasOpen=true;
+  window._adminPanelWasOpen=document.getElementById('adminPanelOverlay').style.display==='flex';
   document.body.style.overflow='hidden';
   document.getElementById('editFontModal').classList.add('open');
 }
