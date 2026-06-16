@@ -207,11 +207,13 @@ function _estimatedYesterdayDownloads(){
   return s;
 }
 let DL_COUNTS=_estimatedDownloadCounts();
+// localStorage-da saxlanmış real data varsa dərhal yüklə
+(function(){try{const c=localStorage.getItem('fm_dl_counts');if(c){const p=JSON.parse(c);Object.assign(DL_COUNTS,p);}}catch(e){}}());
 window.DL_COUNTS = DL_COUNTS;
 let DL_YESTERDAY=_estimatedYesterdayDownloads();
 // true => the count for this font is still the seeded estimate, not real data
 let DL_IS_ESTIMATED={};
-FONTS_BASE.forEach(f=>DL_IS_ESTIMATED[f.id]=true);
+FONTS_BASE.forEach(f=>DL_IS_ESTIMATED[f.id]=!(DL_COUNTS[f.id]>0));
 window.DL_IS_ESTIMATED=DL_IS_ESTIMATED;
 
 // Load real per-font download totals from Firestore ('download_stats/{fontId}')
@@ -230,6 +232,7 @@ async function loadDownloadStatsCache(){
       if(typeof data.yesterday==='number') DL_YESTERDAY[d.id]=data.yesterday;
     });
     window.DL_COUNTS=DL_COUNTS;
+    try{localStorage.setItem('fm_dl_counts',JSON.stringify(DL_COUNTS));}catch(e){}
   }catch(e){ console.warn('download_stats load error:',e); }
 }
 // Cache for average ratings: { fontId: { avg: 4.2, count: 5 } }
@@ -5325,29 +5328,31 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
 })();
 
 renderRecentList();
-// Dərhal render et (popular score ilə) — istifadəçi ani görür
-renderFonts();
-// Arxa planda Firebase-dən real DL_COUNTS gəlir; gəldikdə grid-i
-// görünməz şəkildə yenilə (opacity geçişi ilə flickersiz)
+// Grid-də skeleton göstər ki səhifə boş görünməsin
+(function(){
+  var grid=document.getElementById('fontGrid');
+  if(!grid) return;
+  var skeletons='';
+  for(var i=0;i<12;i++) skeletons+='<div class="font-card skeleton-card" style="background:var(--card);border-radius:12px;min-height:160px;opacity:0.5;animation:pulse 1.2s ease-in-out infinite alternate;"></div>';
+  grid.innerHTML=skeletons;
+  if(!document.getElementById('_skeletonStyle')){
+    var st=document.createElement('style');
+    st.id='_skeletonStyle';
+    st.textContent='@keyframes pulse{from{opacity:0.35}to{opacity:0.6}}';
+    document.head.appendChild(st);
+  }
+}());
+// Firebase hazır olandan sonra real data ilə bir dəfə render et
 (function _waitFbAndLoadStats(attempt){
   if(window._fbDb && window._fbFns){
     loadDownloadStatsCache().then(function(){
-      var grid=document.getElementById('fontGrid');
-      if(grid){
-        grid.style.transition='opacity .18s';
-        grid.style.opacity='0';
-        setTimeout(function(){
-          renderFonts();
-          grid.style.opacity='1';
-          setTimeout(function(){ grid.style.transition=''; },200);
-        },180);
-      } else {
-        renderFonts();
-      }
+      renderFonts();
       loadRatingsCache();
     });
   } else if(attempt < 40){
     setTimeout(function(){ _waitFbAndLoadStats(attempt+1); }, 250);
+  } else {
+    renderFonts();
   }
 })(0);
 // initAuth loads window.currentUser from localStorage for offline/non-Firebase fallback
