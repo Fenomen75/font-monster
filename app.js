@@ -5328,25 +5328,31 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
 })();
 
 renderRecentList();
-// Grid-də skeleton göstər ki səhifə boş görünməsin
-(function(){
-  var grid=document.getElementById('fontGrid');
-  if(!grid) return;
-  var skeletons='';
-  for(var i=0;i<12;i++) skeletons+='<div class="font-card skeleton-card" style="background:var(--card);border-radius:12px;min-height:160px;opacity:0.5;animation:pulse 1.2s ease-in-out infinite alternate;"></div>';
-  grid.innerHTML=skeletons;
-  if(!document.getElementById('_skeletonStyle')){
-    var st=document.createElement('style');
-    st.id='_skeletonStyle';
-    st.textContent='@keyframes pulse{from{opacity:0.35}to{opacity:0.6}}';
-    document.head.appendChild(st);
-  }
-}());
-// Firebase hazır olandan sonra real data ilə bir dəfə render et
+// localStorage-da keş varsa dərhal render et, yoxdursa skeleton göstər
+var _hasDlCache=!!(function(){try{return localStorage.getItem('fm_dl_counts');}catch(e){}}());
+if(_hasDlCache){
+  renderFonts();
+} else {
+  (function(){
+    var grid=document.getElementById('fontGrid');
+    if(!grid) return;
+    var skeletons='';
+    for(var i=0;i<12;i++) skeletons+='<div class="font-card skeleton-card" style="background:var(--card);border-radius:12px;min-height:160px;opacity:0.5;animation:pulse 1.2s ease-in-out infinite alternate;"></div>';
+    grid.innerHTML=skeletons;
+    if(!document.getElementById('_skeletonStyle')){
+      var st=document.createElement('style');st.id='_skeletonStyle';
+      st.textContent='@keyframes pulse{from{opacity:0.35}to{opacity:0.6}}';
+      document.head.appendChild(st);
+    }
+  }());
+}
+// Firebase-dən real data gəlir; keş varsa yalnız sıralama dəyişibsə render et
 (function _waitFbAndLoadStats(attempt){
   if(window._fbDb && window._fbFns){
+    var _orderBefore=_hasDlCache?Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join():'';
     loadDownloadStatsCache().then(function(){
-      renderFonts();
+      var _orderAfter=Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join();
+      if(!_hasDlCache||_orderBefore!==_orderAfter) renderFonts();
       loadRatingsCache();
     });
   } else if(attempt < 40){
