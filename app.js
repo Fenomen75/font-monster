@@ -1034,14 +1034,14 @@ function renderFonts(){
   const from=pp>0?(currentPage-1)*pp+1:1,to=pp>0?Math.min(currentPage*pp,total):total;
   title.innerHTML=`<strong>${total}</strong> font${total!==1?'s':''}${pp>0&&total>pp?` <span style="color:var(--text3);font-size:.78em">· showing ${from}-${to}</span>`:''}${activeLicenseFilter?` · <span style="color:var(--text3)">${LICENSE_META[activeLicenseFilter]?.label||''} only</span>`:''}`;
   const glyphs='ABCDEFGHJKLMNOPQRST'.split('');
-  const top3ids=FONTS_BASE.slice().sort((a,b)=>(b.popular||0)-(a.popular||0)).slice(0,3).map(f=>f.id);
+  const top5ids=FONTS_BASE.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0)).slice(0,5).map(f=>f.id);
   list.forEach((font,i)=>{
     loadFont(font);
     const card=document.createElement('div');card.className='font-card';
     card.style.animationDelay=`${Math.min(i*0.03,0.28)}s`;
     const isLiked=likedFonts.has(font.id),isCom=!FONTS_BASE.find(f=>f.id===font.id);
     const isNew=isNewFont(font);
-    const isHot=!isNew && !isCom && top3ids.includes(font.id);
+    const isHot=!isNew && !isCom && top5ids.includes(font.id);
     const txt=previewText||font.name;
     const _cardVariant=(font.fontVariants&&font.fontVariants.length>0)?font.fontVariants[0]:null;
     const _cardFamily=_cardVariant?(_cardVariant._familyName||(font.name+' '+parseVariantStyle(_cardVariant.name||'').label)):font.name;
