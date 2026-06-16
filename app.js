@@ -993,7 +993,7 @@ function _buildCardHTML(font, opts){
         </div>
       </div>
       <div class="card-preview-area" onclick="openDetail('${font.id}')">
-        <div class="card-preview" id="prev-${font.id}" data-fontname="${esc(font.name)}" style="${fs}">${esc(txt)}</div>
+        <div class="card-preview" id="prev-${font.id}" data-fontname="${esc(font.name)}" style="${fs}opacity:0;transition:opacity .15s">${esc(txt)}</div>
         <div class="card-glyph-strip">
           ${glyphs.map(ch=>`<span style="font-family:'${font.name}',sans-serif;font-weight:${font.weight}">${ch}</span>`).join('')}
         </div>
@@ -1053,6 +1053,11 @@ function renderFonts(){
     const dlCount=DL_COUNTS[font.id]||0,isInCmp=compareFonts.includes(font.id);
     card.innerHTML=_buildCardHTML(font,{isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp,glyphs});
     grid.appendChild(card);
+  });
+
+  // Font yüklənəndə preview-ləri göstər
+  document.fonts.ready.then(function(){
+    grid.querySelectorAll('.card-preview').forEach(function(el){ el.style.opacity='1'; });
   });
 
   // Batch lang detection AFTER all cards are in DOM - prevents 20 simultaneous fetches
