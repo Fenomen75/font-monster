@@ -207,10 +207,41 @@ function _estimatedYesterdayDownloads(){
   return s;
 }
 let DL_COUNTS=_estimatedDownloadCounts();
-// localStorage-da saxlanmış real data varsa dərhal yüklə
-(function(){try{const c=localStorage.getItem('fm_dl_counts');if(c){const p=JSON.parse(c);Object.assign(DL_COUNTS,p);}}catch(e){}}());
+// localStorage-da saxlanmış real data varsa dərhal yüklə (1 saatdan köhnədirsə istifadə etmə)
+(function(){
+  try{
+    const raw=localStorage.getItem('fm_dl_counts');
+    if(raw){
+      const parsed=JSON.parse(raw);
+      const cachedAt=parsed._cachedAt||0;
+      const ONE_HOUR=60*60*1000;
+      if(Date.now()-cachedAt<ONE_HOUR){
+        // _cachedAt açarını silərək yalnız font saylarını götür
+        const {_cachedAt:_,...counts}=parsed;
+        Object.assign(DL_COUNTS,counts);
+      } else {
+        // Cache köhnədir — Firebase-dən yenidən yüklənəcək, local cache silinir
+        localStorage.removeItem('fm_dl_counts');
+      }
+    }
+  }catch(e){}
+}());
 window.DL_COUNTS = DL_COUNTS;
+
+// yesterday counter-ni gecə yarısında sıfırla
 let DL_YESTERDAY=_estimatedYesterdayDownloads();
+(function(){
+  try{
+    const KEY='fm_yesterday_date';
+    const todayStr=new Date().toDateString();
+    const lastDate=localStorage.getItem(KEY);
+    if(lastDate && lastDate!==todayStr){
+      // Yeni gün — yesterday sıfırlanır (Firebase-dən yenidən gəlir)
+      DL_YESTERDAY=_estimatedYesterdayDownloads();
+    }
+    localStorage.setItem(KEY,todayStr);
+  }catch(e){}
+}());
 // true => the count for this font is still the seeded estimate, not real data
 let DL_IS_ESTIMATED={};
 FONTS_BASE.forEach(f=>DL_IS_ESTIMATED[f.id]=!(DL_COUNTS[f.id]>0));
@@ -232,7 +263,10 @@ async function loadDownloadStatsCache(){
       if(typeof data.yesterday==='number') DL_YESTERDAY[d.id]=data.yesterday;
     });
     window.DL_COUNTS=DL_COUNTS;
-    try{localStorage.setItem('fm_dl_counts',JSON.stringify(DL_COUNTS));}catch(e){}
+    try{
+      const toStore=Object.assign({},DL_COUNTS,{_cachedAt:Date.now()});
+      localStorage.setItem('fm_dl_counts',JSON.stringify(toStore));
+    }catch(e){}
   }catch(e){ console.warn('download_stats load error:',e); }
 }
 // Cache for average ratings: { fontId: { avg: 4.2, count: 5 } }
@@ -274,6 +308,11 @@ function incrementDownload(id){
   DL_IS_ESTIMATED[id]=false;
   // Also increment local yesterday counter so the UI reflects the real click immediately
   DL_YESTERDAY[id]=(DL_YESTERDAY[id]||0)+1;
+  // localStorage-u dərhal yenilə ki digər tab-lar köhnə data görməsin
+  try{
+    const toStore=Object.assign({},DL_COUNTS,{_cachedAt:Date.now()});
+    localStorage.setItem('fm_dl_counts',JSON.stringify(toStore));
+  }catch(e){}
   if(window._fbDb && window._fbFns){
     try{
       const {doc, setDoc, increment}=window._fbFns;
