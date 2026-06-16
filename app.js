@@ -5324,27 +5324,19 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
   inner.innerHTML = doubled.map((f,i)=>`<span class="hero-ticker-item" style="font-family:'${f.name}',sans-serif" onclick="openDetail('${f.id}')">${f.name}</span><span class="hero-ticker-item" style="font-size:10px;opacity:0.3;padding:0 8px;cursor:default;letter-spacing:0;font-style:normal;font-weight:400">${separators[i%separators.length]}</span>`).join('');
 })();
 
-renderFonts();renderRecentList();
-// Load real download counts from Firestore in the background; update only dl-count elements in-place
-// Wait for Firebase to be ready before loading real download stats
+renderRecentList();
+// Əvvəlcə Firebase-dən DL_COUNTS-u yüklə, sonra bir dəfə render et
 (function _waitFbAndLoadStats(attempt){
   if(window._fbDb && window._fbFns){
     loadDownloadStatsCache().then(function(){
-      // Real DL_COUNTS gəldi — grid-i yenidən render et ki sıralama düzgün olsun
       renderFonts();
-      // In-place guncelle: dl-count reqemlerini deyis
-      document.querySelectorAll('.dl-count[data-fid]').forEach(function(el){
-        var fid = el.getAttribute('data-fid');
-        var svg = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
-        var yesterday = (!DL_IS_ESTIMATED[fid] && DL_YESTERDAY[fid])
-          ? '<span style="opacity:0.45;font-size:9px;margin-left:2px;border-left:1px solid rgba(255,255,255,0.2);padding-left:5px" title="Yesterday downloads">yesterday +'+fmtDlCount(DL_YESTERDAY[fid])+'</span>'
-          : '';
-        el.innerHTML = svg + fmtDlCountFor(fid) + yesterday;
-      });
+      loadRatingsCache();
     });
-    loadRatingsCache();
   } else if(attempt < 40){
     setTimeout(function(){ _waitFbAndLoadStats(attempt+1); }, 250);
+  } else {
+    // Firebase gəlmədisə yenə də render et
+    renderFonts();
   }
 })(0);
 // initAuth loads window.currentUser from localStorage for offline/non-Firebase fallback
