@@ -5325,18 +5325,29 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
 })();
 
 renderRecentList();
-// Əvvəlcə Firebase-dən DL_COUNTS-u yüklə, sonra bir dəfə render et
+// Dərhal render et (popular score ilə) — istifadəçi ani görür
+renderFonts();
+// Arxa planda Firebase-dən real DL_COUNTS gəlir; gəldikdə grid-i
+// görünməz şəkildə yenilə (opacity geçişi ilə flickersiz)
 (function _waitFbAndLoadStats(attempt){
   if(window._fbDb && window._fbFns){
     loadDownloadStatsCache().then(function(){
-      renderFonts();
+      var grid=document.getElementById('fontGrid');
+      if(grid){
+        grid.style.transition='opacity .18s';
+        grid.style.opacity='0';
+        setTimeout(function(){
+          renderFonts();
+          grid.style.opacity='1';
+          setTimeout(function(){ grid.style.transition=''; },200);
+        },180);
+      } else {
+        renderFonts();
+      }
       loadRatingsCache();
     });
   } else if(attempt < 40){
     setTimeout(function(){ _waitFbAndLoadStats(attempt+1); }, 250);
-  } else {
-    // Firebase gəlmədisə yenə də render et
-    renderFonts();
   }
 })(0);
 // initAuth loads window.currentUser from localStorage for offline/non-Firebase fallback
