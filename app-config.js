@@ -24,7 +24,7 @@ const CHARMAP_SETS={
 };
 // Map from language name ? {key in CHARMAP_SETS, tab label}
 const LANG_TO_CHARMAP={
-  'Cyrillic':        {key:'cyrillic',   label:'Кир'},
+  'Cyrillic':        {key:'cyrillic',   label:'Cyrillic'},
   'Greek':           {key:'greek',      label:'Grk'},
   'Vietnamese':      {key:'latinext',   label:'Lat+'},
   'Extended Latin':  {key:'latinext',   label:'Lat+'},
