@@ -1798,6 +1798,7 @@ function _resetSubmitForm(){
   const sfCat=document.getElementById('sf-cat');if(sfCat){sfCat.value='';refreshCustomSelect('sf-cat');}
   const sfLic=document.getElementById('sf-license');if(sfLic){sfLic.value='';refreshCustomSelect('sf-license');}
   const sfDesc=document.getElementById('sf-desc-counter');if(sfDesc)sfDesc.textContent='0/300';
+  const sfAgree=document.getElementById('sf-agree');if(sfAgree)sfAgree.checked=false;
   clearFile();clearFontImg();
 }
 function openSubmit(){
@@ -1893,6 +1894,13 @@ async function submitFont(){
     showVerifyEmailModal();
     return;
   }
+  // Lisenziya/mülkiyyət razılaşması işarələnməyibsə submit-i blokla
+  const agreeBox=document.getElementById('sf-agree');
+  if(agreeBox && !agreeBox.checked){
+    showToast('⚠️ Please confirm you have rights to this font before submitting');
+    agreeBox.focus();
+    return;
+  }
   const newFont=_buildNewFontFromForm();
   if(!newFont) return;
   if(uploadedFontFiles.length > 0){
@@ -1933,7 +1941,8 @@ function _buildNewFontFromForm(){
     submittedById:window.currentUser.id,
     submittedByName:window.currentUser.name,
     submittedByEmail:window.currentUser.email,
-    submittedAt:new Date().toISOString()
+    submittedAt:new Date().toISOString(),
+    rightsAgreedAt:new Date().toISOString()
   };
   if(previewImg)newFont.previewImg=previewImg;
   return newFont;
