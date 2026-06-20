@@ -2934,3 +2934,31 @@ input[type=range].hb-bright::-moz-range-thumb {
     width: 16px !important; height: 16px !important;
   }
 }
+/* ── Custom Tooltip System ───────────────────────────────────────────── */
+#fm-tooltip{
+  position:fixed;z-index:99999;pointer-events:none;
+  padding:7px 11px;border-radius:9px;
+  font-family:var(--sans);font-size:11.5px;font-weight:500;line-height:1.4;
+  color:#fff;letter-spacing:-0.01em;
+  background:rgba(20,22,28,0.92);
+  border:1px solid rgba(255,255,255,0.1);
+  box-shadow:0 8px 24px rgba(0,0,0,0.35),0 2px 8px rgba(0,0,0,0.2);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  max-width:240px;text-align:center;
+  opacity:0;transform:translateY(4px) scale(0.97);
+  transition:opacity .15s ease,transform .15s ease;
+  white-space:pre-wrap;word-break:break-word;
+}
+#fm-tooltip.visible{
+  opacity:1;transform:translateY(0) scale(1);
+}
+#fm-tooltip::after{
+  content:'';position:absolute;left:50%;transform:translateX(-50%);
+  border:5px solid transparent;
+}
+#fm-tooltip.tip-above::after{
+  top:100%;border-top-color:rgba(20,22,28,0.92);
+}
+#fm-tooltip.tip-below::after{
+  bottom:100%;border-bottom-color:rgba(20,22,28,0.92);
+}

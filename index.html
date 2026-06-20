@@ -719,18 +719,6 @@
     <div class="sb-item" onclick="filterLicense('apache')">Apache 2.0</div>
     <div class="sb-item" onclick="filterLicense('share')">Shareware</div>
     <div class="sb-sep"></div>
-    <div class="sb-head">Script / Language</div>
-    <div class="sb-item" onclick="filterScript('latin')">Latin</div>
-    <div class="sb-item" onclick="filterScript('latin-ext')">Latin Extended</div>
-    <div class="sb-item" onclick="filterScript('vietnamese')">Vietnamese</div>
-    <div class="sb-item" onclick="filterScript('cyrillic')">Cyrillic</div>
-    <div class="sb-item" onclick="filterScript('cyrillic-ext')">Cyrillic Extended</div>
-    <div class="sb-item" onclick="filterScript('greek')">Greek</div>
-    <div class="sb-item" onclick="filterScript('greek-ext')">Greek Extended</div>
-    <div class="sb-item" onclick="filterScript('arabic')">Arabic</div>
-    <div class="sb-item" onclick="filterScript('hebrew')">Hebrew</div>
-    <div class="sb-item" onclick="filterScript('devanagari')">Devanagari</div>
-    <div class="sb-sep"></div>
     <div class="sb-head">Quick Tags</div>
     <div id="tagList"></div>
     <div class="sb-sep"></div>
@@ -2140,4 +2128,53 @@
 <script src="/app-fonts.js"></script>
 <script src="/app-admin.js"></script>
 <script src="/app-ui.js"></script>
+
+<div id="fm-tooltip"></div>
+<script>
+(function(){
+  const tip = document.getElementById('fm-tooltip');
+  let _hide, _show;
+  document.addEventListener('mouseover', function(e){
+    const el = e.target.closest('[title]');
+    if(!el) return;
+    const text = el.getAttribute('title');
+    if(!text) return;
+    el.setAttribute('data-title', text);
+    el.removeAttribute('title');
+    clearTimeout(_hide); clearTimeout(_show);
+    _show = setTimeout(function(){
+      tip.textContent = text;
+      const r = el.getBoundingClientRect();
+      tip.className = '';
+      tip.style.opacity = '0';
+      tip.style.display = 'block';
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      let left = r.left + r.width/2 - tw/2;
+      let top = r.top - th - 10;
+      let cls = 'tip-above';
+      if(top < 8){ top = r.bottom + 10; cls = 'tip-below'; }
+      left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+      tip.className = cls + ' visible';
+    }, 350);
+  });
+  document.addEventListener('mouseout', function(e){
+    const el = e.target.closest('[data-title]');
+    if(!el) return;
+    el.setAttribute('title', el.getAttribute('data-title'));
+    el.removeAttribute('data-title');
+    clearTimeout(_show);
+    _hide = setTimeout(function(){ tip.className = tip.className.replace('visible',''); }, 100);
+  });
+  document.addEventListener('click', function(){
+    clearTimeout(_show);
+    tip.className = tip.className.replace('visible','');
+  });
+  document.addEventListener('scroll', function(){
+    tip.className = tip.className.replace('visible','');
+  }, true);
+})();
+</script>
+
 </body>
