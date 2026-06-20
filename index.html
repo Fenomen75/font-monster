@@ -2133,21 +2133,13 @@
 <script>
 (function(){
   const tip = document.getElementById('fm-tooltip');
-  let _hide, _show;
-  document.addEventListener('mouseover', function(e){
-    const el = e.target.closest('[title]');
-    if(!el) return;
-    const text = el.getAttribute('title');
-    if(!text) return;
-    el.setAttribute('data-title', text);
-    el.removeAttribute('title');
+  let _hide, _show, _cur = null;
+  function showTip(el, text){
     clearTimeout(_hide); clearTimeout(_show);
     _show = setTimeout(function(){
       tip.textContent = text;
-      const r = el.getBoundingClientRect();
       tip.className = '';
-      tip.style.opacity = '0';
-      tip.style.display = 'block';
+      const r = el.getBoundingClientRect();
       const tw = tip.offsetWidth, th = tip.offsetHeight;
       let left = r.left + r.width/2 - tw/2;
       let top = r.top - th - 10;
@@ -2157,23 +2149,28 @@
       tip.style.left = left + 'px';
       tip.style.top = top + 'px';
       tip.className = cls + ' visible';
-    }, 350);
+    }, 300);
+  }
+  function hideTip(){
+    clearTimeout(_show);
+    _hide = setTimeout(function(){ tip.className = tip.className.replace('visible','').trim(); }, 80);
+    _cur = null;
+  }
+  document.addEventListener('mouseover', function(e){
+    const el = e.target.closest('[title],[data-tip]');
+    if(!el || el === _cur) return;
+    _cur = el;
+    const text = el.getAttribute('data-tip') || el.getAttribute('title');
+    if(text) showTip(el, text);
   });
   document.addEventListener('mouseout', function(e){
-    const el = e.target.closest('[data-title]');
-    if(!el) return;
-    el.setAttribute('title', el.getAttribute('data-title'));
-    el.removeAttribute('data-title');
-    clearTimeout(_show);
-    _hide = setTimeout(function(){ tip.className = tip.className.replace('visible',''); }, 100);
+    if(!_cur) return;
+    const to = e.relatedTarget;
+    if(to && _cur.contains(to)) return;
+    hideTip();
   });
-  document.addEventListener('click', function(){
-    clearTimeout(_show);
-    tip.className = tip.className.replace('visible','');
-  });
-  document.addEventListener('scroll', function(){
-    tip.className = tip.className.replace('visible','');
-  }, true);
+  document.addEventListener('click', hideTip);
+  document.addEventListener('scroll', hideTip, true);
 })();
 </script>
 
