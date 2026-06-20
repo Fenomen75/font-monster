@@ -146,6 +146,7 @@ let likedFonts=new Set(),loadedFonts=new Set(),debounceTimer,currentDetailFont=n
 let activeDetailWeight='400',pvMode='text',pvBold=false,pvItalic=false,pvAlign='left';
 let pvBgColor='#ffffff',pvTextColor='#111111',pvBgImage=null;
 let activeLicenseFilter=null,compareFonts=[],recentlyViewed=[],activeCodeTab='css';
+let activeSubsetFilter=null;
 let activeTag='';
 let shortcutsOpen=false,darkMode=false;
 
@@ -160,6 +161,19 @@ function filterLicense(lic){
   document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
   renderFonts();
   showToast(activeLicenseFilter?`Showing ${LICENSE_META[lic]?.label} fonts`:'Filter cleared');
+  syncUrl(true);
+}
+function filterScript(subset){
+  _ensureGridView();
+  activeSubsetFilter=activeSubsetFilter===subset?null:subset;
+  activeLicenseFilter=null;
+  activeTag='';
+  currentPage=1;
+  searchTerm='';document.getElementById('searchInput').value='';
+  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
+  const LABEL_MAP={'latin':'Latin','latin-ext':'Latin Extended','vietnamese':'Vietnamese','cyrillic':'Cyrillic','cyrillic-ext':'Cyrillic Extended','greek':'Greek','greek-ext':'Greek Extended','arabic':'Arabic','hebrew':'Hebrew','devanagari':'Devanagari'};
+  renderFonts();
+  showToast(activeSubsetFilter?`Showing ${LABEL_MAP[subset]||subset} fonts`:'Filter cleared');
   syncUrl(true);
 }
 
@@ -203,6 +217,7 @@ function getFiltered(){
   if(activeCategory==="new")list=list.filter(isNewFont);
   else if(activeCategory!=="all")list=list.filter(f=>f.cat===activeCategory);
   if(activeLicenseFilter)list=list.filter(f=>activeLicenseFilter==='free'?['free','ofl','apache'].includes(f.license):f.license===activeLicenseFilter);
+  if(activeSubsetFilter)list=list.filter(f=>getFontLangs(f).some(l=>l.toLowerCase().replace(/\s+/g,'-')===activeSubsetFilter));
   if(freeOnly)list=list.filter(f=>f.license==='free'||f.license==='ofl'||f.license==='apache');
   if(alphaFilter==='#')list=list.filter(f=>/^[0-9]/.test(f.name));
   else if(alphaFilter)list=list.filter(f=>f.name.toUpperCase().startsWith(alphaFilter));
