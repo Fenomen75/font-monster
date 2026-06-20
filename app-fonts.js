@@ -312,7 +312,7 @@ function renderCharmapLangBadges(font){
       pill.innerHTML=ok
         ? `<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>${lang.label}`
         : `<span style="font-size:9px;opacity:.6">–</span>${lang.label}`;
-      pill.title=ok?`✓ This font supports ${lang.label} script — click to filter`:`✗ ${lang.label} not supported by this font`;
+      pill.setAttribute('data-tip', ok?`✓ This font supports ${lang.label} script — click to filter`:`✗ ${lang.label} not supported by this font`);
       container.appendChild(pill);
     });
   });
