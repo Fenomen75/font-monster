@@ -870,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCustomSelect('sf-license', 'form');
   initCustomSelect('ef-cat', 'form');
   initCustomSelect('ef-license', 'form');
+  initCustomSelect('rp-reason', 'form');
 });
 
 // Spin animation for AI loader

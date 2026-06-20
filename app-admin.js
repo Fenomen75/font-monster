@@ -2307,6 +2307,7 @@ function openReportModal(fontId, fontName){
   window._reportFontId = fontId||'';
   window._reportFontName = fontName||'';
   document.getElementById('rp-reason').value='';
+  if(typeof refreshCustomSelect==='function') refreshCustomSelect('rp-reason');
   document.getElementById('rp-details').value='';
   document.getElementById('rp-email').value='';
   document.getElementById('reportFormWrap').style.display='';
