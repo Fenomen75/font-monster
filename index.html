@@ -2134,6 +2134,18 @@
 (function(){
   const tip = document.getElementById('fm-tooltip');
   let _hide, _show, _cur = null;
+  // Convert all title attrs to data-tip on page load + observe DOM changes
+  function stripTitles(root){
+    (root.querySelectorAll ? root : document).querySelectorAll('[title]').forEach(function(el){
+      if(!el.getAttribute('data-tip')) el.setAttribute('data-tip', el.getAttribute('title'));
+      el.removeAttribute('title');
+    });
+  }
+  stripTitles(document);
+  new MutationObserver(function(muts){
+    muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n.nodeType===1) stripTitles(n); }); });
+  }).observe(document.body, {childList:true, subtree:true});
+
   function showTip(el, text){
     clearTimeout(_hide); clearTimeout(_show);
     _show = setTimeout(function(){
@@ -2157,16 +2169,14 @@
     _cur = null;
   }
   document.addEventListener('mouseover', function(e){
-    const el = e.target.closest('[title],[data-tip]');
+    const el = e.target.closest('[data-tip]');
     if(!el || el === _cur) return;
     _cur = el;
-    const text = el.getAttribute('data-tip') || el.getAttribute('title');
-    if(text) showTip(el, text);
+    showTip(el, el.getAttribute('data-tip'));
   });
   document.addEventListener('mouseout', function(e){
     if(!_cur) return;
-    const to = e.relatedTarget;
-    if(to && _cur.contains(to)) return;
+    if(e.relatedTarget && _cur.contains(e.relatedTarget)) return;
     hideTip();
   });
   document.addEventListener('click', hideTip);
