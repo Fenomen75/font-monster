@@ -268,8 +268,8 @@ let activeCharTab='upper';
 const LANG_SUPPORT_LIST=[
   {code:'Latin',label:'Latin',chars:'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',color:'#dc2626'},
   {code:'Latin Ext',label:'Latin Ext',chars:'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞß',color:'#ff6b35'},
-  {code:'Cyrillic',label:'Кир',chars:'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя',color:'#5856d6'},
-  {code:'Greek',label:'Ελλ',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
+  {code:'Cyrillic',label:'Cyrillic',chars:'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя',color:'#5856d6'},
+  {code:'Greek',label:'Greek',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
   {code:'Arabic',label:'عرب',chars:'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',color:'#34c759'},
   {code:'Hebrew',label:'עבר',chars:'אבגדהוזחטיכלמנסעפצקרשת',color:'#ff9500'},
   {code:'Digits',label:'0-9',chars:'0123456789',color:'#8e8e93'},
@@ -308,10 +308,11 @@ function renderCharmapLangBadges(font){
       const ok=supported.includes(lang.label);
       const pill=document.createElement('span');
       pill.style.cssText=`display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:980px;font-size:10px;font-weight:600;letter-spacing:.02em;font-family:var(--sans);border:1px solid;transition:opacity .2s;${ok?`background:${lang.color}18;color:${lang.color};border-color:${lang.color}30`:'background:var(--surface3);color:var(--text3);border-color:var(--border);opacity:0.55'}`;
+      if(ok){pill.style.cursor='pointer';pill.onclick=()=>filterScript(lang.code.toLowerCase().replace(/\s+/g,'-'));}
       pill.innerHTML=ok
         ? `<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>${lang.label}`
         : `<span style="font-size:9px;opacity:.6">–</span>${lang.label}`;
-      pill.title=`${lang.label}: ${ok?'Supported':'Not detected'}`;
+      pill.title=ok?`✓ This font supports ${lang.label} script — click to filter`:`✗ ${lang.label} not supported by this font`;
       container.appendChild(pill);
     });
   });
@@ -421,6 +422,7 @@ function showGrid(){
   activeCategory='all';
   searchTerm='';
   activeLicenseFilter=null;
+  activeSubsetFilter=null;
   alphaFilter='';
   freeOnly=false;
   currentPage=1;
