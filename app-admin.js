@@ -2299,7 +2299,11 @@ async function deleteMsgAdmin(id){
 // ??????????????????????????????????????????
 function openReportModal(fontId, fontName){
   const fontInput=document.getElementById('rp-font');
-  if(fontInput) fontInput.value = fontName ? (fontName+(fontId?' ('+fontId+')':'')) : (fontId||'');
+  if(fontInput){
+    fontInput.value = fontName ? (fontName+(fontId?' ('+fontId+')':'')) : (fontId||'');
+    fontInput.readOnly = !!(fontId||fontName);
+    fontInput.placeholder = (fontId||fontName) ? '' : 'e.g. Some Font Name';
+  }
   window._reportFontId = fontId||'';
   window._reportFontName = fontName||'';
   document.getElementById('rp-reason').value='';

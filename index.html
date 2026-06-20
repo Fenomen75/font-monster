@@ -792,6 +792,10 @@
     <button class="pv-btn" style="font-size:11px;margin-left:6px" onclick="if(currentDetailFont)addToCompare(currentDetailFont.id)">
       + Compare
     </button>
+    <button class="pv-btn" style="font-size:11px;margin-left:6px;color:var(--text3)" onclick="if(currentDetailFont)openReportModal(currentDetailFont.id,currentDetailFont.name)" title="Report this font">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      Report
+    </button>
   </div>
   <div class="fdp-hero" id="fdpHero" style="display:none"></div>
   <div class="fdp-body">
@@ -1309,6 +1313,7 @@
     <a href="https://github.com/google/fonts" target="_blank">GitHub</a>
     <a href="https://scripts.sil.org/OFL" target="_blank">OFL</a>
     <a href="javascript:void(0)" onclick="openContactModal()">Contact</a>
+    <a href="javascript:void(0)" onclick="openReportModal()">Report a Font</a>
   </div>
 </footer>
 
@@ -1389,9 +1394,6 @@
               <input type="checkbox" id="sf-agree" style="margin-top:2px;flex-shrink:0;width:15px;height:15px;cursor:pointer">
               <span>I confirm that I am the rightful owner of this font, or that I have the legal right and permission to upload and distribute it. I understand that uploading a font I don't have rights to may result in removal and account suspension.</span>
             </label>
-            <div style="font-size:10.5px;color:var(--text3);margin-top:6px;padding-left:24px">
-              Think a font here infringes your copyright? <a href="javascript:void(0)" onclick="openReportModal()" style="color:var(--accent);text-decoration:underline">Report it here</a>.
-            </div>
           </div>
         </div>
 
@@ -1809,7 +1811,7 @@
       <div style="padding:18px 24px;display:flex;flex-direction:column;gap:14px">
         <div class="form-group">
           <label class="form-label">Font <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(name or page you're reporting from)</span></label>
-          <input type="text" class="form-input" id="rp-font" placeholder="e.g. Some Font Name" readonly>
+          <input type="text" class="form-input" id="rp-font" placeholder="e.g. Some Font Name">
         </div>
         <div class="form-group">
           <label class="form-label"><span class="req-star">*</span>&nbsp;Reason</label>
