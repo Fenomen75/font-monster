@@ -145,24 +145,12 @@ window.currentUser=window.currentUser; // Firebase onAuthStateChanged gəldikdə
 let likedFonts=new Set(),loadedFonts=new Set(),debounceTimer,currentDetailFont=null;
 let activeDetailWeight='400',pvMode='text',pvBold=false,pvItalic=false,pvAlign='left';
 let pvBgColor='#ffffff',pvTextColor='#111111',pvBgImage=null;
-let activeLicenseFilter=null,compareFonts=[],recentlyViewed=[],activeCodeTab='css';
-let activeSubsetFilter=null;
+let activeLicenseFilter=null,activeSubsetFilter=null,compareFonts=[],recentlyViewed=[],activeCodeTab='css';
 let activeTag='';
 let shortcutsOpen=false,darkMode=false;
 
 // ?? ADMIN helpers ??
 // ---- [app.js lines 546-558] ----
-function filterLicense(lic){
-  _ensureGridView();
-  activeLicenseFilter=activeLicenseFilter===lic?null:lic;
-  currentPage=1;
-  searchTerm='';document.getElementById('searchInput').value='';
-  activeTag='';
-  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
-  renderFonts();
-  showToast(activeLicenseFilter?`Showing ${LICENSE_META[lic]?.label} fonts`:'Filter cleared');
-  syncUrl(true);
-}
 function filterScript(subset){
   _ensureGridView();
   activeSubsetFilter=activeSubsetFilter===subset?null:subset;
@@ -174,6 +162,17 @@ function filterScript(subset){
   const LABEL_MAP={'latin':'Latin','latin-ext':'Latin Extended','vietnamese':'Vietnamese','cyrillic':'Cyrillic','cyrillic-ext':'Cyrillic Extended','greek':'Greek','greek-ext':'Greek Extended','arabic':'Arabic','hebrew':'Hebrew','devanagari':'Devanagari'};
   renderFonts();
   showToast(activeSubsetFilter?`Showing ${LABEL_MAP[subset]||subset} fonts`:'Filter cleared');
+  syncUrl(true);
+}
+function filterLicense(lic){
+  _ensureGridView();
+  activeLicenseFilter=activeLicenseFilter===lic?null:lic;
+  currentPage=1;
+  searchTerm='';document.getElementById('searchInput').value='';
+  activeTag='';
+  document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.remove('active'));
+  renderFonts();
+  showToast(activeLicenseFilter?`Showing ${LICENSE_META[lic]?.label} fonts`:'Filter cleared');
   syncUrl(true);
 }
 
@@ -445,7 +444,7 @@ function _buildCardHTML(font, opts){
   })();
   const langHTML=(()=>{
     const uniq=_LANG_CACHE[font.id]||getFontLangs(font);
-    return uniq.map((l,i)=>{const c=_LANG_COLORS[i%_LANG_COLORS.length];return`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:980px;background:${c.bg};border:1px solid ${c.border};color:${c.text};letter-spacing:.02em;white-space:nowrap">${l}</span>`;}).join('')+`<span id="lang-count-${font.id}" style="font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;margin-left:3px">· .</span>`;
+    return uniq.map((l,i)=>{const c=_LANG_COLORS[i%_LANG_COLORS.length];const sk=l.toLowerCase().replace(/\s+/g,'-');return`<span onclick="event.stopPropagation();filterScript('${sk}')" style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:980px;background:${c.bg};border:1px solid ${c.border};color:${c.text};letter-spacing:.02em;white-space:nowrap;cursor:pointer">${l}</span>`;}).join('')+`<span id="lang-count-${font.id}" style="font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;margin-left:3px">· .</span>`;
   })();
   const tagsHTML=font.tags.map(t=>`<span class="tag" style="cursor:pointer" onclick="event.stopPropagation();(function(tag){activeTag=tag;searchTerm='';document.getElementById('searchInput').value='';activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;document.querySelectorAll('#tagList .sb-item').forEach(function(b){b.classList.toggle('active',b.dataset.tag===tag);});document.querySelectorAll('.cat').forEach(function(b){b.classList.toggle('active',b.dataset.cat==='all');});document.querySelectorAll('.alpha-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()==='All');});renderFonts();syncUrl(true);showToast('&#34;'+tag+'&#34; fonts');}('${esc(t)}'))" title="Filter by ${esc(t)}">${esc(t)}</span>`).join('');
   return `
@@ -557,7 +556,7 @@ function renderFonts(){
       resolveFontLangs(font, langs => {
         const langWrap = document.querySelector(`#lang-count-${font.id}`)?.parentElement;
         if(!langWrap) return;
-        langWrap.innerHTML = langs.map((l,i)=>{const c=_LANG_COLORS[i%_LANG_COLORS.length];return`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:980px;background:${c.bg};border:1px solid ${c.border};color:${c.text};letter-spacing:.02em;white-space:nowrap">${l}</span>`;}).join('')+`<span id="lang-count-${font.id}" style="font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;margin-left:3px">· ${langs.length}+ languages</span>`;
+        langWrap.innerHTML = langs.map((l,i)=>{const c=_LANG_COLORS[i%_LANG_COLORS.length];const sk=l.toLowerCase().replace(/\s+/g,'-');return`<span onclick="event.stopPropagation();filterScript('${sk}')" style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:980px;background:${c.bg};border:1px solid ${c.border};color:${c.text};letter-spacing:.02em;white-space:nowrap;cursor:pointer">${l}</span>`;}).join('')+`<span id="lang-count-${font.id}" style="font-size:9px;font-weight:600;color:var(--text3);white-space:nowrap;margin-left:3px">· ${langs.length}+ languages</span>`;
       });
     });
     if(_batchIdx < _batchFonts.length) setTimeout(_runNextLangBatch, 300);
