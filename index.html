@@ -423,6 +423,31 @@
     await deleteDoc(doc(db, 'contact_messages', msgId));
   };
 
+  // ?? FONT REPORTS (copyright / abuse) ??
+  window.fbSubmitReport = async function(fontId, fontName, reason, details, email) {
+    await addDoc(collection(db, 'font_reports'), {
+      fontId: fontId || '', fontName: fontName || '',
+      reason, details: details || '', email: email || '',
+      resolved: false,
+      createdAt: serverTimestamp(),
+      date: new Date().toISOString()
+    });
+  };
+
+  window.fbGetReports = async function() {
+    const q = query(collection(db, 'font_reports'), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({id: d.id, ...d.data()}));
+  };
+
+  window.fbMarkReportResolved = async function(reportId) {
+    await updateDoc(doc(db, 'font_reports', reportId), { resolved: true });
+  };
+
+  window.fbDeleteReport = async function(reportId) {
+    await deleteDoc(doc(db, 'font_reports', reportId));
+  };
+
   // ?? FONT DOWNLOADS ??
   window.fbIncrementDownload = async function(fontId) {
     const ref = doc(db, 'font_stats', fontId);
@@ -1358,6 +1383,16 @@
             <label class="form-label">Download / Source URL <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional)</span></label>
             <input type="url" class="form-input" id="sf-url" placeholder="https://fonts.google.com/specimen/.">
           </div>
+
+          <div class="sf-agreement" style="margin-top:auto;padding-top:10px">
+            <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:11.5px;line-height:1.5;color:var(--text2)">
+              <input type="checkbox" id="sf-agree" style="margin-top:2px;flex-shrink:0;width:15px;height:15px;cursor:pointer">
+              <span>I confirm that I am the rightful owner of this font, or that I have the legal right and permission to upload and distribute it. I understand that uploading a font I don't have rights to may result in removal and account suspension.</span>
+            </label>
+            <div style="font-size:10.5px;color:var(--text3);margin-top:6px;padding-left:24px">
+              Think a font here infringes your copyright? <a href="javascript:void(0)" onclick="openReportModal()" style="color:var(--accent);text-decoration:underline">Report it here</a>.
+            </div>
+          </div>
         </div>
 
         <!-- SAG SÜTUN: 3 b?rab?r hiss? -->
@@ -1398,15 +1433,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-      <div class="sf-agreement" style="padding:14px 22px;border-top:1px solid var(--border);flex-shrink:0">
-        <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:12px;line-height:1.5;color:var(--text2)">
-          <input type="checkbox" id="sf-agree" style="margin-top:2px;flex-shrink:0;width:15px;height:15px;cursor:pointer">
-          <span>I confirm that I am the rightful owner of this font, or that I have the legal right and permission to upload and distribute it. I understand that uploading a font I don't have rights to may result in removal and account suspension.</span>
-        </label>
-        <div style="font-size:11px;color:var(--text3);margin-top:8px;padding-left:24px">
-          Think a font here infringes your copyright? <a href="mailto:uroboros130875@gmail.com?subject=Copyright%20Report" style="color:var(--accent);text-decoration:underline">Report it here</a>.
         </div>
       </div>
       <div class="sm-footer" style="border-top:1px solid var(--border);flex-shrink:0">
@@ -1652,6 +1678,7 @@
       <button id="adminTab_log" onclick="switchAdminTab('log')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">📋 Log</button>
       <button id="adminTab_export" onclick="switchAdminTab('export')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">📤 Export</button>
       <button id="adminTab_messages" onclick="switchAdminTab('messages')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">📬 Messages <span id="adminBadgeMessages" style="display:none;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:980px;font-size:10px;font-weight:700;min-width:18px;height:18px;padding:0 5px;margin-left:5px">0</span></button>
+      <button id="adminTab_reports" onclick="switchAdminTab('reports')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">🚩 Reports <span id="adminBadgeReports" style="display:none;align-items:center;justify-content:center;background:var(--red);color:#fff;border-radius:980px;font-size:10px;font-weight:700;min-width:18px;height:18px;padding:0 5px;margin-left:5px">0</span></button>
       <button id="adminTab_users" onclick="switchAdminTab('users')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">👥 Users <span id="adminBadgeUsers" style="display:none;align-items:center;justify-content:center;background:var(--blue);color:#fff;border-radius:980px;font-size:10px;font-weight:700;min-width:18px;height:18px;padding:0 5px;margin-left:5px">0</span></button>
     </div>
     <!-- Tab content -->
@@ -1664,6 +1691,7 @@
       <div id="adminView_log" style="display:none"></div>
       <div id="adminView_export" style="display:none"></div>
       <div id="adminView_messages" style="display:none"></div>
+      <div id="adminView_reports" style="display:none"></div>
       <div id="adminView_users" style="display:none"></div>
     </div>
   </div>
@@ -1769,6 +1797,56 @@
   </div>
 </div>
 
+<!-- ?? REPORT FONT MODAL ?? -->
+<div class="modal-overlay" id="reportModalOverlay" onclick="if(event.target===this)closeReportModal()">
+  <div class="modal" style="max-width:460px">
+    <button class="modal-close" onclick="closeReportModal()">×</button>
+    <div id="reportFormWrap">
+      <div class="sm-header" style="padding:22px 24px 14px;border-bottom:1px solid var(--border)">
+        <div class="sm-title">Report a Font</div>
+        <div class="sm-sub">Tell us why this font shouldn't be on Font·Monster.</div>
+      </div>
+      <div style="padding:18px 24px;display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Font <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(name or page you're reporting from)</span></label>
+          <input type="text" class="form-input" id="rp-font" placeholder="e.g. Some Font Name" readonly>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span class="req-star">*</span>&nbsp;Reason</label>
+          <select class="form-select" id="rp-reason">
+            <option value="">Select a reason.</option>
+            <option value="copyright">Copyright / license infringement</option>
+            <option value="not-owner">Uploader is not the rightful owner</option>
+            <option value="malware">Suspicious or unsafe file</option>
+            <option value="duplicate">Duplicate of an existing font</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Details <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional)</span></label>
+          <textarea class="form-input" id="rp-details" rows="4" maxlength="500" placeholder="Add any links or context that help us verify this report." style="resize:none;line-height:1.6"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your Email <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional, in case we need to follow up)</span></label>
+          <input type="email" class="form-input" id="rp-email" placeholder="you@example.com">
+        </div>
+      </div>
+      <div class="sm-footer" style="border-top:1px solid var(--border)">
+        <button class="cancel-btn" onclick="closeReportModal()">Cancel</button>
+        <button class="submit-btn" onclick="submitReport()" id="rpSendBtn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Submit Report
+        </button>
+      </div>
+    </div>
+    <div id="reportSuccess" style="display:none;text-align:center;padding:40px 28px 36px">
+      <div style="font-size:48px;margin-bottom:14px">🚩</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-0.03em">Report received</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:24px;line-height:1.6">Thanks for flagging this. Our team will review it shortly.</div>
+      <button onclick="closeReportModal()" class="submit-btn" style="align-self:center">Close</button>
+    </div>
+  </div>
+</div>
 <!-- ?? AUTH MODAL ?? -->
 <div class="auth-overlay" id="authOverlay" onclick="closeAuthModal()">
   <div class="auth-modal" onclick="event.stopPropagation()">
