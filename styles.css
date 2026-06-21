@@ -997,7 +997,7 @@ nav{
   display:grid;
   grid-template-columns:1fr 1fr;
   overflow:hidden;
-  align-items:start;
+  align-items:center;
 }
 .modal-col{
   overflow-y:auto;
