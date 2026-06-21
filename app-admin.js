@@ -1859,19 +1859,6 @@ function clearFontImg(){
   document.getElementById('sfImgPreview').style.display='none';
 }
 
-function _resetSubmitForm(){
-  ['sf-name','sf-author','sf-year','sf-url','sf-affiliate','sf-description'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.value='';
-  });
-  const sfBox=document.getElementById('sf-tags-box');
-  if(sfBox&&sfBox._tags){sfBox._tags.length=0;sfBox._renderChips();}
-  const sfTagsInput=document.getElementById('sf-tags-input');if(sfTagsInput)sfTagsInput.value='';
-  const sfTagsHidden=document.getElementById('sf-tags');if(sfTagsHidden)sfTagsHidden.value='';
-  const sfCat=document.getElementById('sf-cat');if(sfCat){sfCat.value='';refreshCustomSelect('sf-cat');}
-  const sfLic=document.getElementById('sf-license');if(sfLic){sfLic.value='';refreshCustomSelect('sf-license');}
-  const sfDesc=document.getElementById('sf-desc-counter');if(sfDesc)sfDesc.textContent='0/300';
-  clearFile();clearFontImg();
-}
 function openSubmit(){
   if(!window.currentUser){
     openAuthModal('login');
@@ -2155,6 +2142,7 @@ function _resetSubmitForm(){
   document.getElementById('sf-tags-input').value='';
   document.getElementById('sf-cat').value='';refreshCustomSelect('sf-cat');document.getElementById('sf-license').value='';refreshCustomSelect('sf-license');
   document.getElementById('licenseHint').textContent='';document.getElementById('licenseHint').classList.remove('show');
+  const sfDesc=document.getElementById('sf-desc-counter');if(sfDesc)sfDesc.textContent='0/300';
   clearFile();clearFontImg();
   document.getElementById('submitFormWrap').style.display='none';
   document.getElementById('submitSuccess').classList.add('show');
