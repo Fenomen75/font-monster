@@ -996,9 +996,8 @@ nav{
 .modal-two-col{
   display:grid;
   grid-template-columns:1fr 1fr;
-  flex:1;
   overflow:hidden;
-  align-items:stretch;
+  align-items:start;
 }
 .modal-col{
   overflow-y:auto;
