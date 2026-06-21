@@ -24,7 +24,7 @@ const CHARMAP_SETS={
 };
 // Map from language name ? {key in CHARMAP_SETS, tab label}
 const LANG_TO_CHARMAP={
-  'Cyrillic':        {key:'cyrillic',   label:'Cyrillic'},
+  'Cyrillic':        {key:'cyrillic',   label:'Кир'},
   'Greek':           {key:'greek',      label:'Grk'},
   'Vietnamese':      {key:'latinext',   label:'Lat+'},
   'Extended Latin':  {key:'latinext',   label:'Lat+'},
@@ -175,7 +175,13 @@ function resolveFontLangs(font, callback) {
   if (_LANG_CACHE[font.id]) { callback(_LANG_CACHE[font.id]); return; }
   // Community/uploaded font with pre-computed langs (from opentype.js at upload time)
   if (font.detectedLangs && font.detectedLangs.length) {
-    _LANG_CACHE[font.id] = font.detectedLangs;
+    const _LANG_NORMALIZE={'Кир':'Cyrillic','Кириллица':'Cyrillic','Cyrillic':'Cyrillic',
+      'Ελλ':'Greek','Greek':'Greek','Арб':'Arabic','Arabic':'Arabic',
+      'Ивр':'Hebrew','Hebrew':'Hebrew','Дев':'Devanagari','Devanagari':'Devanagari',
+      'Lat+':'Latin Ext','Latin Ext':'Latin Ext','Latin Extended':'Latin Ext',
+      'Lat':'Latin','Latin':'Latin','Viet':'Vietnamese','Vietnamese':'Vietnamese',
+      'Korean':'Korean','Japanese':'Japanese','Chinese':'Chinese'};
+    _LANG_CACHE[font.id] = font.detectedLangs.map(l=>_LANG_NORMALIZE[l]||l);
     callback(_LANG_CACHE[font.id]);
     return;
   }
