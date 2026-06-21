@@ -163,31 +163,76 @@ function pvSetOverlayPos(pos, btn){
 
 // ---- [app.js lines 3792-3951] ----
 function _detectInputScript(txt){
-  if(!txt)return null;
-  if(/[\u0400-\u04FF]/.test(txt))return'Cyrillic';
-  if(/[\u0370-\u03FF]/.test(txt))return'Greek';
-  if(/[\u0600-\u06FF]/.test(txt))return'Arabic';
-  if(/[\u0590-\u05FF]/.test(txt))return'Hebrew';
-  if(/[\u0900-\u097F]/.test(txt))return'Devanagari';
-  if(/[\u4E00-\u9FFF]/.test(txt))return'Chinese';
-  if(/[\u3040-\u30FF]/.test(txt))return'Japanese';
-  if(/[\uAC00-\uD7AF]/.test(txt))return'Korean';
-  return null;
+  if(!txt)return[];
+  const found=[];
+  if(/[\u0400-\u04FF]/.test(txt))found.push('Cyrillic');
+  if(/[\u0370-\u03FF]/.test(txt))found.push('Greek');
+  if(/[\u0600-\u06FF]/.test(txt))found.push('Arabic');
+  if(/[\u0590-\u05FF]/.test(txt))found.push('Hebrew');
+  if(/[\u0900-\u097F]/.test(txt))found.push('Devanagari');
+  if(/[\u4E00-\u9FFF]/.test(txt))found.push('Chinese');
+  if(/[\u3040-\u30FF]/.test(txt))found.push('Japanese');
+  if(/[\uAC00-\uD7AF]/.test(txt))found.push('Korean');
+  return found;
 }
 function _showPvScriptWarning(script, supported){
   let el=document.getElementById('pvScriptWarn');
   if(!el){
     el=document.createElement('div');
     el.id='pvScriptWarn';
-    el.style.cssText='display:none;margin:6px 0 0;padding:6px 12px;border-radius:8px;background:#fff3cd;border:1px solid #ffc107;color:#856404;font-size:12px;font-weight:500;font-family:var(--sans)';
+    el.style.cssText='display:none;overflow:hidden;margin:6px 0 0;padding:6px 12px;border-radius:8px;background:transparent;font-size:13px;font-weight:500;font-family:var(--sans);color:var(--text2,#666)';
     const canvas=document.getElementById('pvCanvas');
     if(canvas&&canvas.parentElement)canvas.parentElement.insertBefore(el,canvas);
   }
   if(script && supported && !supported.some(s=>s===script||s.startsWith(script))){
+    if(el._warnActive) return;
+    el._warnActive=true;
     el.style.display='block';
-    el.textContent='⚠️ This font does not support '+script+' — showing system fallback font instead.';
+    el.style.opacity='1';
+    el.style.transform='translateY(0)';
+    el.style.filter='blur(0)';
+    el.style.transition='none';
+    const msg='This font does not support '+script;
+    el.innerHTML='';
+    // hərfləri span-lara böl
+    [...msg].forEach(ch=>{
+      const s=document.createElement('span');
+      s.textContent=ch;
+      s.style.cssText='display:inline-block;transition:none';
+      el.appendChild(s);
+    });
+    // yazılma animasiyası
+    const spans=el.querySelectorAll('span');
+    spans.forEach((s,i)=>{
+      s.style.opacity='0';
+      s.style.transform='translateY(6px)';
+      setTimeout(()=>{
+        s.style.transition='opacity 0.08s ease, transform 0.08s ease';
+        s.style.opacity='1';
+        s.style.transform='translateY(0)';
+      }, i*45);
+    });
+    // yazıldıqdan sonra buxarlan
+    const typeEnd=spans.length*45+300;
+    setTimeout(()=>{
+      const order=[...Array(spans.length).keys()];
+      for(let k=order.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[order[k],order[j]]=[order[j],order[k]];}
+      order.forEach((idx,i)=>{
+        setTimeout(()=>{
+          spans[idx].style.transition='opacity 0.5s ease, transform 0.5s ease, filter 0.5s ease';
+          spans[idx].style.opacity='0';
+          spans[idx].style.transform='translateY(-20px) scale(0.8)';
+          spans[idx].style.filter='blur(4px)';
+        },i*40);
+      });
+      setTimeout(()=>{
+        el.style.display='none';
+        el._warnActive=false;
+      }, order.length*40+600);
+    }, typeEnd);
   } else {
     el.style.display='none';
+    el._warnActive=false;
   }
 }
 function renderPvCanvas(){
@@ -195,10 +240,31 @@ function renderPvCanvas(){
   const font=currentDetailFont;
   const canvas=document.getElementById('pvCanvas');
   const txt=document.getElementById('fdpPvInput').value||font.name;
-  // Script warning
-  const _script=_detectInputScript(txt);
-  if(_script){
-    resolveFontLangs(font,langs=>_showPvScriptWarning(_script,langs));
+  // Script warning + unsupported char filtering
+  const _scripts=_detectInputScript(txt);
+  if(_scripts.length){
+    resolveFontLangs(font,langs=>{
+      const SCRIPT_RANGES={
+        'Cyrillic':/[\u0400-\u04FF]/g,
+        'Greek':/[\u0370-\u03FF]/g,
+        'Arabic':/[\u0600-\u06FF\u0750-\u077F]/g,
+        'Hebrew':/[\u0590-\u05FF]/g,
+        'Devanagari':/[\u0900-\u097F]/g,
+        'Chinese':/[\u4E00-\u9FFF\u3400-\u4DBF]/g,
+        'Japanese':/[\u3040-\u30FF]/g,
+        'Korean':/[\uAC00-\uD7AF]/g,
+      };
+      const unsupported=_scripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
+      if(unsupported.length){
+        _showPvScriptWarning(unsupported.join(', '),langs);
+        let filtered=txt;
+        unsupported.forEach(sc=>{const re=SCRIPT_RANGES[sc];if(re)filtered=filtered.replace(re,'□');});
+        const pvEl=canvas.querySelector('div');
+        if(pvEl&&filtered!==txt)pvEl.textContent=filtered;
+      } else {
+        _showPvScriptWarning(null,null);
+      }
+    });
   } else {
     _showPvScriptWarning(null,null);
   }
