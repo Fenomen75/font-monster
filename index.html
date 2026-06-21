@@ -1443,15 +1443,17 @@
         </div>
       </div>
       <div class="sm-footer" style="border-top:1px solid var(--border);flex-shrink:0">
-        <div style="display:flex;align-items:flex-start;gap:8px;padding:10px 22px 0;font-size:11.5px;color:var(--text2);line-height:1.5;">
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0 0;font-size:11.5px;color:var(--text2);line-height:1.5;">
           <input type="checkbox" id="sf-agree" style="margin-top:2px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;">
           <label for="sf-agree" style="cursor:pointer;">I declare that I am the owner of this font or am legally authorized to distribute it, that the information provided is accurate, and that I bear sole responsibility for any copyright, licensing, or legal claims arising from this submission. Font·Monster is not liable for misrepresented submissions.</label>
         </div>
-        <button class="cancel-btn" onclick="closeSubmit()">Cancel</button>
-        <button class="submit-btn" onclick="submitFont()">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add Font
-        </button>
+        <div class="sm-footer-btns">
+          <button class="cancel-btn" onclick="closeSubmit()">Cancel</button>
+          <button class="submit-btn" onclick="submitFont()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Font
+          </button>
+        </div>
       </div>
     </div>
     <div class="submit-success" id="submitSuccess">
@@ -1615,11 +1617,13 @@
       </div>
     </div>
     <div class="sm-footer" style="border-top:1px solid var(--border);flex-shrink:0">
-      <button class="cancel-btn" onclick="closeEditFont()">Cancel</button>
-      <button class="submit-btn" onclick="saveEditFont()">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Save Changes
-      </button>
+      <div class="sm-footer-btns">
+        <button class="cancel-btn" onclick="closeEditFont()">Cancel</button>
+        <button class="submit-btn" onclick="saveEditFont()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Save Changes
+        </button>
+      </div>
     </div>
   </div>
 </div>

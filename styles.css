@@ -1085,7 +1085,8 @@ nav{
 .fuz-selected-name{font-size:13px;font-weight:600;color:var(--green);flex:1;letter-spacing:-0.01em}
 .fuz-remove{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
 .fuz-remove:hover{color:var(--red)}
-.sm-footer{padding:0 22px 20px;display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.sm-footer{padding:0 22px 20px;display:flex;flex-direction:column;align-items:stretch;gap:12px;justify-content:flex-end}
+.sm-footer-btns{display:flex;align-items:center;gap:8px;justify-content:flex-end}
 .cancel-btn{
   padding:9px 16px;border-radius:980px;background:var(--surface3);
   border:1px solid var(--border2);color:var(--text2);
