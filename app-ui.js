@@ -186,7 +186,7 @@ function _showPvScriptWarning(script, supported){
     const pvBgEl=document.getElementById('pvCanvasBg');
     const pvBg=pvBgEl?pvBgEl.style.background:'';
     const isDark=pvBg&&(pvBg.includes('1a1a1a')||pvBg.includes('1e3a5f')||pvBg.includes('2d0a3e'));
-    const warnColor=isDark?'rgba(255,200,60,0.9)':'rgba(160,60,0,0.85)';
+    const warnColor=isDark?'rgba(255,70,70,0.95)':'rgba(200,30,30,0.9)';
     const msg='This font does not support '+script;
     const wrap=document.createElement('div');
     wrap.style.cssText=`display:flex;align-items:center;justify-content:center;width:100%;padding:24px 28px;box-sizing:border-box;font-family:var(--sans);font-size:${warnSz}px;font-weight:600;color:${warnColor};`;
@@ -923,6 +923,8 @@ function initCustomSelect(nativeId, variant) {
     buildOptions();
     wrap.classList.add('open');
     btn.classList.add('open');
+    drop.style.top = 'auto';
+    drop.style.bottom = 'calc(100% + 6px)';
     // Pair: axtaris inputunu t?mizl? v? fokusla
     if (searchInput) {
       searchInput.value = '';
