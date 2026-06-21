@@ -923,8 +923,6 @@ function initCustomSelect(nativeId, variant) {
     buildOptions();
     wrap.classList.add('open');
     btn.classList.add('open');
-    drop.style.top = 'auto';
-    drop.style.bottom = 'calc(100% + 6px)';
     // Pair: axtaris inputunu t?mizl? v? fokusla
     if (searchInput) {
       searchInput.value = '';
