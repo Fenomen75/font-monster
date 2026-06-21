@@ -305,7 +305,7 @@ function renderCharmapLangBadges(font){
   // Use resolveFontLangs - single source of truth for all fonts
   resolveFontLangs(font, supported=>{
     LANG_SUPPORT_LIST.forEach(lang=>{
-      const ok=supported.includes(lang.label);
+      const ok=supported.includes(lang.code)||supported.includes(lang.label);
       const pill=document.createElement('span');
       pill.style.cssText=`display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:980px;font-size:10px;font-weight:600;letter-spacing:.02em;font-family:var(--sans);border:1px solid;transition:opacity .2s;${ok?`background:${lang.color}18;color:${lang.color};border-color:${lang.color}30`:'background:var(--surface3);color:var(--text3);border-color:var(--border);opacity:0.55'}`;
       pill.innerHTML=ok
