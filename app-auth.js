@@ -580,17 +580,22 @@ function applyProfilePhoto(url){
   }
 }
 
-function heroBannerHueChange(val){
+function heroBannerHueChange(val,type){
   val=parseInt(val);
   const banner=document.getElementById('heroBannerAuto');
-  const dot=document.getElementById('heroBannerColorDot');
   const txt=document.getElementById('heroBannerText');
   if(!banner)return;
-  const bg=val===0?'#0a0a0a':`hsl(${val},55%,14%)`;
-  const fg=val===0?'#ffffff':`hsl(${val},80%,78%)`;
-  banner.style.background=bg;
-  if(dot)dot.style.background=bg;
-  if(txt)txt.style.color=fg;
+  if(type==='bg'){
+    const bg=val===0?'#0a0a0a':`hsl(${val},55%,14%)`;
+    banner.style.background=bg;
+    const dot=document.getElementById('heroBannerBgDot');
+    if(dot)dot.style.background=bg;
+  } else {
+    const fg=val===0?'#ffffff':`hsl(${val},80%,78%)`;
+    if(txt)txt.style.color=fg;
+    const dot=document.getElementById('heroBannerFgDot');
+    if(dot)dot.style.background=fg;
+  }
 }
 
 function resetHeroBanner(){
@@ -629,15 +634,20 @@ function resetHeroBanner(){
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
             <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
-            <input type="range" class="hb-zoom" min="16" max="300" value="72" step="4"
+            <input type="range" class="hb-zoom" min="16" max="600" value="72" step="4"
               oninput="(function(v){var b=document.getElementById('heroBannerText');if(b)b.style.fontSize=v+'px';})(this.value)">
             <span style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
           </div>
-          <div id="heroBannerColorWrap" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
-            <div id="heroBannerColorDot" style="width:10px;height:10px;border-radius:50%;background:${pal.bg};border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
-            <input type="range" class="hb-hue" min="0" max="360" value="0" step="1"
-              oninput="heroBannerHueChange(this.value)">
-          </div>
+          <!-- Bg color -->
+            <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
+              <div id="heroBannerBgDot" style="width:10px;height:10px;border-radius:50%;background:#0a0a0a;border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
+              <input type="range" class="hb-hue" min="0" max="360" value="0" step="1" oninput="heroBannerHueChange(this.value,'bg')">
+            </div>
+            <!-- Font color -->
+            <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
+              <div id="heroBannerFgDot" style="width:10px;height:10px;border-radius:50%;background:#ffffff;border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
+              <input type="range" class="hb-hue" min="0" max="360" value="0" step="1" oninput="heroBannerHueChange(this.value,'fg')">
+            </div>
         </div>
         <label style="cursor:pointer;display:flex;align-items:center;gap:6px;
           background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);color:rgba(255,255,255,0.85);
@@ -686,7 +696,7 @@ function heroBannerUpload(input){
             <!-- Font zoom slider -->
             <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);padding:5px 10px;border-radius:980px;border:1px solid rgba(255,255,255,0.15);">
               <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);font-family:sans-serif;line-height:1;">A</span>
-              <input type="range" class="hb-zoom" min="16" max="300" value="72" step="4"
+              <input type="range" class="hb-zoom" min="16" max="600" value="72" step="4"
                 oninput="const b=document.getElementById('heroBannerText');if(b)b.style.fontSize=this.value+'px'">
               <span style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.7);font-family:sans-serif;line-height:1;">A</span>
             </div>
