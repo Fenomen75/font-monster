@@ -1583,7 +1583,7 @@
         <div class="modal-col-title">Files &amp; Links</div>
         <div class="form-group" style="flex:1;display:flex;flex-direction:column">
           <label class="form-label">Description <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(optional)</span><span id="ef-desc-counter" style="font-size:10px;font-weight:500;color:var(--text3);letter-spacing:0;font-family:var(--mono)">0/300</span></label>
-          <textarea class="form-input" id="ef-description" rows="3" maxlength="300" placeholder="Brief description - style, best use cases, notable features." style="resize:none;height:80px;max-height:80px;line-height:1.6;overflow-y:auto" oninput="document.getElementById('ef-desc-counter').textContent=this.value.length+'/300';document.getElementById('ef-desc-counter').style.color=this.value.length>=280?'var(--red)':this.value.length>=240?'var(--orange)':'var(--text3)'"></textarea>
+          <textarea class="form-input" id="ef-description" rows="3" maxlength="300" placeholder="Brief description - style, best use cases, notable features." style="resize:none;flex:1;min-height:48px;line-height:1.6" oninput="document.getElementById('ef-desc-counter').textContent=this.value.length+'/300';document.getElementById('ef-desc-counter').style.color=this.value.length>=280?'var(--red)':this.value.length>=240?'var(--orange)':'var(--text3)'"></textarea>
         </div>
         <div class="form-group" style="flex:1;display:flex;flex-direction:column">
           <label class="form-label">Font File <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional · replace existing)</span></label>
