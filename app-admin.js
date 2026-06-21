@@ -137,11 +137,12 @@ function _applyEditFile(f){
 function _renderEditFileList(){
   const zone=document.getElementById('efFileUploadZone');
   const sel=document.getElementById('efFuzSelected');
-  const nm=document.getElementById('efFuzSelectedName');
-  if(!_efFileList.length){sel.style.display='none';zone.style.display='';return;}
-  zone.style.display='none';
-  sel.style.display='flex';
-  nm.innerHTML=_efFileList.map((f,i)=>
+  const lst=document.getElementById('efFuzSelectedList');
+  if(!_efFileList.length){sel.classList.remove('show');zone.style.opacity='1';zone.style.minHeight='';return;}
+  zone.style.opacity='0.55';
+  zone.style.minHeight='40px';
+  sel.classList.add('show');
+  lst.innerHTML=_efFileList.map((f,i)=>
     `<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       <span style="font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
@@ -149,9 +150,6 @@ function _renderEditFileList(){
       <button onclick="_removeEditFile(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0 2px;line-height:1;flex-shrink:0">×</button>
     </div>`
   ).join('');
-  sel.style.flexDirection='column';
-  sel.style.alignItems='stretch';
-  sel.style.gap='3px';
 }
 function _removeEditFile(idx){
   _efFileList.splice(idx,1);
@@ -163,10 +161,11 @@ function clearEditFile(){
   _efFileData=null;
   _efFileList=[];
   document.getElementById('ef-file').value='';
-  document.getElementById('efFuzSelected').style.display='none';
-  document.getElementById('efFileUploadZone').style.display='';
-  const nm=document.getElementById('efFuzSelectedName');
-  if(nm) nm.innerHTML='';
+  const sel=document.getElementById('efFuzSelected');
+  sel.classList.remove('show');
+  const lst=document.getElementById('efFuzSelectedList');
+  if(lst) lst.innerHTML='';
+  document.getElementById('efFileUploadZone').style.opacity='1';
 }
 function handleEditImgSelect(inp){
   const f=inp.files[0];if(!f)return;
@@ -218,6 +217,8 @@ function _resetEditModal(){
   clearEditImg();
   _efImgRemoved=false;
   document.getElementById('ef-year').value='';
+  const efLicHint=document.getElementById('ef-license-hint');
+  if(efLicHint){efLicHint.textContent='';efLicHint.classList.remove('show');}
   _efFileData=null; _efImgData=null;
 }
 // Mövcud font faylının olduğunu modalda göstərir (real fayl seçilməyib, sadəcə indikator)
@@ -226,19 +227,20 @@ function _showExistingFontFile(f){
   if(!hasFile) return;
   const zone=document.getElementById('efFileUploadZone');
   const sel=document.getElementById('efFuzSelected');
-  const nm=document.getElementById('efFuzSelectedName');
+  const lst=document.getElementById('efFuzSelectedList');
   let label='Current font file';
   if(f.fontVariants&&f.fontVariants.length>0){
     label=f.fontVariants.length>1?`${f.fontVariants.length} variants on file`:(f.fontVariants[0].name||'Current font file');
   } else if(f.fontUrl){
     label=f.fontUrl.split('/').pop().split('?')[0]||'Current font file';
   }
-  zone.style.display='none';
-  sel.style.display='flex';
-  sel.style.flexDirection='';
-  sel.style.alignItems='';
-  sel.style.gap='';
-  nm.innerHTML=`<span style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(label)}</span>`;
+  zone.style.opacity='0.55';
+  zone.style.minHeight='40px';
+  sel.classList.add('show');
+  lst.innerHTML=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span style="font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(label)}</span>
+    </div>`;
 }
 
 // ?? EDIT FONT ??
@@ -252,12 +254,25 @@ function openEditFont(fontId){
   document.getElementById('ef-author').value=f.author;
   document.getElementById('ef-cat').value=f.cat;refreshCustomSelect('ef-cat');
   document.getElementById('ef-license').value=f.license;refreshCustomSelect('ef-license');
+  const efLicHint=document.getElementById('ef-license-hint');
+  const efLicMeta=LICENSE_META[f.license];
+  if(efLicHint){
+    if(efLicMeta){efLicHint.textContent=efLicMeta.hint;efLicHint.classList.add('show');}
+    else{efLicHint.textContent='';efLicHint.classList.remove('show');}
+  }
   document.getElementById('ef-year').value=f.year||'';
   document.getElementById('ef-tags').value=(f.tags||[]).join(',');
   setTimeout(()=>_setTagChipValues('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',f.tags||[]),50);
   document.getElementById('ef-url').value=f.sourceUrl||'';
   const efAffEl=document.getElementById('ef-affiliate');if(efAffEl)efAffEl.value=f.affiliateUrl||'';
-  const efDesc=document.getElementById('ef-description');if(efDesc)efDesc.value=f.description||'';
+  const efDesc=document.getElementById('ef-description');
+  const efDescVal=f.description||'';
+  if(efDesc)efDesc.value=efDescVal;
+  const efDescCounter=document.getElementById('ef-desc-counter');
+  if(efDescCounter){
+    efDescCounter.textContent=efDescVal.length+'/300';
+    efDescCounter.style.color=efDescVal.length>=280?'var(--red)':efDescVal.length>=240?'var(--orange)':'var(--text3)';
+  }
   if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
   _showExistingFontFile(f);
   document.getElementById('ef-admin-notice').style.display='none';
@@ -1800,6 +1815,10 @@ function clearFile(){
 // SUBMIT
 document.getElementById('sf-license').addEventListener('change',function(){
   const m=LICENSE_META[this.value];const h=document.getElementById('licenseHint');
+  if(m){h.textContent=m.hint;h.classList.add('show');}else{h.textContent='';h.classList.remove('show');}
+});
+document.getElementById('ef-license').addEventListener('change',function(){
+  const m=LICENSE_META[this.value];const h=document.getElementById('ef-license-hint');
   if(m){h.textContent=m.hint;h.classList.add('show');}else{h.textContent='';h.classList.remove('show');}
 });
 function handleFontImgSelect(input){
