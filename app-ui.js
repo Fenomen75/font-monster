@@ -226,6 +226,40 @@ function _showPvScriptWarning(script, supported){
   }
 }
 
+// ---- Glyph-level missing-character detection (no default-font fallback) ----
+const _glyphCache = {}; // fontFamily -> { char: boolean }
+const _glyphDefaultWidths = {}; // char -> width rendered with a font that can never exist
+const _glyphSentinel = 'glyphProbeSentinel404';
+let _glyphMeasureCanvas = null;
+function _getGlyphCanvas(){
+  if(!_glyphMeasureCanvas) _glyphMeasureCanvas = document.createElement('canvas');
+  return _glyphMeasureCanvas;
+}
+function _glyphSupported(fontFamily, ch){
+  if(!ch || ch===' ' || ch==='\n' || ch==='\t' || ch==='\r') return true;
+  if(!_glyphCache[fontFamily]) _glyphCache[fontFamily] = {};
+  if(ch in _glyphCache[fontFamily]) return _glyphCache[fontFamily][ch];
+  const ctx = _getGlyphCanvas().getContext('2d');
+  const size = 72;
+  if(!(ch in _glyphDefaultWidths)){
+    ctx.font = `${size}px ${_glyphSentinel}`;
+    _glyphDefaultWidths[ch] = ctx.measureText(ch).width;
+  }
+  ctx.font = `${size}px '${fontFamily}', ${_glyphSentinel}`;
+  const testWidth = ctx.measureText(ch).width;
+  const supported = Math.abs(testWidth - _glyphDefaultWidths[ch]) > 0.01;
+  _glyphCache[fontFamily][ch] = supported;
+  return supported;
+}
+function sanitizeGlyphs(txt, fontFamily){
+  if(!txt) return txt;
+  let out = '';
+  for(const ch of txt){
+    out += _glyphSupported(fontFamily, ch) ? ch : '?';
+  }
+  return out;
+}
+
 function renderPvCanvas(){
   if(!currentDetailFont)return;
   const font=currentDetailFont;
@@ -271,10 +305,11 @@ function renderPvCanvas(){
 
   if(pvMode==='text'){
     if(!txt){canvas.innerHTML='';return;}
-    canvas.innerHTML=`<div style="${bs}font-size:${sz}px;line-height:${Math.max(lh,1.4)};text-align:${pvAlign};word-break:break-word;padding-bottom:0.25em;width:100%">${esc(txt)}</div>`;
+    const safeTxt=sanitizeGlyphs(txt,_pvFamily);
+    canvas.innerHTML=`<div style="${bs}font-size:${sz}px;line-height:${Math.max(lh,1.4)};text-align:${pvAlign};word-break:break-word;padding-bottom:0.25em;width:100%">${esc(safeTxt)}</div>`;
   } else if(pvMode==='waterfall'){
     const wfSizes=[10,12,14,18,24,32,48,64,80,96];
-    const wfTxt=txt||font.name;
+    const wfTxt=sanitizeGlyphs(txt||font.name,_pvFamily);
     const sepColor=pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e'?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.07)';
     canvas.style.padding='6px 0';
     const wf=document.createElement('div');wf.className='pv-wf';
@@ -286,14 +321,14 @@ function renderPvCanvas(){
     });
     canvas.innerHTML='';canvas.appendChild(wf);
   } else if(pvMode==='paragraph'){
-    const paraTxt=txt||font.name;
+    const paraTxt=sanitizeGlyphs(txt||font.name,_pvFamily);
     const bodySize=Math.max(14,Math.min(sz,22));
     canvas.innerHTML=`<div class="pv-para" style="${bs}text-align:${pvAlign}">
       <strong style="${bs}font-size:${sz}px;line-height:1.1;display:block;margin-bottom:14px;font-weight:700">${esc(paraTxt)}</strong>
       <span style="font-size:${bodySize}px;line-height:${lh}">${LOREM}</span>
     </div>`;
   } else if(pvMode==='pairs'){
-    const pairsTxt=txt||font.name;
+    const pairsTxt=sanitizeGlyphs(txt||font.name,_pvFamily);
     const bodySize=Math.max(13,Math.round(sz*0.3));
     canvas.innerHTML=`<div class="pv-pairs">
       <div style="${bs}font-size:${sz}px;line-height:1.1;font-weight:700;text-align:${pvAlign};margin-bottom:12px">${esc(pairsTxt)}</div>
