@@ -240,8 +240,12 @@
 
   // Auth state listener - fires when page loads or user logs in/out
   let _authInitialized = false;
+  let _lastAuthUid = null;
   onAuthStateChanged(auth, async (fbUser) => {
     if (fbUser) {
+      // Eyni user ikinci dəfə gələndə (token refresh) UI-ı yeniləmə
+      if (_authInitialized && _lastAuthUid === fbUser.uid) return;
+      _lastAuthUid = fbUser.uid;
       // Token-i yenilə ki emailVerified dəqiq olsun
       await fbUser.reload().catch(()=>{});
       // Get extra user data from Firestore
@@ -461,19 +465,7 @@
   // ?? Real-time presence ??
   const sid = Math.random().toString(36).slice(2);
   const sesRef = ref(rtdb, 'presence/' + sid);
-  // Geo lookup - country, city
-  fetch('https://ipapi.co/json/')
-    .then(r => r.json())
-    .then(geo => {
-      rtSet(sesRef, {
-        t: rtServerTimestamp(),
-        country: geo.country_name || '?',
-        countryCode: geo.country_code || '?',
-        city: geo.city || '?',
-        flag: geo.country_code ? String.fromCodePoint(...[...geo.country_code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '🌐'
-      });
-    })
-    .catch(() => rtSet(sesRef, { t: rtServerTimestamp(), country: 'Unknown', flag: '🌐' }));
+  rtSet(sesRef, { t: rtServerTimestamp() });
   onDisconnect(sesRef).remove();
   window.addEventListener('pagehide', () => rtSet(sesRef, null));
 
@@ -492,12 +484,9 @@
   }
 
   let _lastRealCount = 1;
-  let _lastPresenceData = {};
   onValue(ref(rtdb, 'presence'), snap => {
-    const val = snap.val() || {};
-    const realCount = Object.keys(val).length || 1;
+    const realCount = snap.exists() ? Object.keys(snap.val()).length : 1;
     _lastRealCount = realCount;
-    _lastPresenceData = val;
     const el = document.getElementById('onlineCount');
     const badge = document.getElementById('onlineBadge');
     if(badge) badge.style.display = 'flex';
@@ -506,15 +495,6 @@
     const isAdminNow = window.currentUser && window.currentUser.isAdmin === true;
     if(isAdminNow){
       if(el) el.textContent = realCount.toLocaleString();
-      // Country breakdown tooltip
-      const countries = {};
-      Object.values(val).forEach(d => {
-        const k = (d.flag||'🌐') + ' ' + (d.country||'Unknown');
-        countries[k] = (countries[k]||0) + 1;
-      });
-      const tip = Object.entries(countries).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}: ${v}`).join('
-');
-      if(badge) badge.setAttribute('data-tip', tip || 'No data yet');
       // Fake interval varsa sil
       if(window._fakeCounterInterval){ clearInterval(window._fakeCounterInterval); window._fakeCounterInterval = null; }
     } else {
@@ -535,7 +515,7 @@
       const rows = Object.entries(val).map(([sessionId, data]) => {
         const t = data && data.t;
         const ageSec = t ? Math.round((now - t) / 1000) : 'unknown';
-        return { sessionId, flag: data.flag||'🌐', country: data.country||'?', city: data.city||'?', ageSeconds: ageSec };
+        return { sessionId, t, ageSeconds: ageSec };
       });
       console.log('Total presence nodes:', rows.length);
       console.table(rows);
