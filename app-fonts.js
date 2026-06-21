@@ -268,10 +268,12 @@ let activeCharTab='upper';
 const LANG_SUPPORT_LIST=[
   {code:'Latin',label:'Latin',chars:'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',color:'#dc2626'},
   {code:'Latin Ext',label:'Latin Ext',chars:'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞß',color:'#ff6b35'},
-  {code:'Cyrillic',label:'Cyrillic',chars:'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя',color:'#5856d6'},
-  {code:'Greek',label:'Greek',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
-  {code:'Arabic',label:'Arabic',chars:'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',color:'#34c759'},
-  {code:'Hebrew',label:'Hebrew',chars:'אבגדהוזחטיכלמנסעפצקרשת',color:'#ff9500'},
+  {code:'Cyrillic',label:'Кир',chars:'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя',color:'#5856d6'},
+  {code:'Greek',label:'Ελλ',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
+  {code:'Arabic',label:'عرب',chars:'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',color:'#34c759'},
+  {code:'Hebrew',label:'עבר',chars:'אבגדהוזחטיכלמנסעפצקרשת',color:'#ff9500'},
+  {code:'Digits',label:'0-9',chars:'0123456789',color:'#8e8e93'},
+  {code:'Punct',label:'Punct',chars:'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',color:'#636366'},
 ];
 function _fontCanRender(fontName,weight,testChars){
   // PRIMARY: If uploadedFontData has a parsed unicodeSet, use it - 100% accurate.
@@ -303,14 +305,13 @@ function renderCharmapLangBadges(font){
   // Use resolveFontLangs - single source of truth for all fonts
   resolveFontLangs(font, supported=>{
     LANG_SUPPORT_LIST.forEach(lang=>{
-      const ok=supported.includes(lang.label)||supported.includes(lang.code);
+      const ok=supported.includes(lang.label);
       const pill=document.createElement('span');
       pill.style.cssText=`display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:980px;font-size:10px;font-weight:600;letter-spacing:.02em;font-family:var(--sans);border:1px solid;transition:opacity .2s;${ok?`background:${lang.color}18;color:${lang.color};border-color:${lang.color}30`:'background:var(--surface3);color:var(--text3);border-color:var(--border);opacity:0.55'}`;
-      if(ok){pill.style.cursor='pointer';pill.onclick=()=>filterScript(lang.code.toLowerCase().replace(/\s+/g,'-'));}
       pill.innerHTML=ok
         ? `<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>${lang.label}`
         : `<span style="font-size:9px;opacity:.6">–</span>${lang.label}`;
-      pill.setAttribute('data-tip', ok?`✓ This font supports ${lang.label} script — click to filter`:`✗ ${lang.label} not supported by this font`);
+      pill.title=`${lang.label}: ${ok?'Supported':'Not detected'}`;
       container.appendChild(pill);
     });
   });
@@ -420,7 +421,6 @@ function showGrid(){
   activeCategory='all';
   searchTerm='';
   activeLicenseFilter=null;
-  activeSubsetFilter=null;
   alphaFilter='';
   freeOnly=false;
   currentPage=1;
@@ -636,10 +636,12 @@ function _detailRenderHero(font){
         <div style="position:absolute;bottom:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <!-- Zoom slider -->
-            <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:4px 6px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
-            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.max(16,s-16)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A-</button>
-            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.min(400,s+16)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A+</button>
-          </div>
+            <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
+              <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
+              <input type="range" class="hb-zoom" min="16" max="300" value="72" step="4"
+                oninput="(function(v){var b=document.getElementById('heroBannerText');if(b)b.style.fontSize=v+'px';})(this.value)">
+              <span style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
+            </div>
             <!-- Color hue slider -->
             <div id="heroBannerColorWrap" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
               <div id="heroBannerColorDot" style="width:10px;height:10px;border-radius:50%;background:${pal.bg};border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
