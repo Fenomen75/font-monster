@@ -176,46 +176,37 @@ function _detectInputScript(txt){
   return found;
 }
 function _showPvScriptWarning(script, supported){
-  // Warning is now rendered inside pvCanvas by renderPvCanvas — this function is a no-op
-  return;
-  let el=document.getElementById('pvScriptWarn');
-  if(!el){
-    el=document.createElement('div');
-    el.id='pvScriptWarn';
-    el.style.cssText='display:none;overflow:hidden;margin:6px 0 0;padding:6px 12px;border-radius:8px;background:transparent;font-size:13px;font-weight:500;font-family:var(--sans);color:var(--text2,#666)';
-    const canvas=document.getElementById('pvCanvas');
-    if(canvas&&canvas.parentElement)canvas.parentElement.insertBefore(el,canvas);
-  }
-  if(script && supported && !supported.some(s=>s===script||s.startsWith(script))){
-    if(el._warnActive) return;
-    el._warnActive=true;
-    el.style.display='block';
-    el.style.opacity='1';
-    el.style.transform='translateY(0)';
-    el.style.filter='blur(0)';
-    el.style.transition='none';
+  const canvas=document.getElementById('pvCanvas');
+  if(!canvas||!script)return;
+  {
+    if(canvas._warnActive)return;
+    canvas._warnActive=true;
+    const sz=parseInt((document.getElementById('fdpSizeRange')||{}).value)||56;
+    const warnSz=Math.max(16,Math.min(sz,40));
+    const pvBgEl=document.getElementById('pvCanvasBg');
+    const pvBg=pvBgEl?pvBgEl.style.background:'';
+    const isDark=pvBg&&(pvBg.includes('1a1a1a')||pvBg.includes('1e3a5f')||pvBg.includes('2d0a3e'));
+    const warnColor=isDark?'rgba(255,200,60,0.9)':'rgba(160,60,0,0.85)';
     const msg='This font does not support '+script;
-    el.innerHTML='';
-    // hərfləri span-lara böl
+    const wrap=document.createElement('div');
+    wrap.style.cssText=`display:flex;align-items:center;justify-content:center;width:100%;padding:24px 28px;box-sizing:border-box;font-family:var(--sans);font-size:${warnSz}px;font-weight:600;color:${warnColor};`;
+    canvas.innerHTML='';
+    canvas.appendChild(wrap);
     [...msg].forEach(ch=>{
       const s=document.createElement('span');
       s.textContent=ch;
-      s.style.cssText='display:inline-block;transition:none';
-      el.appendChild(s);
+      s.style.cssText='display:inline-block;opacity:0;transform:translateY(6px);transition:none';
+      wrap.appendChild(s);
     });
-    // yazılma animasiyası
-    const spans=el.querySelectorAll('span');
+    const spans=wrap.querySelectorAll('span');
     spans.forEach((s,i)=>{
-      s.style.opacity='0';
-      s.style.transform='translateY(6px)';
       setTimeout(()=>{
         s.style.transition='opacity 0.08s ease, transform 0.08s ease';
         s.style.opacity='1';
         s.style.transform='translateY(0)';
       }, i*45);
     });
-    // yazıldıqdan sonra buxarlan
-    const typeEnd=spans.length*45+300;
+    const typeEnd=spans.length*45+400;
     setTimeout(()=>{
       const order=[...Array(spans.length).keys()];
       for(let k=order.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[order[k],order[j]]=[order[j],order[k]];}
@@ -228,15 +219,13 @@ function _showPvScriptWarning(script, supported){
         },i*40);
       });
       setTimeout(()=>{
-        el.style.display='none';
-        el._warnActive=false;
+        canvas._warnActive=false;
+        if(typeof renderPvCanvas==='function')renderPvCanvas();
       }, order.length*40+600);
     }, typeEnd);
-  } else {
-    el.style.display='none';
-    el._warnActive=false;
   }
 }
+
 function renderPvCanvas(){
   if(!currentDetailFont)return;
   const font=currentDetailFont;
@@ -279,25 +268,6 @@ function renderPvCanvas(){
   const _pvFamily=(_av&&_av._familyName)||(_av?(font.name+' '+parseVariantStyle(_av.name||'').label):font.name);
   const bs=`font-family:'${_pvFamily}',sans-serif;font-weight:${fontWeight};font-style:${fontStyle};letter-spacing:${ls}px;color:${pvTextColor};`;
   document.querySelectorAll('.wt-sample').forEach(el=>el.textContent=txt||font.name);
-
-  // Check if input contains scripts unsupported by this font and show inline warning
-  const _detectedScripts=_detectInputScript(txt);
-  if(_detectedScripts.length && currentDetailFont){
-    resolveFontLangs(currentDetailFont,langs=>{
-      const _unsupported=_detectedScripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
-      if(_unsupported.length){
-        // Show warning inside canvas at matching font size
-        const warnMsg='⚠ This font does not support '+_unsupported.join(', ');
-        const warnSz=Math.max(14,Math.min(sz,32));
-        const warnColor=pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e'?'rgba(255,200,60,0.85)':'rgba(180,80,0,0.8)';
-        canvas.innerHTML=`<div style="font-family:var(--sans);font-size:${warnSz}px;font-weight:600;color:${warnColor};text-align:center;padding:24px 28px;line-height:1.5;width:100%;box-sizing:border-box">${warnMsg}</div>`;
-        return;
-      }
-    });
-    // Hide the old external warning element if visible
-    const _ow=document.getElementById('pvScriptWarn');
-    if(_ow){_ow.style.display='none';_ow._warnActive=false;}
-  }
 
   if(pvMode==='text'){
     if(!txt){canvas.innerHTML='';return;}
