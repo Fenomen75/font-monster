@@ -181,7 +181,7 @@ function resolveFontLangs(font, callback) {
       'Lat+':'Latin Ext','Latin Ext':'Latin Ext','Latin Extended':'Latin Ext',
       'Lat':'Latin','Latin':'Latin','Viet':'Vietnamese','Vietnamese':'Vietnamese',
       'Korean':'Korean','Japanese':'Japanese','Chinese':'Chinese'};
-    _LANG_CACHE[font.id] = font.detectedLangs.map(l=>_LANG_NORMALIZE[l]||l);
+    _LANG_CACHE[font.id] = font.detectedLangs.map(l=>_LANG_NORMALIZE[l]||l).filter(l=>!['0-9','Punct','Digits'].includes(l));
     callback(_LANG_CACHE[font.id]);
     return;
   }
