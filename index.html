@@ -2132,4 +2132,77 @@
 <script src="/app-fonts.js"></script>
 <script src="/app-admin.js"></script>
 <script src="/app-ui.js"></script>
+
+<div id="fm-tooltip"></div>
+<script>
+(function(){
+  const tip = document.getElementById('fm-tooltip');
+  let _hide, _show, _cur = null;
+  function stripTitles(root){
+    const els = (root && root.querySelectorAll) ? root.querySelectorAll('[title]') : document.querySelectorAll('[title]');
+    els.forEach(function(el){
+      if(!el.getAttribute('data-tip')) el.setAttribute('data-tip', el.getAttribute('title'));
+      el.removeAttribute('title');
+    });
+  }
+  stripTitles(document);
+  new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n.nodeType===1){
+          stripTitles(n);
+          if(n.hasAttribute && n.hasAttribute('title')){
+            if(!n.getAttribute('data-tip')) n.setAttribute('data-tip', n.getAttribute('title'));
+            n.removeAttribute('title');
+          }
+        }
+      });
+      // Also catch attribute changes
+      if(m.type==='attributes' && m.attributeName==='title' && m.target){
+        const el = m.target;
+        if(el.getAttribute('title')){
+          if(!el.getAttribute('data-tip')) el.setAttribute('data-tip', el.getAttribute('title'));
+          el.removeAttribute('title');
+        }
+      }
+    });
+  }).observe(document.documentElement, {childList:true, subtree:true, attributes:true, attributeFilter:['title']});
+
+  function showTip(el, text){
+    clearTimeout(_hide); clearTimeout(_show);
+    _show = setTimeout(function(){
+      tip.textContent = text;
+      tip.className = '';
+      const r = el.getBoundingClientRect();
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      let left = r.left + r.width/2 - tw/2;
+      let top = r.top - th - 10;
+      let cls = 'tip-above';
+      if(top < 8){ top = r.bottom + 10; cls = 'tip-below'; }
+      left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+      tip.className = cls + ' visible';
+    }, 300);
+  }
+  function hideTip(){
+    clearTimeout(_show);
+    _hide = setTimeout(function(){ tip.className = tip.className.replace('visible','').trim(); }, 80);
+    _cur = null;
+  }
+  document.addEventListener('mouseover', function(e){
+    const el = e.target.closest('[data-tip]');
+    if(!el || el === _cur) return;
+    _cur = el;
+    showTip(el, el.getAttribute('data-tip'));
+  });
+  document.addEventListener('mouseout', function(e){
+    if(!_cur) return;
+    if(e.relatedTarget && _cur.contains(e.relatedTarget)) return;
+    hideTip();
+  });
+  document.addEventListener('click', hideTip);
+  document.addEventListener('scroll', hideTip, true);
+})();
+</script>
 </body>
