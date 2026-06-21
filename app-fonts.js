@@ -759,11 +759,23 @@ function _detailResetPreviewControls(font){
         .map(([name])=>name);
       if(!detectedScripts.length)return;
       // Həmişə əvvəlcə e.preventDefault() et (sinxron olmalıdır)
-      // Sonra async yoxla: həqiqətən dəstəklənmirsə warning göstər
+      // Sonra async yoxla: dəstəklənirsə özümüz daxil edirik, dəstəklənmirsə warning göstəririk
       e.preventDefault();
+      const insertData=e.data;
+      const start=inp.selectionStart, end=inp.selectionEnd;
       resolveFontLangs(currentDetailFont,langs=>{
         const unsupported=detectedScripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
-        if(unsupported.length) _showPvScriptWarning(unsupported.join(', '),langs);
+        if(unsupported.length){
+          _showPvScriptWarning(unsupported.join(', '),langs);
+        } else {
+          // Şrift bu skripti dəstəkləyir — preventDefault elədiyimiz üçün hərfi özümüz daxil edirik
+          const val=inp.value;
+          inp.value=val.slice(0,start)+insertData+val.slice(end);
+          const newPos=start+insertData.length;
+          inp.setSelectionRange(newPos,newPos);
+          inp.dispatchEvent(new Event('input',{bubbles:true}));
+          if(typeof renderPvCanvas==='function')renderPvCanvas();
+        }
       });
     });
   }
