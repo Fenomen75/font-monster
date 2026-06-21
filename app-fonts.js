@@ -268,10 +268,14 @@ let activeCharTab='upper';
 const LANG_SUPPORT_LIST=[
   {code:'Latin',label:'Latin',chars:'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',color:'#dc2626'},
   {code:'Latin Ext',label:'Latin Ext',chars:'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞß',color:'#ff6b35'},
-  {code:'Cyrillic',label:'Cyr',chars:'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя',color:'#5856d6'},
-  {code:'Greek',label:'Ελλ',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
-  {code:'Arabic',label:'عرب',chars:'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',color:'#34c759'},
-  {code:'Hebrew',label:'עבר',chars:'אבגדהוזחטיכלמנסעפצקרשת',color:'#ff9500'},
+  {code:'Cyrillic',label:'Cyrillic',chars:'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя',color:'#5856d6'},
+  {code:'Cyrillic Ext',label:'Cyrillic Ext',chars:'ЀЁЂЃЄЅІЇЈЉЊЋЌЍЎЏѐёђѓєѕіїјљњћќѝўџ',color:'#7c3aed'},
+  {code:'Greek',label:'Greek',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
+  {code:'Greek Ext',label:'Greek Ext',chars:'ἀἁἂἃἄἅἆἇἈἉἊἋἌἍἎἏ',color:'#0ea5e9'},
+  {code:'Vietnamese',label:'Vietnamese',chars:'ắặẳẵấầẩẫậắặẳẵếềểễệốồổỗộớờởỡợứừửữự',color:'#059669'},
+  {code:'Arabic',label:'Arabic',chars:'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',color:'#34c759'},
+  {code:'Hebrew',label:'Hebrew',chars:'אבגדהוזחטיכלמנסעפצקרשת',color:'#ff9500'},
+  {code:'Devanagari',label:'Devanagari',chars:'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह',color:'#f43f5e'},
   {code:'Digits',label:'0-9',chars:'0123456789',color:'#8e8e93'},
   {code:'Punct',label:'Punct',chars:'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',color:'#636366'},
 ];
@@ -302,16 +306,14 @@ function renderCharmapLangBadges(font){
   const container=document.getElementById('charmapLangBadges');
   if(!container)return;
   container.innerHTML='';
-  // Use resolveFontLangs - single source of truth for all fonts
   resolveFontLangs(font, supported=>{
-    LANG_SUPPORT_LIST.forEach(lang=>{
-      const ok=supported.includes(lang.code)||supported.includes(lang.label);
+    const colors=['#dc2626','#ff6b35','#5856d6','#7c3aed','#007aff','#0ea5e9','#059669','#34c759','#ff9500','#f43f5e','#8e8e93'];
+    supported.forEach((lang,i)=>{
+      const color=colors[i%colors.length];
       const pill=document.createElement('span');
-      pill.style.cssText=`display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:980px;font-size:10px;font-weight:600;letter-spacing:.02em;font-family:var(--sans);border:1px solid;transition:opacity .2s;${ok?`background:${lang.color}18;color:${lang.color};border-color:${lang.color}30`:'background:var(--surface3);color:var(--text3);border-color:var(--border);opacity:0.55'}`;
-      pill.innerHTML=ok
-        ? `<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>${lang.label}`
-        : `<span style="font-size:9px;opacity:.6">–</span>${lang.label}`;
-      pill.title=`${lang.label}: ${ok?'Supported':'Not detected'}`;
+      pill.style.cssText=`display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:980px;font-size:10px;font-weight:600;letter-spacing:.02em;font-family:var(--sans);border:1px solid;background:${color}18;color:${color};border-color:${color}30;transition:opacity .2s`;
+      pill.innerHTML=`<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>${lang}`;
+      pill.title=`${lang}: Supported`;
       container.appendChild(pill);
     });
   });
