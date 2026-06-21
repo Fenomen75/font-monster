@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<title>Subset Enricher — bütün fontlara dəqiq dil dəstəyi</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;background:#0f0f12;color:#eee}
+  h1{font-size:20px}
+  .row{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap;align-items:center}
+  button{padding:9px 16px;border-radius:6px;border:none;background:#5b6cff;color:#fff;cursor:pointer;font-weight:600}
+  button:hover{background:#4a5af0}
+  button.secondary{background:#333}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  #log{white-space:pre-wrap;background:#1a1a1e;border:1px solid #2a2a2e;border-radius:6px;padding:12px;font-size:13px;max-height:300px;overflow:auto}
+  textarea{width:100%;height:260px;background:#111;color:#bdf;border:1px solid #2a2a2e;border-radius:6px;padding:10px;font-family:monospace;font-size:12px}
+  .stat{font-size:13px;color:#9a9}
+  progress{width:100%;height:18px}
+  input[type=file]{color:#eee}
+</style>
+</head>
+<body>
+
+<h1>🌍 Subset Enricher — fonts-data.js-ə dəqiq dil dəstəyi əlavə edir</h1>
+<p class="stat">Bu alət <b>mövcud</b> <code>fonts-data.js</code> faylındaki HƏR fontun (köhnə + yeni) <code>subsets</code> sahəsini Google Fonts GitHub repo-sundaki real <code>METADATA.pb</code>-dən doldurur. Yeni font axtarmır — yalnız var olanları zənginləşdirir.</p>
+
+<div class="row">
+  <label>fonts-data.js seç:</label>
+  <input type="file" id="fileInput" accept=".js">
+  <button id="startBtn">Subset-ləri çək və əlavə et</button>
+</div>
+
+<div class="row" id="progressRow" style="display:none">
+  <progress id="prog" value="0" max="100"></progress>
+  <span id="progText" class="stat">0 / 0</span>
+</div>
+
+<div class="row">
+  <button id="downloadBtn" class="secondary" disabled>Yeni fonts-data.js yüklə</button>
+</div>
+
+<div id="log">Hazır. Faylı seç və başla.</div>
+
+<h3 style="margin-top:24px">Önizləmə (ilk 20 sətir)</h3>
+<textarea id="preview" readonly></textarea>
+
+<script>
+const logEl = document.getElementById('log');
+function log(msg){ logEl.textContent += "\n" + msg; logEl.scrollTop = logEl.scrollHeight; }
+function setLog(msg){ logEl.textContent = msg; }
+
+let fonts = [];
+let oldContent = "";
+let fullOutput = "";
+
+// Google API subset adı -> sayt chip-format adı
+const SUBSET_LABELS = {
+  'latin':'Latin','latin-ext':'Latin Ext','cyrillic':'Cyrillic','cyrillic-ext':'Cyrillic Ext',
+  'greek':'Greek','greek-ext':'Greek Ext','hebrew':'Hebrew','arabic':'Arabic',
+  'devanagari':'Devanagari','vietnamese':'Vietnamese','korean':'Korean','japanese':'Japanese',
+  'chinese-simplified':'Chinese','chinese-traditional':'Chinese','chinese-hongkong':'Chinese',
+  'thai':'Thai','tamil':'Tamil','bengali':'Bengali','gujarati':'Gujarati','gurmukhi':'Gurmukhi',
+  'kannada':'Kannada','malayalam':'Malayalam','oriya':'Oriya','telugu':'Telugu','sinhala':'Sinhala',
+  'armenian':'Armenian','georgian':'Georgian','khmer':'Khmer','lao':'Lao','myanmar':'Myanmar',
+  'tibetan':'Tibetan','ethiopic':'Ethiopic','canadian-aboriginal':'Canadian Aboriginal',
+  'cherokee':'Cherokee','adlam':'Adlam','balinese':'Balinese','bengali':'Bengali',
+  'menu':null, 'math':null, 'symbols':null // bunlar UI-ə chip kimi göstərilmir
+};
+
+function githubSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function parseMetaSubsets(text) {
+  const matches = [...text.matchAll(/subsets:\s*"([^"]+)"/g)];
+  const raw = matches.map(m => m[1]);
+  const labels = raw
+    .map(s => SUBSET_LABELS[s] !== undefined ? SUBSET_LABELS[s] : null)
+    .filter(Boolean);
+  return [...new Set(labels)];
+}
+
+async function fetchSubsetsFor(fontName) {
+  const slug = githubSlug(fontName);
+  const dirs = ['ofl', 'apache', 'ufl'];
+  for (const dir of dirs) {
+    try {
+      const url = `https://raw.githubusercontent.com/google/fonts/main/${dir}/${slug}/METADATA.pb`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const text = await res.text();
+        const subsets = parseMetaSubsets(text);
+        return subsets.length ? subsets : ['Latin'];
+      }
+    } catch(e) { /* davam et */ }
+  }
+  return null; // tapılmadı
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  const fileInput = document.getElementById('fileInput');
+  if (!fileInput.files.length) { alert('Fayl seç.'); return; }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    oldContent = e.target.result;
+
+    // her fontu obyekt kimi parse edirik (id və name-i reqeksle çıxarırıq)
+    const fontBlocks = [...oldContent.matchAll(/\{id:"([^"]+)",name:"([^"]+)"/g)];
+    fonts = fontBlocks.map(m => ({ id: m[1], name: m[2] }));
+    log(`📂 ${fonts.length} font tapıldı. Subset-lər çəkilir...`);
+
+    const progressRow = document.getElementById('progressRow');
+    const prog = document.getElementById('prog');
+    const progText = document.getElementById('progText');
+    progressRow.style.display = 'flex';
+    prog.max = fonts.length;
+
+    const results = {}; // id -> subsets array (or null)
+    let notFound = 0;
+    const CONCURRENCY = 8;
+    let idx = 0;
+
+    async function worker() {
+      while (idx < fonts.length) {
+        const myIdx = idx++;
+        const font = fonts[myIdx];
+        const subsets = await fetchSubsetsFor(font.name);
+        results[font.id] = subsets;
+        if (!subsets) notFound++;
+        prog.value = myIdx + 1;
+        progText.textContent = `${myIdx + 1} / ${fonts.length}`;
+      }
+    }
+    await Promise.all(Array.from({length: CONCURRENCY}, () => worker()));
+
+    log(`✅ Bitdi. Tapılmayan: ${notFound} / ${fonts.length} (bunlar üçün subsets sahəsi əlavə olunmayacaq, köhnə fallback işləyəcək)`);
+
+    // indi her fontun sətirinə subsets:[...] elave edirik
+    let updated = oldContent;
+    let addedCount = 0;
+    for (const font of fonts) {
+      const subsets = results[font.id];
+      if (!subsets) continue;
+      const subsetsStr = '[' + subsets.map(s => `"${s}"`).join(',') + ']';
+      // o fontun tam sətirini tapıb, sonuna subsets elave edirik (popular:NN-dən evvel)
+      const re = new RegExp(`(\\{id:"${font.id}",.*?)(,popular:\\d+\\})`);
+      const newUpdated = updated.replace(re, (match, before, after) => {
+        addedCount++;
+        return before + `,subsets:${subsetsStr}` + after;
+      });
+      updated = newUpdated;
+    }
+
+    fullOutput = updated;
+    log(`📝 ${addedCount} fonta subsets sahəsi əlavə olundu.`);
+    document.getElementById('preview').value = fullOutput.split('\n').slice(0, 20).join('\n') + '\n...';
+    document.getElementById('downloadBtn').disabled = false;
+  };
+  reader.readAsText(fileInput.files[0]);
+});
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  const blob = new Blob([fullOutput], {type: 'text/javascript'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fonts-data.js';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  log('⬇️ fonts-data.js yükləndi.');
+});
+</script>
+
+</body>
+</html>

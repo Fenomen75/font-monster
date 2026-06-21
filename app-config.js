@@ -142,8 +142,11 @@ const FONT_SUBSETS = {
   'urbanist':           ['Latin','Latin Ext'],
 };
 function getFontLangs(font) {
+  // 1. Ən dəqiq mənbə: fonts-data.js-də fontun öz subsets sahəsi (GitHub METADATA.pb-dən)
+  if (font.subsets && font.subsets.length) return font.subsets;
+  // 2. Köhnə statik cədvəl (yalnız ilk ~100 font üçün, geriyə uyğunluq üçün saxlanılıb)
   if (FONT_SUBSETS[font.id]) return FONT_SUBSETS[font.id];
-  // Fallback: tag-based hints
+  // 3. Fallback: tag-based hints
   const langs = new Set(['Latin']);
   (font.tags||[]).forEach(t => {
     if(/cyrillic/i.test(t)) langs.add('Cyrillic');
