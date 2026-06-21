@@ -643,17 +643,15 @@ function _detailRenderHero(font){
               <span style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
             </div>
           <!-- Bg color -->
-            <div style="display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:980px;">
-              <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);font-family:inherit;white-space:nowrap;">BG</span>
-              <div id="heroBannerBgDot" style="width:10px;height:10px;border-radius:50%;background:#0a0a0a;border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
-              <input type="range" class="hb-hue" min="0" max="360" value="0" step="1" oninput="heroBannerHueChange(this.value,'bg')">
-            </div>
+            <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:980px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);cursor:pointer;" data-tip="Background color">
+              <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);font-family:inherit;">BG</span>
+              <input type="color" value="#0a0a0a" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const b=document.getElementById('heroBannerAuto');if(b)b.style.background=v;})(this.value)">
+            </label>
             <!-- Font color -->
-            <div style="display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:980px;">
-              <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);font-family:inherit;white-space:nowrap;">Text</span>
-              <div id="heroBannerFgDot" style="width:10px;height:10px;border-radius:50%;background:#ffffff;border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
-              <input type="range" class="hb-hue" min="0" max="360" value="0" step="1" oninput="heroBannerHueChange(this.value,'fg')">
-            </div>
+            <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:980px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);cursor:pointer;" data-tip="Text color">
+              <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);font-family:inherit;">Text</span>
+              <input type="color" value="#ffffff" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const t=document.getElementById('heroBannerText');if(t)t.style.color=v;})(this.value)">
+            </label>
           </div>
           <label style="cursor:pointer;display:flex;align-items:center;gap:6px;
             background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);color:rgba(255,255,255,0.85);
