@@ -624,6 +624,10 @@ function handleDownloadClick(fontId,fontName){
     if(font.fontUrl) a.target='_blank';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     showToast(`⬇️ Downloading ${fontName}${ext}.`);
+  } else if(font && font.sourceUrl){
+    // Faylı bizdə saxlamırıq (mes. CreativeFabrica) - affiliate/source linkinə yönləndir
+    window.open(font.sourceUrl,'_blank','noopener');
+    showToast(`↗️ Redirecting to source for ${fontName}.`);
   } else {
     showToast(`⬇️ Downloading ${fontName}.`);
   }
