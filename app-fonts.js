@@ -636,19 +636,21 @@ function _detailRenderHero(font){
         <div style="position:absolute;bottom:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <!-- Zoom slider -->
-            <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
+            <div style="display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:980px;">
               <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
               <input type="range" class="hb-zoom" min="16" max="600" value="72" step="4"
                 oninput="(function(v){var b=document.getElementById('heroBannerText');if(b)b.style.fontSize=v+'px';})(this.value)">
               <span style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
             </div>
           <!-- Bg color -->
-            <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
+            <div style="display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:980px;">
+              <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);font-family:inherit;white-space:nowrap;">BG</span>
               <div id="heroBannerBgDot" style="width:10px;height:10px;border-radius:50%;background:#0a0a0a;border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
               <input type="range" class="hb-hue" min="0" max="360" value="0" step="1" oninput="heroBannerHueChange(this.value,'bg')">
             </div>
             <!-- Font color -->
-            <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
+            <div style="display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:980px;">
+              <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);font-family:inherit;white-space:nowrap;">Text</span>
               <div id="heroBannerFgDot" style="width:10px;height:10px;border-radius:50%;background:#ffffff;border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
               <input type="range" class="hb-hue" min="0" max="360" value="0" step="1" oninput="heroBannerHueChange(this.value,'fg')">
             </div>
