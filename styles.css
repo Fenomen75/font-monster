@@ -1000,18 +1000,15 @@ nav{
   align-items:start;
 }
 .modal-col{
-  overflow-y:auto;
+  overflow-y:visible;
   padding:14px 22px 14px;
   display:flex;
   flex-direction:column;
   gap:9px;
   min-height:0;
-  scrollbar-width:none;
-  -ms-overflow-style:none;
 }
-.modal-col::-webkit-scrollbar{display:none}
 .modal-col:first-child{
-  overflow-y:auto;
+  overflow-y:visible;
 }
 .modal-col + .modal-col{
   border-left:1px solid var(--border);
