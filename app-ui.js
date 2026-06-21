@@ -257,10 +257,24 @@ function renderPvCanvas(){
       const unsupported=_scripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
       if(unsupported.length){
         _showPvScriptWarning(unsupported.join(', '),langs);
-        let filtered=txt;
-        unsupported.forEach(sc=>{const re=SCRIPT_RANGES[sc];if(re)filtered=filtered.replace(re,'□');});
-        const pvEl=canvas.querySelector('div');
-        if(pvEl&&filtered!==txt)pvEl.textContent=filtered;
+        // inputdan həmin hərfləri tamamilə sil
+        const inp=document.getElementById('fdpPvInput');
+        let filtered=inp.value;
+        const pos=inp.selectionStart;
+        let removed=0;
+        unsupported.forEach(sc=>{
+          const re=SCRIPT_RANGES[sc];
+          if(re){
+            const before=filtered;
+            filtered=filtered.replace(re,'');
+            if(filtered!==before) removed+=before.length-filtered.length;
+          }
+        });
+        if(filtered!==inp.value){
+          inp.value=filtered;
+          const newPos=Math.max(0,pos-removed);
+          inp.setSelectionRange(newPos,newPos);
+        }
       } else {
         _showPvScriptWarning(null,null);
       }
