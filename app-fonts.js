@@ -268,14 +268,10 @@ let activeCharTab='upper';
 const LANG_SUPPORT_LIST=[
   {code:'Latin',label:'Latin',chars:'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',color:'#dc2626'},
   {code:'Latin Ext',label:'Latin Ext',chars:'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞß',color:'#ff6b35'},
-  {code:'Cyrillic',label:'Cyrillic',chars:'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя',color:'#5856d6'},
-  {code:'Cyrillic Ext',label:'Cyrillic Ext',chars:'ЀЁЂЃЄЅІЇЈЉЊЋЌЍЎЏѐёђѓєѕіїјљњћќѝўџ',color:'#7c3aed'},
-  {code:'Greek',label:'Greek',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
-  {code:'Greek Ext',label:'Greek Ext',chars:'ἀἁἂἃἄἅἆἇἈἉἊἋἌἍἎἏ',color:'#0ea5e9'},
-  {code:'Vietnamese',label:'Vietnamese',chars:'ắặẳẵấầẩẫậắặẳẵếềểễệốồổỗộớờởỡợứừửữự',color:'#059669'},
-  {code:'Arabic',label:'Arabic',chars:'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',color:'#34c759'},
-  {code:'Hebrew',label:'Hebrew',chars:'אבגדהוזחטיכלמנסעפצקרשת',color:'#ff9500'},
-  {code:'Devanagari',label:'Devanagari',chars:'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह',color:'#f43f5e'},
+  {code:'Cyrillic',label:'Cyr',chars:'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя',color:'#5856d6'},
+  {code:'Greek',label:'Ελλ',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
+  {code:'Arabic',label:'عرب',chars:'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',color:'#34c759'},
+  {code:'Hebrew',label:'עבר',chars:'אבגדהוזחטיכלמנסעפצקרשת',color:'#ff9500'},
   {code:'Digits',label:'0-9',chars:'0123456789',color:'#8e8e93'},
   {code:'Punct',label:'Punct',chars:'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',color:'#636366'},
 ];
@@ -306,14 +302,16 @@ function renderCharmapLangBadges(font){
   const container=document.getElementById('charmapLangBadges');
   if(!container)return;
   container.innerHTML='';
+  // Use resolveFontLangs - single source of truth for all fonts
   resolveFontLangs(font, supported=>{
-    const colors=['#dc2626','#ff6b35','#5856d6','#7c3aed','#007aff','#0ea5e9','#059669','#34c759','#ff9500','#f43f5e','#8e8e93'];
-    supported.forEach((lang,i)=>{
-      const color=colors[i%colors.length];
+    LANG_SUPPORT_LIST.forEach(lang=>{
+      const ok=supported.includes(lang.label);
       const pill=document.createElement('span');
-      pill.style.cssText=`display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:980px;font-size:10px;font-weight:600;letter-spacing:.02em;font-family:var(--sans);border:1px solid;background:${color}18;color:${color};border-color:${color}30;transition:opacity .2s`;
-      pill.innerHTML=`<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>${lang}`;
-      pill.title=`${lang}: Supported`;
+      pill.style.cssText=`display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border-radius:980px;font-size:10px;font-weight:600;letter-spacing:.02em;font-family:var(--sans);border:1px solid;transition:opacity .2s;${ok?`background:${lang.color}18;color:${lang.color};border-color:${lang.color}30`:'background:var(--surface3);color:var(--text3);border-color:var(--border);opacity:0.55'}`;
+      pill.innerHTML=ok
+        ? `<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>${lang.label}`
+        : `<span style="font-size:9px;opacity:.6">–</span>${lang.label}`;
+      pill.title=`${lang.label}: ${ok?'Supported':'Not detected'}`;
       container.appendChild(pill);
     });
   });
@@ -736,6 +734,40 @@ function _detailRenderHeader(font, dlCount, licM){
 
 // 4/8 — reset the preview controls (text/size/style/overlay) to defaults
 function _detailResetPreviewControls(font){
+  // beforeinput: dəstəklənməyən hərfləri bloklayıb warning göstər
+  const inp=document.getElementById('fdpPvInput');
+  if(inp&&!inp._scriptGuardBound){
+    inp._scriptGuardBound=true;
+    const SCRIPT_RANGES={
+      'Cyrillic':/[\u0400-\u04FF]/,
+      'Greek':/[\u0370-\u03FF]/,
+      'Arabic':/[\u0600-\u06FF]/,
+      'Hebrew':/[\u0590-\u05FF]/,
+      'Devanagari':/[\u0900-\u097F]/,
+      'Chinese':/[\u4E00-\u9FFF]/,
+      'Japanese':/[\u3040-\u30FF]/,
+      'Korean':/[\uAC00-\uD7AF]/,
+    };
+    inp.addEventListener('beforeinput',function(e){
+      if(!e.data||!currentDetailFont)return;
+      const detectedScripts=Object.entries(SCRIPT_RANGES)
+        .filter(([,re])=>re.test(e.data))
+        .map(([name])=>name);
+      if(!detectedScripts.length)return;
+      resolveFontLangs(currentDetailFont,langs=>{
+        const unsupported=detectedScripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
+        if(unsupported.length) _showPvScriptWarning(unsupported.join(', '),langs);
+      });
+      // dəstəklənməyən hərf varsa — inputa girməsin
+      const hasUnsupported=detectedScripts.some(sc=>{
+        if(!currentDetailFont)return false;
+        const cached=window._LANG_CACHE&&window._LANG_CACHE[currentDetailFont.id];
+        if(cached)return!cached.some(s=>s===sc||s.startsWith(sc));
+        return true;
+      });
+      if(hasUnsupported) e.preventDefault();
+    });
+  }
   // Reset controls
   document.getElementById('fdpPvInput').value=previewText||font.name;
   document.getElementById('fdpSizeRange').value=56;document.getElementById('fdpSizeVal').textContent=56;

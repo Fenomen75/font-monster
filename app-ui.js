@@ -240,48 +240,7 @@ function renderPvCanvas(){
   const font=currentDetailFont;
   const canvas=document.getElementById('pvCanvas');
   const txt=document.getElementById('fdpPvInput').value||font.name;
-  // Script warning + unsupported char filtering
-  const _scripts=_detectInputScript(txt);
-  if(_scripts.length){
-    resolveFontLangs(font,langs=>{
-      const SCRIPT_RANGES={
-        'Cyrillic':/[\u0400-\u04FF]/g,
-        'Greek':/[\u0370-\u03FF]/g,
-        'Arabic':/[\u0600-\u06FF\u0750-\u077F]/g,
-        'Hebrew':/[\u0590-\u05FF]/g,
-        'Devanagari':/[\u0900-\u097F]/g,
-        'Chinese':/[\u4E00-\u9FFF\u3400-\u4DBF]/g,
-        'Japanese':/[\u3040-\u30FF]/g,
-        'Korean':/[\uAC00-\uD7AF]/g,
-      };
-      const unsupported=_scripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
-      if(unsupported.length){
-        _showPvScriptWarning(unsupported.join(', '),langs);
-        // inputdan həmin hərfləri tamamilə sil
-        const inp=document.getElementById('fdpPvInput');
-        let filtered=inp.value;
-        const pos=inp.selectionStart;
-        let removed=0;
-        unsupported.forEach(sc=>{
-          const re=SCRIPT_RANGES[sc];
-          if(re){
-            const before=filtered;
-            filtered=filtered.replace(re,'');
-            if(filtered!==before) removed+=before.length-filtered.length;
-          }
-        });
-        if(filtered!==inp.value){
-          inp.value=filtered;
-          const newPos=Math.max(0,pos-removed);
-          inp.setSelectionRange(newPos,newPos);
-        }
-      } else {
-        _showPvScriptWarning(null,null);
-      }
-    });
-  } else {
-    _showPvScriptWarning(null,null);
-  }
+
   const sz=parseInt(document.getElementById('fdpSizeRange').value)||56;
   // Reset any inline padding overrides
   canvas.style.paddingBottom='';
