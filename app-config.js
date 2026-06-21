@@ -176,6 +176,12 @@ const _LANG_COLORS = [
 // Returns detected langs (cached). Priority:
 // 1. Cache  2. font.detectedLangs (saved from opentype parse)  3. FONT_SUBSETS  4. canvas fallback
 function resolveFontLangs(font, callback) {
+  // font.subsets həmişə ən dəqiq mənbədir — cache-i bypass et
+  if (font.subsets && font.subsets.length) {
+    _LANG_CACHE[font.id] = font.subsets;
+    callback(font.subsets);
+    return;
+  }
   if (_LANG_CACHE[font.id]) { callback(_LANG_CACHE[font.id]); return; }
   // Community/uploaded font with pre-computed langs (from opentype.js at upload time)
   if (font.detectedLangs && font.detectedLangs.length) {
