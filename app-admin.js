@@ -232,6 +232,7 @@ function openEditFont(fontId){
   document.getElementById('ef-tags').value=(f.tags||[]).join(',');
   setTimeout(()=>_setTagChipValues('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',f.tags||[]),50);
   document.getElementById('ef-url').value=f.sourceUrl||'';
+  const efAffEl=document.getElementById('ef-affiliate');if(efAffEl)efAffEl.value=f.affiliateUrl||'';
   const efDesc=document.getElementById('ef-description');if(efDesc)efDesc.value=f.description||'';
   if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
   _showExistingFontFile(f);
@@ -262,6 +263,7 @@ async function saveEditFont(){
     license:document.getElementById('ef-license').value,
     tags:document.getElementById('ef-tags').value.split(/[,\s]+/).map(t=>t.trim()).filter(Boolean),
     sourceUrl:document.getElementById('ef-url').value.trim(),
+    affiliateUrl:(document.getElementById('ef-affiliate')?.value||'').trim(),
     description:(document.getElementById('ef-description')?.value||'').trim(),
     ...(yearVal?{year:parseInt(yearVal)}:{}),
     ...(_efImgData?{previewImg:_efImgData}:(_efImgRemoved?{previewImg:''}:{}))
@@ -624,7 +626,7 @@ function _renderAdminEdits(){
     const sub=_allSub();
     const orig=sub.find(x=>x.id===f.id)||{};
     const diffs=[];
-    ['name','author','cat','license','sourceUrl'].forEach(k=>{
+    ['name','author','cat','license','sourceUrl','affiliateUrl'].forEach(k=>{
       if(f[k]!==orig[k]&&f[k]!==undefined) diffs.push({field:k,old:orig[k]||'-',new:f[k]||'-'});
     });
     if(JSON.stringify(f.tags)!==JSON.stringify(orig.tags)) diffs.push({field:'tags',old:(orig.tags||[]).join(', '),new:(f.tags||[]).join(', ')});
@@ -666,7 +668,7 @@ function adminApproveEdit(fontId){
   // Apply to tv_submitted
   let sub=_allSub();
   const idx=sub.findIndex(f=>f.id===fontId);
-  const updates={name:req.name,author:req.author,cat:req.cat,license:req.license,tags:req.tags,sourceUrl:req.sourceUrl};
+  const updates={name:req.name,author:req.author,cat:req.cat,license:req.license,tags:req.tags,sourceUrl:req.sourceUrl,affiliateUrl:req.affiliateUrl};
   if(idx>=0){sub[idx]={...sub[idx],...updates,editApprovedAt:new Date().toISOString()};localStorage.setItem("tv_submitted",JSON.stringify(sub));}
   // Apply to runtime FONTS
   const fi=FONTS.findIndex(f=>f.id===fontId);
@@ -1047,6 +1049,7 @@ function adminEditFontDirect(fontId){
   document.getElementById('ef-tags').value=(f.tags||[]).join(', ');
   setTimeout(()=>_setTagChipValues('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',f.tags||[]),50);
   document.getElementById('ef-url').value=f.sourceUrl||f.url||'';
+  const efAffAdmin=document.getElementById('ef-affiliate');if(efAffAdmin)efAffAdmin.value=f.affiliateUrl||'';
   const efDescAdmin=document.getElementById('ef-description');if(efDescAdmin)efDescAdmin.value=f.description||'';
   if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
   _showExistingFontFile(f);
@@ -1789,7 +1792,7 @@ function clearFontImg(){
 }
 
 function _resetSubmitForm(){
-  ['sf-name','sf-author','sf-year','sf-url','sf-description'].forEach(id=>{
+  ['sf-name','sf-author','sf-year','sf-url','sf-affiliate','sf-description'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   const sfBox=document.getElementById('sf-tags-box');
@@ -1911,6 +1914,7 @@ function _buildNewFontFromForm(){
   const cat=document.getElementById('sf-cat').value;
   const license=document.getElementById('sf-license').value;
   const url=document.getElementById('sf-url').value.trim();
+  const affiliateUrl=(document.getElementById('sf-affiliate')?.value||'').trim();
   const description=(document.getElementById('sf-description')?.value||'').trim();
   if(!name||!author||!cat||!license){showToast('⚠️ Please fill in all required fields');return null;}
   let id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
@@ -1930,7 +1934,7 @@ function _buildNewFontFromForm(){
   const imgThumb=document.getElementById('sfImgThumb');
   const previewImg=imgThumb&&imgThumb.src&&imgThumb.src.startsWith('data:')?imgThumb.src:null;
   const newFont={
-    id,name,author,cat,gfamily,weight:'400',tags,license,year,popular:60,sourceUrl:url||'',
+    id,name,author,cat,gfamily,weight:'400',tags,license,year,popular:60,sourceUrl:url||'',affiliateUrl:affiliateUrl||'',
     description:description||'',
     pending:true,isNew:true,
     submittedById:window.currentUser.id,
@@ -2077,7 +2081,7 @@ function _persistSubmittedFontLocally(font, fontForStorage, savedToFirestore){
 
 // 7/7 — clear the submit form and show the success state
 function _resetSubmitForm(){
-  ['sf-name','sf-author','sf-tags','sf-year','sf-url','sf-description'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
+  ['sf-name','sf-author','sf-tags','sf-year','sf-url','sf-affiliate','sf-description'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
   const sfBox=document.getElementById('sf-tags-box');
   if(sfBox&&sfBox._tags){sfBox._tags.length=0;sfBox._renderChips();}
   document.getElementById('sf-tags-input').value='';
