@@ -425,6 +425,20 @@
     });
   };
 
+  window.fbGetReports = async function() {
+    const q = query(collection(db, 'font_reports'), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({id: d.id, ...d.data()}));
+  };
+
+  window.fbResolveReport = async function(reportId) {
+    await updateDoc(doc(db, 'font_reports', reportId), { resolved: true });
+  };
+
+  window.fbDeleteReport = async function(reportId) {
+    await deleteDoc(doc(db, 'font_reports', reportId));
+  };
+
   window.fbGetMessages = async function() {
     const q = query(collection(db, 'contact_messages'), orderBy('createdAt','desc'));
     const snap = await getDocs(q);
@@ -1675,6 +1689,7 @@
       <button id="adminTab_log" onclick="switchAdminTab('log')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">📋 Log</button>
       <button id="adminTab_export" onclick="switchAdminTab('export')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">📤 Export</button>
       <button id="adminTab_messages" onclick="switchAdminTab('messages')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">📬 Messages <span id="adminBadgeMessages" style="display:none;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:980px;font-size:10px;font-weight:700;min-width:18px;height:18px;padding:0 5px;margin-left:5px">0</span></button>
+      <button id="adminTab_reports" onclick="switchAdminTab('reports')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">🚩 Reports <span id="adminBadgeReports" style="display:none;align-items:center;justify-content:center;background:var(--red);color:#fff;border-radius:980px;font-size:10px;font-weight:700;min-width:18px;height:18px;padding:0 5px;margin-left:5px">0</span></button>
       <button id="adminTab_users" onclick="switchAdminTab('users')" style="flex:1;justify-content:center;display:flex;align-items:center;padding:12px 6px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-family:var(--sans);white-space:nowrap">👥 Users <span id="adminBadgeUsers" style="display:none;align-items:center;justify-content:center;background:var(--blue);color:#fff;border-radius:980px;font-size:10px;font-weight:700;min-width:18px;height:18px;padding:0 5px;margin-left:5px">0</span></button>
     </div>
     <!-- Tab content -->
@@ -1687,6 +1702,7 @@
       <div id="adminView_log" style="display:none"></div>
       <div id="adminView_export" style="display:none"></div>
       <div id="adminView_messages" style="display:none"></div>
+      <div id="adminView_reports" style="display:none"></div>
       <div id="adminView_users" style="display:none"></div>
     </div>
   </div>

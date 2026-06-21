@@ -353,7 +353,7 @@ document.addEventListener('keydown',e=>{
     var _ao=document.getElementById('authOverlay');if(_ao&&_ao.classList.contains('open')){closeAuthModal();return;}
     var _mo=document.getElementById('modPanelOverlay');if(_mo&&_mo.style.display!=='none'){closeModPanel();return;}
     var _admin=document.getElementById('adminPanelOverlay');if(_admin&&_admin.style.display!=='none'){closeAdminPanel();return;}
-    closeSubmit();closeContactModal();closeCompare();
+    closeSubmit();closeContactModal();closeReportModal();closeCompare();
     if(shortcutsOpen){shortcutsOpen=false;document.getElementById('shortcutsPanel').classList.remove('open');}
     else if(document.getElementById('authorPage').style.display!=='none')showGrid();
     else if(currentDetailFont)showGrid();
@@ -539,6 +539,7 @@ function injectAllFallingLettersDebounced(){
 
 // Init badges on load
 updateAdminMessagesBadge();
+if(typeof updateAdminReportsBadge==='function') updateAdminReportsBadge();
 
 (function(){
   const btn = document.getElementById('scrollTopBtn');

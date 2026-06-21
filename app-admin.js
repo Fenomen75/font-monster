@@ -576,7 +576,7 @@ function _adminGoToFont(fontId){
 }
 function switchAdminTab(tab){
   _adminActiveTab=tab;
-  ['pending','edits','all','stats','trash','log','export','messages','users'].forEach(t=>{
+  ['pending','edits','all','stats','trash','log','export','messages','reports','users'].forEach(t=>{
     const btn=document.getElementById('adminTab_'+t);
     const view=document.getElementById('adminView_'+t);
     if(!btn||!view) return;
@@ -600,6 +600,7 @@ function switchAdminTab(tab){
   if(tab==='log') _renderAdminLog();
   if(tab==='export') _renderAdminExport();
   if(tab==='messages') renderAdminMessages(); // consolidated from monkey-patch below
+  if(tab==='reports') renderAdminReports();
   if(tab==='users') _renderAdminUsers();
 }
 
@@ -2249,6 +2250,7 @@ function submitReport(){
   } else {
     const entry={id:Date.now().toString(36),fontId,fontName,email,reason,msg,date:new Date().toISOString(),resolved:false};
     try{const reports=JSON.parse(localStorage.getItem('fontan_font_reports')||'[]');reports.unshift(entry);localStorage.setItem('fontan_font_reports',JSON.stringify(reports));}catch(e){}
+    if(typeof updateAdminReportsBadge==='function') updateAdminReportsBadge();
     finish();
   }
 }
@@ -2355,6 +2357,82 @@ async function deleteMsgAdmin(id){
   if(window.fbDeleteMessage){ try{ await window.fbDeleteMessage(id); await renderAdminMessages(); }catch(e){} }
   else {
     try{const msgs=JSON.parse(localStorage.getItem('fontan_contact_msgs')||'[]').filter(x=>x.id!==id);localStorage.setItem('fontan_contact_msgs',JSON.stringify(msgs));renderAdminMessages();updateAdminMessagesBadge();}catch(e){}
+  }
+}
+
+// ??????????????????????????????????????????
+// ADMIN REPORTS TAB (font reports submitted by users)
+// ??????????????????????????????????????????
+
+const REPORT_REASON_LABELS={
+  'wrong-license':'⚖️ Wrong license','not-owner':'🚫 Not theirs to share',
+  'broken':'🐞 Broken file/link','duplicate':'🔁 Duplicate','other':'✉️ Other'
+};
+
+function updateAdminReportsBadge(){
+  try{
+    const reports=JSON.parse(localStorage.getItem('fontan_font_reports')||'[]');
+    const open=reports.filter(r=>!r.resolved).length;
+    const badge=document.getElementById('adminBadgeReports');
+    if(badge){
+      badge.textContent=open;
+      badge.style.display=open?'inline-flex':'none';
+    }
+  }catch(e){}
+}
+
+async function renderAdminReports(){
+  const view=document.getElementById('adminView_reports');
+  if(!view)return;
+  view.innerHTML='<div style="text-align:center;padding:48px;color:var(--text3);font-size:14px">Loading.</div>';
+  let reports=[];
+  if(window.fbGetReports){
+    try{ reports=await window.fbGetReports(); }catch(e){}
+  } else {
+    try{ reports=JSON.parse(localStorage.getItem('fontan_font_reports')||'[]'); }catch(e){}
+  }
+  // Update badge with whatever we just fetched
+  try{
+    const openCount=reports.filter(r=>!r.resolved).length;
+    const badge=document.getElementById('adminBadgeReports');
+    if(badge){ badge.textContent=openCount; badge.style.display=openCount?'inline-flex':'none'; }
+  }catch(e){}
+  if(!reports.length){
+    view.innerHTML='<div style="text-align:center;padding:48px;color:var(--text3);font-size:14px">🚩 No reports yet</div>';
+    return;
+  }
+  view.innerHTML=reports.map(r=>`
+    <div style="background:var(--surface3);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;${r.resolved?'opacity:0.6':''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+        <div>
+          ${r.fontName?`<span style="font-weight:700;color:var(--text);font-size:14px;cursor:pointer" onclick="${r.fontId?`_adminGoToFont('${r.fontId}')`:''}">${esc(r.fontName)}</span>`:`<span style="font-weight:700;color:var(--text);font-size:14px">General report</span>`}
+          ${r.email?`<span style="color:var(--text3);font-size:12px;margin-left:8px">${esc(r.email)}</span>`:''}
+          ${!r.resolved?'<span style="display:inline-flex;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:980px;padding:1px 7px;margin-left:8px">Open</span>':'<span style="display:inline-flex;background:var(--surface4);color:var(--text3);font-size:10px;font-weight:700;border-radius:980px;padding:1px 7px;margin-left:8px">Resolved</span>'}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--text3)">${new Date(r.date).toLocaleString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+          <button onclick="markReportResolved('${r.id}')" style="padding:3px 10px;border-radius:980px;border:1px solid var(--border2);background:var(--surface-solid);font-size:11px;cursor:pointer;font-family:var(--sans);color:var(--text2)">
+            ${r.resolved?'✓ Resolved':'Mark resolved'}
+          </button>
+          <button onclick="deleteReportAdmin('${r.id}')" style="padding:3px 8px;border-radius:980px;border:1px solid rgba(255,59,48,0.25);background:transparent;font-size:11px;cursor:pointer;font-family:var(--sans);color:var(--red)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em">${REPORT_REASON_LABELS[r.reason]||esc(r.reason)}</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.55;white-space:pre-wrap">${esc(r.msg)}</div>
+    </div>
+  `).join('');
+}
+
+async function markReportResolved(id){
+  if(window.fbResolveReport){ try{ await window.fbResolveReport(id); await renderAdminReports(); }catch(e){} }
+  else {
+    try{const reports=JSON.parse(localStorage.getItem('fontan_font_reports')||'[]');const r=reports.find(x=>x.id===id);if(r)r.resolved=true;localStorage.setItem('fontan_font_reports',JSON.stringify(reports));renderAdminReports();updateAdminReportsBadge();}catch(e){}
+  }
+}
+async function deleteReportAdmin(id){
+  if(window.fbDeleteReport){ try{ await window.fbDeleteReport(id); await renderAdminReports(); }catch(e){} }
+  else {
+    try{const reports=JSON.parse(localStorage.getItem('fontan_font_reports')||'[]').filter(x=>x.id!==id);localStorage.setItem('fontan_font_reports',JSON.stringify(reports));renderAdminReports();updateAdminReportsBadge();}catch(e){}
   }
 }
 
