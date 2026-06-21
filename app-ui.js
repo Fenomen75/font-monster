@@ -195,7 +195,7 @@ function _showPvScriptWarning(script, supported){
     [...msg].forEach(ch=>{
       const s=document.createElement('span');
       s.textContent=ch;
-      s.style.cssText='display:inline-block;opacity:0;transform:translateY(6px);transition:none';
+      s.style.cssText='display:inline-block;opacity:0;transform:translateY(6px);transition:none;white-space:pre';
       wrap.appendChild(s);
     });
     const spans=wrap.querySelectorAll('span');
