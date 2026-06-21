@@ -559,6 +559,19 @@ function openDetail(fontId){
   _detailRenderExtras(font, fontId);
 }
 
+// Firebase auth (isAdmin) gec ge?ldikd? - s?hif? art?q a??q olsa - header-i (Edit
+// dü?m?si daxil) yenid?n ?qmir, sad?c? yenid?n ?ks etdirir. He? bir preview/state
+// resetl?nmir, ona gör? openDetail-? bax?lmadan a?r?ca saxlan?l?b.
+function refreshDetailHeaderForAuth(){
+  if(!currentDetailFont) return;
+  const fdp = document.getElementById('fontDetailPage');
+  if(!fdp || !fdp.classList.contains('visible')) return;
+  const font = currentDetailFont;
+  const licM = LICENSE_META[font.license] || {label:font.license, cls:'lic-demo'};
+  const dlCount = DL_COUNTS[font.id] || 0;
+  _detailRenderHeader(font, dlCount, licM);
+}
+
 // 1/8 — state setup: globals, preview defaults, breadcrumb, derived license/download values
 function _detailInit(font, fontId){
   currentDetailFont=font;activeDetailWeight=font.weight||'400';activeDetailVariantIdx=0;

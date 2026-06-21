@@ -292,6 +292,9 @@
       if(typeof window._refreshOnlineCounter === 'function') window._refreshOnlineCounter();
       // Mark auth as initialized; renderFonts already ran at page load from line 9235
       _authInitialized = true;
+      // Font detail səhifəsi artıq açıqdırsa (məs. refresh zamanı) - admin Edit
+      // düyməsi auth gec gəldiyinə görə görünmürdü, indi yenidən render et
+      if(typeof refreshDetailHeaderForAuth === 'function') refreshDetailHeaderForAuth();
     } else {
       window.currentUser = null;
       window.currentUser = null;
@@ -303,6 +306,7 @@
       if(typeof window._refreshOnlineCounter === 'function') window._refreshOnlineCounter();
       if(avatarBtn) avatarBtn.style.display = 'none';
       _authInitialized = true;
+      if(typeof refreshDetailHeaderForAuth === 'function') refreshDetailHeaderForAuth();
     }
   });
 
