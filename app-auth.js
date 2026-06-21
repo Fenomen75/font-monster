@@ -700,6 +700,11 @@ function heroBannerUpload(input){
                 oninput="const b=document.getElementById('heroBannerText');if(b)b.style.fontSize=this.value+'px'">
               <span style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.7);font-family:sans-serif;line-height:1;">A</span>
             </div>
+            <!-- Text color -->
+            <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:980px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);cursor:pointer;" data-tip="Text color">
+              <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);font-family:inherit;">Text</span>
+              <input type="color" value="#ffffff" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const t=document.getElementById('heroBannerText');if(t)t.style.color=v;})(this.value)">
+            </label>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
             <!-- Reset image -->
