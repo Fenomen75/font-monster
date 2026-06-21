@@ -2180,6 +2180,79 @@ function openContactModal(){
     if(e&&!e.value) e.value=window.currentUser.email||'';
   }
 }
+
+// ?? REPORT A FONT ??
+function selectReportChip(el, val) {
+  el.parentElement.querySelectorAll('.ct-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  el.dataset.selected = val;
+}
+
+function openReportModal(fontId, fontName){
+  const o=document.getElementById('reportOverlay');
+  if(!o)return;
+  o.classList.add('open');
+  document.body.style.overflow='hidden';
+  document.getElementById('reportFormWrap').style.display='';
+  document.getElementById('reportSuccess').style.display='none';
+  const wrap=document.getElementById('reportFontNameWrap');
+  const nameInput=document.getElementById('rpFontName');
+  if(fontId && fontName){
+    wrap.style.display='';
+    nameInput.value=fontName;
+    nameInput.dataset.fontId=fontId;
+    document.getElementById('reportSubtitle').textContent='Reporting "'+fontName+'" - we\'ll review it.';
+  } else {
+    wrap.style.display='none';
+    nameInput.value='';
+    delete nameInput.dataset.fontId;
+    document.getElementById('reportSubtitle').textContent="Tell us what's wrong - we'll review it.";
+  }
+  if(window.currentUser && window.currentUser.email){
+    const e=document.getElementById('rpEmail');
+    if(e&&!e.value) e.value=window.currentUser.email;
+  }
+}
+
+function closeReportModal(){
+  const o=document.getElementById('reportOverlay');
+  if(o) o.classList.remove('open');
+  document.body.style.overflow='';
+  const e=document.getElementById('rpEmail'); if(e) e.value='';
+  const m=document.getElementById('rpMessage'); if(m) m.value='';
+  const fw=document.getElementById('reportFormWrap'); if(fw) fw.style.display='';
+  const rs=document.getElementById('reportSuccess'); if(rs) rs.style.display='none';
+}
+
+function submitReport(){
+  const fontNameEl=document.getElementById('rpFontName');
+  const fontId=fontNameEl.dataset.fontId||null;
+  const fontName=fontNameEl.value.trim()||null;
+  const email=document.getElementById('rpEmail').value.trim();
+  const activeChip=document.querySelector('#reportOverlay .ct-chip.active');
+  const reason=activeChip?activeChip.dataset.val:'other';
+  const msg=document.getElementById('rpMessage').value.trim();
+  if(!msg){showToast('⚠️ Please describe the issue');return;}
+  if(email && !email.includes('@')){showToast('⚠️ Enter a valid email');return;}
+  const btn=document.getElementById('rpSendBtn');
+  const btnOrigHTML = btn ? btn.innerHTML : '';
+  if(btn){btn.textContent='Sending\u2026';btn.disabled=true;}
+  const finish=()=>{
+    document.getElementById('reportFormWrap').style.display='none';
+    document.getElementById('reportSuccess').style.display='';
+    if(btn){btn.innerHTML=btnOrigHTML;btn.disabled=false;}
+  };
+  if(window.fbReportFont){
+    window.fbReportFont(fontId,fontName,email,reason,msg)
+      .then(finish)
+      .catch(e=>{if(btn){btn.innerHTML=btnOrigHTML;btn.disabled=false;}showToast('❌ '+e.message);});
+  } else {
+    const entry={id:Date.now().toString(36),fontId,fontName,email,reason,msg,date:new Date().toISOString(),resolved:false};
+    try{const reports=JSON.parse(localStorage.getItem('fontan_font_reports')||'[]');reports.unshift(entry);localStorage.setItem('fontan_font_reports',JSON.stringify(reports));}catch(e){}
+    finish();
+  }
+}
+
 function closeContactModal(){
   const o=document.getElementById('contactOverlay');
   if(o) o.classList.remove('open');

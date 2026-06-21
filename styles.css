@@ -1007,6 +1007,9 @@ nav{
   gap:14px;
   min-height:0;
 }
+.modal-col:first-child{
+  overflow-y:visible;
+}
 .modal-col + .modal-col{
   border-left:1px solid var(--border);
   background:var(--surface3);
