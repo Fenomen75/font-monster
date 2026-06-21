@@ -292,6 +292,12 @@ async function saveEditFont(){
     ...(yearVal?{year:parseInt(yearVal)}:{}),
     ...(_efImgData?{previewImg:_efImgData}:(_efImgRemoved?{previewImg:''}:{}))
   };
+  if(updates.affiliateUrl){
+    const _subList=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
+    const existingFont=_subList.find(x=>x.id===id)||FONTS.find(x=>x.id===id);
+    const hasRealFile=_efFileList.length>0||!!(existingFont&&(existingFont.fontData||existingFont.fontUrl||(existingFont.fontVariants&&existingFont.fontVariants.length)));
+    if(!hasRealFile) updates.gfamily=null;
+  }
   if(!updates.name||!updates.author||!updates.cat||!updates.license){showToast('⚠️ Please fill in all required fields');return;}
   // Font fayli varsa PHP-y? yükl?
   if(_efFileList.length > 0){
@@ -1970,7 +1976,7 @@ function _buildNewFontFromForm(){
   // Qeyd: timestamp artıq əlavə edilmir. Eyni adlı fontu iki dəfə submit etmək
   // yuxarıdakı suffix məntiqi ilə idarə olunur. Firestore-da race condition
   // setDoc-dan əvvəl getDoc ilə mövcudluq yoxlanılması ilə önlənir.
-  const gfamily=name.replace(/\s+/g,'+');
+  const gfamily=affiliateUrl?null:name.replace(/\s+/g,'+');
   const tagsRaw=document.getElementById('sf-tags').value.trim();
   const year=parseInt(document.getElementById('sf-year').value)||new Date().getFullYear();
   const tags=tagsRaw?tagsRaw.split(/[,\s]+/).map(t=>t.trim()).filter(Boolean):['Custom'];
