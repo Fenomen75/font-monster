@@ -272,8 +272,6 @@ const LANG_SUPPORT_LIST=[
   {code:'Greek',label:'Greek',chars:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω',color:'#007aff'},
   {code:'Arabic',label:'Arabic',chars:'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',color:'#34c759'},
   {code:'Hebrew',label:'Hebrew',chars:'אבגדהוזחטיכלמנסעפצקרשת',color:'#ff9500'},
-  {code:'Digits',label:'0-9',chars:'0123456789',color:'#8e8e93'},
-  {code:'Punct',label:'Punct',chars:'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',color:'#636366'},
 ];
 function _fontCanRender(fontName,weight,testChars){
   // PRIMARY: If uploadedFontData has a parsed unicodeSet, use it - 100% accurate.
