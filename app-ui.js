@@ -162,11 +162,46 @@ function pvSetOverlayPos(pos, btn){
 }
 
 // ---- [app.js lines 3792-3951] ----
+function _detectInputScript(txt){
+  if(!txt)return null;
+  if(/[\u0400-\u04FF]/.test(txt))return'Cyrillic';
+  if(/[\u0370-\u03FF]/.test(txt))return'Greek';
+  if(/[\u0600-\u06FF]/.test(txt))return'Arabic';
+  if(/[\u0590-\u05FF]/.test(txt))return'Hebrew';
+  if(/[\u0900-\u097F]/.test(txt))return'Devanagari';
+  if(/[\u4E00-\u9FFF]/.test(txt))return'Chinese';
+  if(/[\u3040-\u30FF]/.test(txt))return'Japanese';
+  if(/[\uAC00-\uD7AF]/.test(txt))return'Korean';
+  return null;
+}
+function _showPvScriptWarning(script, supported){
+  let el=document.getElementById('pvScriptWarn');
+  if(!el){
+    el=document.createElement('div');
+    el.id='pvScriptWarn';
+    el.style.cssText='display:none;margin:6px 0 0;padding:6px 12px;border-radius:8px;background:#fff3cd;border:1px solid #ffc107;color:#856404;font-size:12px;font-weight:500;font-family:var(--sans)';
+    const canvas=document.getElementById('pvCanvas');
+    if(canvas&&canvas.parentElement)canvas.parentElement.insertBefore(el,canvas);
+  }
+  if(script && supported && !supported.some(s=>s===script||s.startsWith(script))){
+    el.style.display='block';
+    el.textContent='⚠️ This font does not support '+script+' — showing system fallback font instead.';
+  } else {
+    el.style.display='none';
+  }
+}
 function renderPvCanvas(){
   if(!currentDetailFont)return;
   const font=currentDetailFont;
   const canvas=document.getElementById('pvCanvas');
   const txt=document.getElementById('fdpPvInput').value||font.name;
+  // Script warning
+  const _script=_detectInputScript(txt);
+  if(_script){
+    resolveFontLangs(font,langs=>_showPvScriptWarning(_script,langs));
+  } else {
+    _showPvScriptWarning(null,null);
+  }
   const sz=parseInt(document.getElementById('fdpSizeRange').value)||56;
   // Reset any inline padding overrides
   canvas.style.paddingBottom='';
