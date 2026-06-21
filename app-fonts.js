@@ -754,31 +754,13 @@ function _detailResetPreviewControls(font){
         .filter(([,re])=>re.test(e.data))
         .map(([name])=>name);
       if(!detectedScripts.length)return;
-      // dəstəklənməyən hərf varsa — inputa girməsin və canvas-da xəbərdarlıq göstər
-      const hasUnsupported=detectedScripts.some(sc=>{
-        if(!currentDetailFont)return false;
-        const cached=window._LANG_CACHE&&window._LANG_CACHE[currentDetailFont.id];
-        if(cached)return!cached.some(s=>s===sc||s.startsWith(sc));
-        return true;
+      // Həmişə əvvəlcə e.preventDefault() et (sinxron olmalıdır)
+      // Sonra async yoxla: həqiqətən dəstəklənmirsə warning göstər
+      e.preventDefault();
+      resolveFontLangs(currentDetailFont,langs=>{
+        const unsupported=detectedScripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
+        if(unsupported.length) _showPvScriptWarning(unsupported.join(', '),langs);
       });
-      if(hasUnsupported){
-        e.preventDefault();
-        resolveFontLangs(currentDetailFont,langs=>{
-          const unsupported=detectedScripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
-          if(!unsupported.length)return;
-          const canvas=document.getElementById('pvCanvas');
-          if(!canvas)return;
-          const sz=parseInt(document.getElementById('fdpSizeRange').value)||56;
-          const warnSz=Math.max(14,Math.min(sz,32));
-          const pvBgEl=document.getElementById('pvCanvasBg');
-          const pvBg=pvBgEl?pvBgEl.style.background:'';
-          const isDark=pvBg&&(pvBg.includes('1a1a1a')||pvBg.includes('1e3a5f')||pvBg.includes('2d0a3e'));
-          const warnColor=isDark?'rgba(255,200,60,0.9)':'rgba(180,80,0,0.85)';
-          const msg='⚠ This font does not support '+unsupported.join(', ');
-          canvas.innerHTML=`<div style="font-family:var(--sans);font-size:${warnSz}px;font-weight:600;color:${warnColor};text-align:center;padding:24px 28px;line-height:1.5;width:100%;box-sizing:border-box">${msg}</div>`;
-          setTimeout(()=>{ if(typeof renderPvCanvas==='function')renderPvCanvas(); },2200);
-        });
-      }
     });
   }
   // Reset controls
