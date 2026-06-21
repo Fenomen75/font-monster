@@ -176,6 +176,8 @@ function _detectInputScript(txt){
   return found;
 }
 function _showPvScriptWarning(script, supported){
+  // Warning is now rendered inside pvCanvas by renderPvCanvas — this function is a no-op
+  return;
   let el=document.getElementById('pvScriptWarn');
   if(!el){
     el=document.createElement('div');
@@ -239,7 +241,8 @@ function renderPvCanvas(){
   if(!currentDetailFont)return;
   const font=currentDetailFont;
   const canvas=document.getElementById('pvCanvas');
-  const txt=document.getElementById('fdpPvInput').value||font.name;
+  const _rawInput=document.getElementById('fdpPvInput').value;
+  const txt=_rawInput; // empty stays empty — no font.name fallback
 
   const sz=parseInt(document.getElementById('fdpSizeRange').value)||56;
   // Reset any inline padding overrides
@@ -249,7 +252,7 @@ function renderPvCanvas(){
   const lh=parseFloat(document.getElementById('pvLH').value)||1.15;
   document.getElementById('pvLSVal').textContent=ls+'px';
   document.getElementById('pvLHVal').textContent=lh;
-  // Banner m?tn sinxronu - yalniz auto banner varsa (s?kil yox)
+  // Banner mətn sinxronu - yalnız auto banner varsa (şəkil yox)
   const bannerTxt=document.getElementById('heroBannerText');
   if(bannerTxt) bannerTxt.textContent=txt||font.name;
   const bgWrap=document.getElementById('pvCanvasBg');
@@ -275,32 +278,55 @@ function renderPvCanvas(){
   const _av=font.fontVariants&&font.fontVariants[activeDetailVariantIdx||0];
   const _pvFamily=(_av&&_av._familyName)||(_av?(font.name+' '+parseVariantStyle(_av.name||'').label):font.name);
   const bs=`font-family:'${_pvFamily}',sans-serif;font-weight:${fontWeight};font-style:${fontStyle};letter-spacing:${ls}px;color:${pvTextColor};`;
-  document.querySelectorAll('.wt-sample').forEach(el=>el.textContent=txt);
+  document.querySelectorAll('.wt-sample').forEach(el=>el.textContent=txt||font.name);
+
+  // Check if input contains scripts unsupported by this font and show inline warning
+  const _detectedScripts=_detectInputScript(txt);
+  if(_detectedScripts.length && currentDetailFont){
+    resolveFontLangs(currentDetailFont,langs=>{
+      const _unsupported=_detectedScripts.filter(sc=>!langs.some(s=>s===sc||s.startsWith(sc)));
+      if(_unsupported.length){
+        // Show warning inside canvas at matching font size
+        const warnMsg='⚠ This font does not support '+_unsupported.join(', ');
+        const warnSz=Math.max(14,Math.min(sz,32));
+        const warnColor=pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e'?'rgba(255,200,60,0.85)':'rgba(180,80,0,0.8)';
+        canvas.innerHTML=`<div style="font-family:var(--sans);font-size:${warnSz}px;font-weight:600;color:${warnColor};text-align:center;padding:24px 28px;line-height:1.5;width:100%;box-sizing:border-box">${warnMsg}</div>`;
+        return;
+      }
+    });
+    // Hide the old external warning element if visible
+    const _ow=document.getElementById('pvScriptWarn');
+    if(_ow){_ow.style.display='none';_ow._warnActive=false;}
+  }
 
   if(pvMode==='text'){
+    if(!txt){canvas.innerHTML='';return;}
     canvas.innerHTML=`<div style="${bs}font-size:${sz}px;line-height:${Math.max(lh,1.4)};text-align:${pvAlign};word-break:break-word;padding-bottom:0.25em;width:100%">${esc(txt)}</div>`;
   } else if(pvMode==='waterfall'){
     const wfSizes=[10,12,14,18,24,32,48,64,80,96];
+    const wfTxt=txt||font.name;
     const sepColor=pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e'?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.07)';
     canvas.style.padding='6px 0';
     const wf=document.createElement('div');wf.className='pv-wf';
     wfSizes.forEach(s=>{
       const row=document.createElement('div');row.className='pv-wf-row';
       row.style.borderBottomColor=sepColor;
-      row.innerHTML=`<span class="pv-wf-sz" style="color:${pvTextColor};opacity:.4">${s}</span><span class="pv-wf-txt" style="${bs}font-size:${s}px;line-height:1.3">${esc(txt)}</span>`;
+      row.innerHTML=`<span class="pv-wf-sz" style="color:${pvTextColor};opacity:.4">${s}</span><span class="pv-wf-txt" style="${bs}font-size:${s}px;line-height:1.3">${esc(wfTxt)}</span>`;
       wf.appendChild(row);
     });
     canvas.innerHTML='';canvas.appendChild(wf);
   } else if(pvMode==='paragraph'){
+    const paraTxt=txt||font.name;
     const bodySize=Math.max(14,Math.min(sz,22));
     canvas.innerHTML=`<div class="pv-para" style="${bs}text-align:${pvAlign}">
-      <strong style="${bs}font-size:${sz}px;line-height:1.1;display:block;margin-bottom:14px;font-weight:700">${esc(txt)}</strong>
+      <strong style="${bs}font-size:${sz}px;line-height:1.1;display:block;margin-bottom:14px;font-weight:700">${esc(paraTxt)}</strong>
       <span style="font-size:${bodySize}px;line-height:${lh}">${LOREM}</span>
     </div>`;
   } else if(pvMode==='pairs'){
+    const pairsTxt=txt||font.name;
     const bodySize=Math.max(13,Math.round(sz*0.3));
     canvas.innerHTML=`<div class="pv-pairs">
-      <div style="${bs}font-size:${sz}px;line-height:1.1;font-weight:700;text-align:${pvAlign};margin-bottom:12px">${esc(txt)}</div>
+      <div style="${bs}font-size:${sz}px;line-height:1.1;font-weight:700;text-align:${pvAlign};margin-bottom:12px">${esc(pairsTxt)}</div>
       <div style="${bs}font-size:${bodySize}px;line-height:${lh};text-align:${pvAlign};opacity:.75">${LOREM.substring(0,240)}</div>
     </div>`;
   } else if(pvMode==='stress'){
