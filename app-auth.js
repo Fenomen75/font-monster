@@ -627,9 +627,11 @@ function resetHeroBanner(){
       ">${esc(txt)}</div>
       <div style="position:absolute;bottom:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:4px 6px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
-            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.max(16,s-16)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A-</button>
-            <button onclick="(function(){var b=document.getElementById('heroBannerText');if(b){var s=parseFloat(b.style.fontSize)||100;b.style.fontSize=Math.min(400,s+16)+'px';}})()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">A+</button>
+          <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
+            <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
+            <input type="range" class="hb-zoom" min="16" max="300" value="72" step="4"
+              oninput="(function(v){var b=document.getElementById('heroBannerText');if(b)b.style.fontSize=v+'px';})(this.value)">
+            <span style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.6);font-family:inherit;">A</span>
           </div>
           <div id="heroBannerColorWrap" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);padding:5px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.18);">
             <div id="heroBannerColorDot" style="width:10px;height:10px;border-radius:50%;background:${pal.bg};border:1.5px solid rgba(255,255,255,0.5);flex-shrink:0;"></div>
@@ -684,7 +686,7 @@ function heroBannerUpload(input){
             <!-- Font zoom slider -->
             <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);padding:5px 10px;border-radius:980px;border:1px solid rgba(255,255,255,0.15);">
               <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);font-family:sans-serif;line-height:1;">A</span>
-              <input type="range" class="hb-zoom" min="16" max="400" value="64" step="8"
+              <input type="range" class="hb-zoom" min="16" max="300" value="72" step="4"
                 oninput="const b=document.getElementById('heroBannerText');if(b)b.style.fontSize=this.value+'px'">
               <span style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.7);font-family:sans-serif;line-height:1;">A</span>
             </div>
