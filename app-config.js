@@ -8,6 +8,7 @@ const LICENSE_META={
   freeware:{label:'Freeware',cls:'lic-free',hint:'Free to use. Check author terms for commercial use.'},
   demo:{label:'Demo',cls:'lic-demo',hint:'Limited demo version. Full version available for purchase.'},
   note:{label:'Note of the Author',cls:'lic-personal',hint:"License determined by author's own note. Read the readme file."},
+  commercial:{label:'Paid / Commercial',cls:'lic-paid',hint:'Paid license - purchase required from the original source to use this font.'},
 };
 const WEIGHT_NAMES={100:'Thin',200:'Extra Light',300:'Light',400:'Regular',500:'Medium',600:'Semi Bold',700:'Bold',800:'Extra Bold',900:'Black'};
 const CHARMAP_SETS={
