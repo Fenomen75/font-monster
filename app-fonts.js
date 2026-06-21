@@ -736,6 +736,10 @@ function _detailRenderHeader(font, dlCount, licM){
 function _detailResetPreviewControls(font){
   // beforeinput: dəstəklənməyən hərfləri bloklayıb warning göstər
   const inp=document.getElementById('fdpPvInput');
+  if(inp){
+    inp.setAttribute('autocomplete','off');
+    inp.removeAttribute('name');
+  }
   if(inp&&!inp._scriptGuardBound){
     inp._scriptGuardBound=true;
     const SCRIPT_RANGES={
