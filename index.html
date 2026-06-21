@@ -1337,7 +1337,7 @@
   <div class="modal">
     <button class="modal-close" onclick="closeSubmit()">×</button>
     <div id="submitFormWrap">
-      <div class="sm-header" style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div class="sm-header" style="padding:12px 22px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div class="sm-title">Submit a Font to Font·Monster</div>
         <div class="sm-sub">Know a great free font? Help the community - add it to Font·Monster.</div>
       </div>
@@ -1405,11 +1405,6 @@
             <label class="form-label">Download / Source URL <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional)</span></label>
             <input type="url" class="form-input" id="sf-url" placeholder="https://fonts.google.com/specimen/.">
           </div>
-
-          <div class="form-group">
-            <label class="form-label">Affiliate Link <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional · if no file uploaded, Download button redirects here, e.g. CreativeFabrica)</span></label>
-            <input type="url" class="form-input" id="sf-affiliate" placeholder="https://www.creativefabrica.com/product/...">
-          </div>
         </div>
 
         <!-- SAG SÜTUN: 3 b?rab?r hiss? -->
@@ -1434,6 +1429,7 @@
             <div class="fuz-selected" id="fuzSelected" style="flex-direction:column;gap:4px;align-items:stretch">
               <div id="fuzSelectedList" style="display:flex;flex-direction:column;gap:3px"></div>
             </div>
+            <input type="url" class="form-input" id="sf-affiliate" placeholder="No file? Paste affiliate link instead (e.g. CreativeFabrica)" style="margin-top:6px;font-size:12px">
           </div>
 
           <div class="form-group" style="flex:1;display:flex;flex-direction:column">
@@ -1599,6 +1595,7 @@
             <span class="fuz-selected-name" id="efFuzSelectedName"></span>
             <button class="fuz-remove" onclick="clearEditFile()">×</button>
           </div>
+          <input type="url" class="form-input" id="ef-affiliate" placeholder="No file? Paste affiliate link instead (e.g. CreativeFabrica)" style="margin-top:6px;font-size:12px">
         </div>
         <div class="form-group">
           <label class="form-label">Preview Image <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional - shown on font page)</span></label>
@@ -1618,10 +1615,6 @@
         <div class="form-group">
           <label class="form-label">Source URL <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional)</span></label>
           <input type="url" class="form-input" id="ef-url" placeholder="https://fonts.google.com/specimen/.">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Affiliate Link <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(optional · Download button redirects here if no file uploaded)</span></label>
-          <input type="url" class="form-input" id="ef-affiliate" placeholder="https://www.creativefabrica.com/product/...">
         </div>
         <div id="ef-review-notice" style="
           background:var(--orange-dim);border:1px solid rgba(255,149,0,0.25);
