@@ -246,10 +246,13 @@
       // Eyni user ikinci dəfə gələndə (token refresh) UI-ı yeniləmə
       if (_authInitialized && _lastAuthUid === fbUser.uid) return;
       _lastAuthUid = fbUser.uid;
-      // Token-i yenilə ki emailVerified dəqiq olsun
-      await fbUser.reload().catch(()=>{});
-      // Get extra user data from Firestore
-      const snap = await getDoc(doc(db, 'users', fbUser.uid));
+      // Token yenilə (emailVerified üçün) və Firestore-dan extra data al -
+      // bu iki şəbəkə sorğusu bir-birindən asılı deyil, paralel işlət (ardıcıl
+      // olsa cəm gecikmə 2x olur, Edit düyməsi kimi UI elementləri gec görünür)
+      const [, snap] = await Promise.all([
+        fbUser.reload().catch(()=>{}),
+        getDoc(doc(db, 'users', fbUser.uid))
+      ]);
       const extra = snap.exists() ? snap.data() : {};
       // Ban check
       if (extra.banned === true) {
@@ -257,9 +260,10 @@
         alert('Your account has been banned. Please contact support.');
         return;
       }
-      // Firebase emailVerified true-dursa Firestore-u da yenilə
+      // Firebase emailVerified true-dursa Firestore-u da yenilə - bunu gözləməyə
+      // ehtiyac yoxdur, UI-ı bloklamasın deyə fire-and-forget şəkildə göndər
       if (fbUser.emailVerified && extra.emailVerified !== true) {
-        try { await updateDoc(doc(db, 'users', fbUser.uid), { emailVerified: true }); } catch(e){}
+        updateDoc(doc(db, 'users', fbUser.uid), { emailVerified: true }).catch(()=>{});
       }
       const user = {
         id: fbUser.uid,
