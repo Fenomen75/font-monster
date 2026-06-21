@@ -219,6 +219,8 @@ function _resetEditModal(){
   document.getElementById('ef-year').value='';
   const efLicHint=document.getElementById('ef-license-hint');
   if(efLicHint){efLicHint.textContent='';efLicHint.classList.remove('show');}
+  const efTwoColReset=document.querySelector('#editFontModal .modal-two-col');
+  if(efTwoColReset)efTwoColReset.classList.remove('lic-expanded');
   _efFileData=null; _efImgData=null;
 }
 // Mövcud font faylının olduğunu modalda göstərir (real fayl seçilməyib, sadəcə indikator)
@@ -260,6 +262,8 @@ function openEditFont(fontId){
     if(efLicMeta){efLicHint.textContent=efLicMeta.hint;efLicHint.classList.add('show');}
     else{efLicHint.textContent='';efLicHint.classList.remove('show');}
   }
+  const efTwoColLoad=document.querySelector('#editFontModal .modal-two-col');
+  if(efTwoColLoad)efTwoColLoad.classList.toggle('lic-expanded',!!efLicMeta);
   document.getElementById('ef-year').value=f.year||'';
   document.getElementById('ef-tags').value=(f.tags||[]).join(',');
   setTimeout(()=>_setTagChipValues('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',f.tags||[]),50);
@@ -1816,10 +1820,14 @@ function clearFile(){
 document.getElementById('sf-license').addEventListener('change',function(){
   const m=LICENSE_META[this.value];const h=document.getElementById('licenseHint');
   if(m){h.textContent=m.hint;h.classList.add('show');}else{h.textContent='';h.classList.remove('show');}
+  const sfTwoCol=document.querySelector('#submitModal .modal-two-col');
+  if(sfTwoCol)sfTwoCol.classList.toggle('lic-expanded',!!m);
 });
 document.getElementById('ef-license').addEventListener('change',function(){
   const m=LICENSE_META[this.value];const h=document.getElementById('ef-license-hint');
   if(m){h.textContent=m.hint;h.classList.add('show');}else{h.textContent='';h.classList.remove('show');}
+  const efTwoCol=document.querySelector('#editFontModal .modal-two-col');
+  if(efTwoCol)efTwoCol.classList.toggle('lic-expanded',!!m);
 });
 function handleFontImgSelect(input){
   const file=input.files[0];if(!file)return;
@@ -2142,6 +2150,8 @@ function _resetSubmitForm(){
   document.getElementById('sf-tags-input').value='';
   document.getElementById('sf-cat').value='';refreshCustomSelect('sf-cat');document.getElementById('sf-license').value='';refreshCustomSelect('sf-license');
   document.getElementById('licenseHint').textContent='';document.getElementById('licenseHint').classList.remove('show');
+  const sfTwoColReset=document.querySelector('#submitModal .modal-two-col');
+  if(sfTwoColReset)sfTwoColReset.classList.remove('lic-expanded');
   const sfDesc=document.getElementById('sf-desc-counter');if(sfDesc)sfDesc.textContent='0/300';
   clearFile();clearFontImg();
   document.getElementById('submitFormWrap').style.display='none';

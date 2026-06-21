@@ -1013,6 +1013,11 @@ nav{
 .modal-col + .modal-col{
   border-left:1px solid var(--border);
   background:var(--surface3);
+  gap:20px;
+  transition:gap .15s;
+}
+.modal-two-col.lic-expanded .modal-col + .modal-col{
+  gap:30px;
 }
 .modal-col-title{
   font-size:10px;font-weight:700;text-transform:uppercase;
