@@ -260,9 +260,8 @@ function _glyphSupported(fontFamily, ch, fontWeight){
   _glyphCache[_cacheKey][ch] = supported;
   return supported;
 }
-function sanitizeGlyphs(txt, fontFamily, fontWeight, isGoogleFont){
+function sanitizeGlyphs(txt, fontFamily, fontWeight){
   if(!txt) return txt;
-  if(isGoogleFont) return txt;
   let out = '';
   for(const ch of txt){
     out += _glyphSupported(fontFamily, ch, fontWeight) ? ch : '?';
@@ -309,17 +308,18 @@ function renderPvCanvas(){
   const fontStyle=pvItalic?'italic':'normal';
   const fontWeight=pvBold?'bold':activeDetailWeight;
   const _av=font.fontVariants&&font.fontVariants[activeDetailVariantIdx||0];
-  const _pvFamily=(_av&&_av._familyName)||(font.gfamily?font.name:(_av?(font.name+' '+parseVariantStyle(_av.name||'').label):font.name));
+  const _gBase=font.gfamily?(font.gfamily.split(':')[0].replace(/\+/g,' ')):null;
+  const _pvFamily=(_av&&_av._familyName)||_gBase||(_av?(font.name+' '+parseVariantStyle(_av.name||'').label):font.name);
   const bs=`font-family:'${_pvFamily}',sans-serif;font-weight:${fontWeight};font-style:${fontStyle};letter-spacing:${ls}px;color:${pvTextColor};`;
   document.querySelectorAll('.wt-sample').forEach(el=>el.textContent=txt||font.name);
 
   if(pvMode==='text'){
     if(!txt){canvas.innerHTML='';return;}
-    const safeTxt=sanitizeGlyphs(txt,_pvFamily,fontWeight,!!font.gfamily);
+    const safeTxt=sanitizeGlyphs(txt,_pvFamily,fontWeight);
     canvas.innerHTML=`<div style="${bs}font-size:${sz}px;line-height:${Math.max(lh,1.4)};text-align:${pvAlign};word-break:break-word;padding-bottom:0.25em;width:100%">${esc(safeTxt)}</div>`;
   } else if(pvMode==='waterfall'){
     const wfSizes=[10,12,14,18,24,32,48,64,80,96];
-    const wfTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight,!!font.gfamily);
+    const wfTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
     const sepColor=pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e'?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.07)';
     canvas.style.padding='6px 0';
     const wf=document.createElement('div');wf.className='pv-wf';
@@ -331,14 +331,14 @@ function renderPvCanvas(){
     });
     canvas.innerHTML='';canvas.appendChild(wf);
   } else if(pvMode==='paragraph'){
-    const paraTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight,!!font.gfamily);
+    const paraTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
     const bodySize=Math.max(14,Math.min(sz,22));
     canvas.innerHTML=`<div class="pv-para" style="${bs}text-align:${pvAlign}">
       <strong style="${bs}font-size:${sz}px;line-height:1.1;display:block;margin-bottom:14px;font-weight:700">${esc(paraTxt)}</strong>
       <span style="font-size:${bodySize}px;line-height:${lh}">${LOREM}</span>
     </div>`;
   } else if(pvMode==='pairs'){
-    const pairsTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight,!!font.gfamily);
+    const pairsTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
     const bodySize=Math.max(13,Math.round(sz*0.3));
     canvas.innerHTML=`<div class="pv-pairs">
       <div style="${bs}font-size:${sz}px;line-height:1.1;font-weight:700;text-align:${pvAlign};margin-bottom:12px">${esc(pairsTxt)}</div>
