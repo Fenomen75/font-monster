@@ -582,6 +582,9 @@ function refreshDetailHeaderForAuth(){
   _detailRenderHeader(font, dlCount, licM);
 }
 
+// Weight sözlərini font adından sil: "Roboto Mono Bold" → "Roboto Mono"
+function _stripW(n){ return n.replace(/\b(thin|extralight|extra\s*light|light|regular|medium|semibold|semi\s*bold|bold|extrabold|extra\s*bold|black|heavy|italic|oblique|\d{3})\b/gi,'').replace(/\s+/g,' ').trim(); }
+
 // 1/8 — state setup: globals, preview defaults, breadcrumb, derived license/download values
 function _detailInit(font, fontId){
   currentDetailFont=font;activeDetailWeight=font.weight||'400';activeDetailVariantIdx=0;
@@ -615,8 +618,7 @@ function _detailRenderHero(font){
   // font.name-i deyil, düzgün CSS family adını işlət (məs: "Roboto Mono" not "Roboto Mono Bold")
   const _hbAv = font.fontVariants && font.fontVariants[0];
   const _hbGBase = font.gfamily ? (font.gfamily.split(':')[0].replace(/\+/g,' ')) : null;
-  const _hbStripWeight = (n) => n.replace(/\b(thin|extralight|extra\s*light|light|regular|medium|semibold|semi\s*bold|bold|extrabold|extra\s*bold|black|heavy|italic|oblique|\d{3})\b/gi,'').replace(/\s+/g,' ').trim();
-  const _hbFamily = (_hbAv && _hbAv._familyName) || _hbGBase || _hbStripWeight(font.name);
+  const _hbFamily = (_hbAv && _hbAv._familyName) || _hbGBase || _stripW(font.name);
 
   document.getElementById('fdpHeroInner').innerHTML = heroBannerHasImg
     ? `<div style="position:relative;width:100%;min-height:420px;border-radius:14px;overflow:hidden;height:auto;margin-bottom:20px;">
@@ -795,7 +797,7 @@ function _detailResetPreviewControls(font){
     });
   }
   // Reset controls
-  document.getElementById('fdpPvInput').value=previewText||font.name;
+  document.getElementById('fdpPvInput').value=previewText||_stripW(font.name);
   document.getElementById('fdpSizeRange').value=56;document.getElementById('fdpSizeVal').textContent=56;
   document.getElementById('pvBoldBtn').classList.remove('on');document.getElementById('pvItalicBtn').classList.remove('on');
   document.getElementById('pvAlL').classList.add('on');document.getElementById('pvAlC').classList.remove('on');document.getElementById('pvAlR').classList.remove('on');
@@ -821,7 +823,7 @@ function _detailResetPreviewControls(font){
 // 5/8 — weight / variant list, returns the resolved weights array
 function _detailRenderWeights(font){
   // Weights
-  const weights=getWeights(font);const pvTxt=previewText||font.name;
+  const weights=getWeights(font);const pvTxt=previewText||_stripW(font.name);
   // Uploaded fontlar üçün fontVariants-i weight list kimi göst?r
   if(font.fontVariants && font.fontVariants.length > 0){
     // Sort: Regular first, then alphabetically by label
@@ -967,7 +969,7 @@ function _detailShowPage(font, fontId, dlCount){
   const dlPanel=document.getElementById('fdpDlPanel');
   document.getElementById('fdpDlPanelName').textContent=font.name;
   const sampleEl=document.getElementById('fdpDlPanelSample');
-  sampleEl.textContent=previewText||font.name;
+  sampleEl.textContent=previewText||_stripW(font.name);
   sampleEl.style.fontFamily=`'${font.name}',sans-serif`;
   document.getElementById('fdpDlPanelDl').textContent=fmtDlCount(dlCount);
   const _ystEl=document.getElementById('fdpDlPanelYst');
