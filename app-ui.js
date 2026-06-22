@@ -284,9 +284,6 @@ function renderPvCanvas(){
   const lh=parseFloat(document.getElementById('pvLH').value)||1.15;
   document.getElementById('pvLSVal').textContent=ls+'px';
   document.getElementById('pvLHVal').textContent=lh;
-  // Banner mətn sinxronu - yalnız auto banner varsa (şəkil yox)
-  const bannerTxt=document.getElementById('heroBannerText');
-  if(bannerTxt) bannerTxt.textContent=txt||font.name;
   const bgWrap=document.getElementById('pvCanvasBg');
   canvas.style.color=pvTextColor;
   if(pvBgImage){
@@ -310,6 +307,9 @@ function renderPvCanvas(){
   const _av=font.fontVariants&&font.fontVariants[activeDetailVariantIdx||0];
   const _gBase=font.gfamily?(font.gfamily.split(':')[0].replace(/\+/g,' ')):null;
   const _pvFamily=(_av&&_av._familyName)||_gBase||(_av?(font.name+' '+parseVariantStyle(_av.name||'').label):font.name);
+  // Banner mətn sinxronu - _pvFamily-dən sonra, düzgün family adı ilə
+  const bannerTxt=document.getElementById('heroBannerText');
+  if(bannerTxt) bannerTxt.textContent=txt||_pvFamily;
   const bs=`font-family:'${_pvFamily}',sans-serif;font-weight:${fontWeight};font-style:${fontStyle};letter-spacing:${ls}px;color:${pvTextColor};`;
   document.querySelectorAll('.wt-sample').forEach(el=>el.textContent=txt||font.name);
 

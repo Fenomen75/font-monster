@@ -659,7 +659,7 @@ function _detailRenderHero(font){
           width:90%;max-width:90%;min-width:0;overflow:visible;
           display:block;/*-webkit-line-clamp:2*/;-webkit-box-orient:vertical;
           transition:font-size .1s;
-        ">${esc(previewText||font.name)}</div>
+        ">${esc(previewText||_hbFamily)}</div>
         <div style="position:absolute;bottom:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <!-- Zoom slider -->
