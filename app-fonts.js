@@ -142,19 +142,64 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded){
 // set? ?lav? et (id-l?r fonts-data.js-d?ki "id:" sah?sind?n g?lir - n.b.
 // font.name "Source Code Pro Bold" kimi "Bold" v.s. ?lav?l?r? mal?k ola
 // bil?r, ona g?r? ID istifad? etm?k daha t?hl?k?sizdir).
+//
+// Bu siyahi t?sad?fi deyil - h?r fontun ?sl Google Fonts faylini GitHub-dan
+// ç?kib opentype.js il? real cmap-ini yoxladiq. A?agidakilar h?qiqi
+// monospace (h?r glyph-in eni eynidir - elec? d? canvas-eni testinin
+// h?mi?? "yoxdur" n?tic?si verdiyi tip) V? Az?rbaycan Latin-Ext h?rfl?rini
+// (ə,ş,ğ,ı,ö,ü,ç v? böyükl?ri) TAM d?st?kl?yir - yeni demli canvas-bug
+// onlarda h?qiq?t?n yanli? "?" göst?r? bilirdi. Eyni Google ail?sinin
+// ba?qa weight/style id-l?ri (-bold, -v2, -italic v? s.) d? ?lav? olunub,
+// çünki onlar eyni cmap-a malikdir.
+//
+// QEYD: bir sira ba?qa monospace font (Fira Code, Courier Prime, Ubuntu
+// Mono, Roboto Mono v? s.) yoxlanilib, amma ?sl ?riftd? h?qiq?t?n "ə"
+// (v? bezen "Ə") glyph-i YOXDUR - bu hallarda "?" göst?rilm?si DOĞRUDUR,
+// canvas-bug deyil, real ?rift m?hdudiyy?tidir, ona gör? onlar bu
+// siyahiya ?lav? OLUNMAYIB (?lav? ets?k d? "ə" yen? "?" qalacaq).
 const CMAP_GLYPH_CHECK_FONT_IDS = new Set([
-  'source-mono-v2',   // Source Code Pro Bold
-  'roboto-mono-v2',   // Roboto Mono Bold
-  'source-code-pro',  // Source Code Pro (regular variant)
-  'roboto-mono',      // Roboto Mono (regular variant)
+  'jetbrains-mono','jetbrains-mono-bold','jetbrains-mono-italic',
+  'source-code-pro','source-mono-v2','source-code-pro-light',
+  'space-mono','space-mono-bold','space-mono-v2',
+  'inconsolata','inconsolata-bold',
+  'ibm-plex-mono','ibm-plex-mono-v2',
+  'dm-mono','dm-mono-v2','dm-mono-light',
+  'overpass-mono','overpass-mono-v2',
+  'martian-mono','martian-mono-v2',
+  'geist-mono','geist-mono-bold',
+  'spline-sans-mono',
+  'reddit-mono',
+  'lilex',
+  'chivo-mono','chivo-mono-v2',
+  'm-plus-1-code','M-mono',
+  'google-sans-code',
+  'intel-one-mono',
+  // NOTE: roboto-mono is missing only the uppercase Ə glyph in the real
+  // font - everything else (ə,ş,ğ,ı,ö,ü,ç and their other uppercase forms)
+  // is supported. Enabling the cmap check still fixes the canvas-width bug
+  // for all of those; only Ə itself will still (correctly) show as "?".
+  'roboto-mono','roboto-mono-v2',
 ]);
 const CMAP_GLYPH_CHECK_FONT_NAMES = new Set([
   // Fallback by name, in case the same font is reachable without going
   // through its id (e.g. compare view). Kept in sync with the IDs above.
-  'Source Code Pro',
-  'Source Code Pro Bold',
-  'Roboto Mono',
-  'Roboto Mono Bold',
+  'JetBrains Mono','JetBrains Mono Bold','JetBrains Mono Italic',
+  'Source Code Pro','Source Code Pro Bold','Inconsolata Go',
+  'Space Mono','Space Mono Bold','Space Mono V2',
+  'Inconsolata','Inconsolata Bold',
+  'IBM Plex Mono','IBM Plex Mono Light',
+  'DM Mono','DM Mono Medium','Spline Sans Mono',
+  'Overpass Mono','Overpass Mono Bold',
+  'Martian Mono','Martian Mono Bold',
+  'Geist Mono','Geist Mono Bold',
+  'Reddit Mono',
+  'Lilex',
+  'Chivo Mono','Chivo Mono Italic',
+  'M PLUS 1 Code',
+  'Google Sans Code',
+  'Intel One Mono',
+  // See NOTE above on roboto-mono - missing only uppercase Ə.
+  'Roboto Mono','Roboto Mono Bold',
 ]);
 function _isCmapCheckEnabled(f){
   if(!f) return false;
