@@ -1,97 +1,3 @@
-// ---- Real glyph-coverage parsing (opentype.js cmap) ----
-// L?vh? doldurulan h?rfl?rin ?sl ?riftd? olub-olmamasini YALNIZ canvas eni
-// müqayis?sin? ?saslanaraq müə yyə nl??dirm?k monospace ?riftl?rd? h?mi??
-// "yoxdur" n?tic?si ver? bilir (bütün simvollar?n eni eynidir). Bunun
-// ?vəzin? ?riftin ?z cmap c?dv?lini opentype.js il? parse edib h?qiqi
-// dəstəkl?n?n Unicode kodpoint dəstini ç?xar?r?q - 100% d?qiq, monospace/
-// proporsional fərqi olmadan.
-let _otjsLoadPromise = null;
-function _ensureOpentypeJs(){
-  if(typeof window!=='undefined' && window.opentype) return Promise.resolve();
-  if(_otjsLoadPromise) return _otjsLoadPromise;
-  _otjsLoadPromise = new Promise((resolve,reject)=>{
-    const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js';
-    s.onload=()=>resolve();
-    s.onerror=()=>reject(new Error('opentype.js failed to load'));
-    document.head.appendChild(s);
-  });
-  return _otjsLoadPromise;
-}
-// dataUrlOrUrl: either a remote URL or a base64 data: URL for the font file.
-// Populates target.unicodeSet (Set<number> of supported Unicode code points)
-// and calls onDone() once ready (success or failure - failure just leaves
-// unicodeSet unset, so callers fall back to the old heuristic).
-function parseFontGlyphCoverage(target, dataUrlOrUrl, onDone){
-  if(!target || !dataUrlOrUrl){ if(onDone) onDone(); return; }
-  _ensureOpentypeJs().then(()=>{
-    window.opentype.load(dataUrlOrUrl, (err, otFont)=>{
-      if(err || !otFont){ if(onDone) onDone(); return; }
-      try{
-        const set = new Set();
-        const glyphCount = otFont.glyphs.length;
-        for(let i=0;i<glyphCount;i++){
-          const g = otFont.glyphs.get(i);
-          if(!g) continue;
-          if(typeof g.unicode === 'number'){
-            set.add(g.unicode);
-          }
-          if(Array.isArray(g.unicodes)){
-            g.unicodes.forEach(u=>set.add(u));
-          }
-        }
-        target.unicodeSet = set;
-      }catch(e){
-        // Parsing succeeded loading but glyph walk failed - leave unicodeSet unset.
-      }
-      if(onDone) onDone();
-    });
-  }).catch(()=>{ if(onDone) onDone(); });
-}
-
-// Resolves a Google Fonts `gfamily` (e.g. "Source+Code+Pro:wght@700") to an
-// actual font-file URL (fonts.gstatic.com/.../xxx.woff2). NOTE: we can't
-// fetch() the CSS2 endpoint directly - fonts.googleapis.com does not send
-// an Access-Control-Allow-Origin header on that endpoint, so a browser
-// fetch() is blocked by CORS (this was the exact error seen in console:
-// "blocked by CORS policy: No 'Access-Control-Allow-Origin' header").
-// Only the actual font FILES on fonts.gstatic.com allow CORS. So instead
-// we inject a normal <link rel="stylesheet"> (a stylesheet load - not
-// subject to CORS) and then read the resulting parsed CSS rules straight
-// out of document.styleSheets to find the url(...) - no fetch involved.
-function _resolveGoogleFontFileUrl(gfamily){
-  return new Promise((resolve)=>{
-    const href=`https://fonts.googleapis.com/css2?family=${gfamily}&display=swap`;
-    let link=[...document.querySelectorAll('link[rel="stylesheet"]')].find(l=>l.href===href);
-    if(!link){
-      link=document.createElement('link');
-      link.rel='stylesheet';
-      link.href=href;
-      link.crossOrigin='anonymous';
-      document.head.appendChild(link);
-    }
-    const tryRead=()=>{
-      try{
-        const sheet=[...document.styleSheets].find(s=>s.href===href || s.ownerNode===link);
-        if(!sheet) return null;
-        for(const rule of sheet.cssRules){
-          if(rule.style && rule.style.src){
-            const m=rule.style.src.match(/url\((?:"|')?(https:\/\/fonts\.gstatic\.com\/[^"')]+)/);
-            if(m) return m[1];
-          }
-        }
-      }catch(e){ /* stylesheet not parsed yet or cross-origin-readable rules unavailable */ }
-      return null;
-    };
-    const existing=tryRead();
-    if(existing){ resolve(existing); return; }
-    link.addEventListener('load', ()=>resolve(tryRead()), {once:true});
-    link.addEventListener('error', ()=>resolve(null), {once:true});
-    // Safety timeout in case load/error never fire (cached stylesheet edge cases)
-    setTimeout(()=>resolve(tryRead()), 2000);
-  });
-}
-
 // ---- [app.js lines 457-509] ----
 function injectCustomFontFace(fontId, name, dataUrl, ext){
   if(!dataUrl||loadedFonts.has(fontId)) return;
@@ -112,6 +18,7 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded){
     const ff=new FontFace(name, `url('${url}') format('${fmt}')`,{weight:'100 900'});
     ff.load().then(loaded=>{
       document.fonts.add(loaded);
+      if(typeof _glyphCache!=='undefined') delete _glyphCache[name];
       if(onLoaded)onLoaded();
       // Yalniz h?min fontun preview elementl?rini yenil?, bütün grid-i re-render etm?
       document.querySelectorAll(`[data-fontname="${name}"], [id^="prev-${fontId}"]`).forEach(el=>{
@@ -134,121 +41,17 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded){
     if(onLoaded)onLoaded();
   }
 }
-// ---- Opt-in allowlist for the new real-cmap glyph check ----
-// Yalniz bu siyahidaki font ID-l?ri (v? ya font ad-lari) ü?ün opentype.js
-// il? h?qiqi cmap yoxlamasi i?? d?s?r. Siyahida olmayan H?R BIR font
-// ?vv?lki kimi - heç bir d?yi?iklik olmadan - canvas-eni heuristikasi il?
-// i?l?m?y? davam edir. Yeni font ?lav? etm?k ü?ün sad?c? onun id-sini bu
-// set? ?lav? et (id-l?r fonts-data.js-d?ki "id:" sah?sind?n g?lir - n.b.
-// font.name "Source Code Pro Bold" kimi "Bold" v.s. ?lav?l?r? mal?k ola
-// bil?r, ona g?r? ID istifad? etm?k daha t?hl?k?sizdir).
-//
-// Bu siyahi t?sad?fi deyil - h?r fontun ?sl Google Fonts faylini GitHub-dan
-// ç?kib opentype.js il? real cmap-ini yoxladiq. A?agidakilar h?qiqi
-// monospace (h?r glyph-in eni eynidir - elec? d? canvas-eni testinin
-// h?mi?? "yoxdur" n?tic?si verdiyi tip) V? Az?rbaycan Latin-Ext h?rfl?rini
-// (ə,ş,ğ,ı,ö,ü,ç v? böyükl?ri) TAM d?st?kl?yir - yeni demli canvas-bug
-// onlarda h?qiq?t?n yanli? "?" göst?r? bilirdi. Eyni Google ail?sinin
-// ba?qa weight/style id-l?ri (-bold, -v2, -italic v? s.) d? ?lav? olunub,
-// çünki onlar eyni cmap-a malikdir.
-//
-// QEYD: bir sira ba?qa monospace font (Fira Code, Courier Prime, Ubuntu
-// Mono, Roboto Mono v? s.) yoxlanilib, amma ?sl ?riftd? h?qiq?t?n "ə"
-// (v? bezen "Ə") glyph-i YOXDUR - bu hallarda "?" göst?rilm?si DOĞRUDUR,
-// canvas-bug deyil, real ?rift m?hdudiyy?tidir, ona gör? onlar bu
-// siyahiya ?lav? OLUNMAYIB (?lav? ets?k d? "ə" yen? "?" qalacaq).
-const CMAP_GLYPH_CHECK_FONT_IDS = new Set([
-  'jetbrains-mono','jetbrains-mono-bold','jetbrains-mono-italic',
-  'source-code-pro','source-mono-v2','source-code-pro-light',
-  'space-mono','space-mono-bold','space-mono-v2',
-  'inconsolata','inconsolata-bold',
-  'ibm-plex-mono','ibm-plex-mono-v2',
-  'dm-mono','dm-mono-v2','dm-mono-light',
-  'overpass-mono','overpass-mono-v2',
-  'martian-mono','martian-mono-v2',
-  'geist-mono','geist-mono-bold',
-  'spline-sans-mono',
-  'reddit-mono',
-  'lilex',
-  'chivo-mono','chivo-mono-v2',
-  'm-plus-1-code','M-mono',
-  'google-sans-code',
-  'intel-one-mono',
-  // NOTE: roboto-mono is missing only the uppercase Ə glyph in the real
-  // font - everything else (ə,ş,ğ,ı,ö,ü,ç and their other uppercase forms)
-  // is supported. Enabling the cmap check still fixes the canvas-width bug
-  // for all of those; only Ə itself will still (correctly) show as "?".
-  'roboto-mono','roboto-mono-v2',
-]);
-const CMAP_GLYPH_CHECK_FONT_NAMES = new Set([
-  // Fallback by name, in case the same font is reachable without going
-  // through its id (e.g. compare view). Kept in sync with the IDs above.
-  'JetBrains Mono','JetBrains Mono Bold','JetBrains Mono Italic',
-  'Source Code Pro','Source Code Pro Bold','Inconsolata Go',
-  'Space Mono','Space Mono Bold','Space Mono V2',
-  'Inconsolata','Inconsolata Bold',
-  'IBM Plex Mono','IBM Plex Mono Light',
-  'DM Mono','DM Mono Medium','Spline Sans Mono',
-  'Overpass Mono','Overpass Mono Bold',
-  'Martian Mono','Martian Mono Bold',
-  'Geist Mono','Geist Mono Bold',
-  'Reddit Mono',
-  'Lilex',
-  'Chivo Mono','Chivo Mono Italic',
-  'M PLUS 1 Code',
-  'Google Sans Code',
-  'Intel One Mono',
-  // See NOTE above on roboto-mono - missing only uppercase Ə.
-  'Roboto Mono','Roboto Mono Bold',
-]);
-function _isCmapCheckEnabled(f){
-  if(!f) return false;
-  return CMAP_GLYPH_CHECK_FONT_IDS.has(f.id) || CMAP_GLYPH_CHECK_FONT_NAMES.has(f.name);
-}
-
 function loadFont(f){
-  if(loadedFonts.has(f.id)){
-    _maybeStartCmapCheck(f);
-    return;
-  }
+  if(loadedFonts.has(f.id)) return;
   // Only skip if it's a pure image-preview font (DaFont) with no actual font data
   if(f.previewImg && !f.fontData && !f.fontUrl && !f.gfamily) return;
-  if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');_maybeStartCmapCheck(f);return;}
-  if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');_maybeStartCmapCheck(f);return;}
+  if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');return;}
+  if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');return;}
   if(!f.gfamily) return;
   loadedFonts.add(f.id);
-  const l=document.createElement('link');l.rel='stylesheet';l.crossOrigin='anonymous';
+  const l=document.createElement('link');l.rel='stylesheet';
   l.href=`https://fonts.googleapis.com/css2?family=${f.gfamily}&display=swap`;
   document.head.appendChild(l);
-  _maybeStartCmapCheck(f);
-}
-// Real cmap-based glyph coverage - independent of loadedFonts (the
-// @font-face style/link cache), so re-opening a font's detail page still
-// gets unicodeSet populated for the missing-glyph check.
-// GATED: only runs for fonts in the CMAP_GLYPH_CHECK_FONT_IDS/NAMES
-// allowlist above - every other font is completely unaffected and keeps
-// using the original canvas-width heuristic exactly as before.
-function _maybeStartCmapCheck(f){
-  if(!_isCmapCheckEnabled(f) || f.unicodeSet) return;
-  const _refreshAfterCoverage=()=>{
-    if(typeof _glyphCache!=='undefined' && _glyphCache[f.name]) delete _glyphCache[f.name];
-    if(typeof renderPvCanvas==='function' && currentDetailFont===f) renderPvCanvas();
-    if(typeof renderCharmapLangBadges==='function' && currentDetailFont===f) renderCharmapLangBadges(f);
-  };
-  if(f.fontUrl||f.fontData){
-    parseFontGlyphCoverage(f, f.fontUrl||f.fontData, _refreshAfterCoverage);
-  } else if(f.gfamily){
-    // Google Fonts entries (no fontUrl/fontData of their own) - resolve the
-    // actual font file URL from the CSS2 endpoint first (reusing the same
-    // <link> that was just injected above, no duplicate request), then
-    // parse it the same way. Without this, gfamily fonts (the common case)
-    // never got real glyph data and always fell back to the unreliable
-    // canvas-width heuristic - which is what was wrongly "?"-ing monospace
-    // fonts like Source Code Pro Bold / Roboto Mono Bold.
-    _resolveGoogleFontFileUrl(f.gfamily).then(url=>{
-      if(url) parseFontGlyphCoverage(f, url, _refreshAfterCoverage);
-    }).catch(()=>{});
-  }
 }
 // ---- [app.js lines 579-757] ----
 function addToCompare(fontId){
@@ -477,12 +280,9 @@ const LANG_SUPPORT_LIST=[
   {code:'Punct',label:'Punct',chars:'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',color:'#636366'},
 ];
 function _fontCanRender(fontName,weight,testChars){
-  // PRIMARY: only for allowlisted fonts (CMAP_GLYPH_CHECK_FONT_IDS/NAMES) -
-  // real cmap data via opentype.js, 100% accurate, works for monospace
-  // fonts too, unlike the canvas-width heuristic below. Any font NOT in
-  // the allowlist skips this entirely and behaves exactly as before.
-  if(_isCmapCheckEnabled(currentDetailFont)&&currentDetailFont.unicodeSet&&currentDetailFont.unicodeSet.size>0){
-    const set=currentDetailFont.unicodeSet;
+  // PRIMARY: If uploadedFontData has a parsed unicodeSet, use it - 100% accurate.
+  if(uploadedFontData&&uploadedFontData.unicodeSet&&uploadedFontData.unicodeSet.size>0){
+    const set=uploadedFontData.unicodeSet;
     return (testChars||[]).some(ch=>set.has(ch.codePointAt(0)));
   }
   // FALLBACK: canvas diff - draw char with font vs without, compare pixels.
