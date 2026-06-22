@@ -435,7 +435,7 @@ function switchCardChar(btn,chars,fname,fw){
 // renderFonts() bu funksiyaya istinad edir; kart dizaynını dəyişmək üçün
 // yalnız bu funksiyaya baxmaq kifayətdir.
 function _buildCardHTML(font, opts){
-  const {isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp,glyphs}=opts;
+  const {isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp}=opts;
   const ratingHTML=(()=>{
     const r=getFontAvgRating(font.id);
     if(!r||r.count===0)return '';
@@ -479,7 +479,7 @@ function _buildCardHTML(font, opts){
       <div class="card-preview-area" onclick="openDetail('${font.id}')">
         <div class="card-preview" id="prev-${font.id}" data-fontname="${esc(font.name)}" style="${fs}opacity:0;transition:opacity .15s">${esc(txt)}</div>
         <div class="card-glyph-strip">
-          ${glyphs.map(ch=>`<span style="font-family:'${font.name}',sans-serif;font-weight:${font.weight}">${ch}</span>`).join('')}
+          ${getWeights(font).slice(0,5).map(w=>`<span style="font-family:'${font.name}',sans-serif;font-weight:${w}">${WEIGHT_NAMES[parseInt(w)]||w}</span>`).join('<span class="cgs-dot">·</span>')}
         </div>
       </div>
       <div class="card-footer" onclick="openDetail('${font.id}')">
@@ -520,7 +520,6 @@ function renderFonts(){
   document.getElementById('emptyState').classList.remove('show');
   const from=pp>0?(currentPage-1)*pp+1:1,to=pp>0?Math.min(currentPage*pp,total):total;
   title.innerHTML=`<strong>${total}</strong> font${total!==1?'s':''}${pp>0&&total>pp?` <span style="color:var(--text3);font-size:.78em">· showing ${from}-${to}</span>`:''}${activeLicenseFilter?` · <span style="color:var(--text3)">${LICENSE_META[activeLicenseFilter]?.label||''} only</span>`:''}`;
-  const glyphs='ABCDEFGHJKLMNOPQRST'.split('');
   const top5ids=FONTS_BASE.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0)).slice(0,5).map(f=>f.id);
   list.forEach((font,i)=>{
     loadFont(font);
@@ -535,7 +534,7 @@ function renderFonts(){
     const _cardWeight=_cardVariant?String(parseVariantStyle(_cardVariant.name||'').weight||font.weight||'400'):(font.weight||'400');
     const fs=`font-family:'${_cardFamily}',sans-serif;font-weight:${_cardWeight};font-size:${fontSize}px;`;
     const dlCount=DL_COUNTS[font.id]||0,isInCmp=compareFonts.includes(font.id);
-    card.innerHTML=_buildCardHTML(font,{isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp,glyphs});
+    card.innerHTML=_buildCardHTML(font,{isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp});
     grid.appendChild(card);
   });
 

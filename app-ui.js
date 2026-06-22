@@ -237,6 +237,14 @@ function _getGlyphCanvas(){
 }
 function _glyphSupported(fontFamily, ch){
   if(!ch || ch===' ' || ch==='\n' || ch==='\t' || ch==='\r') return true;
+  // Şrift hələ brauzerd? yükl?nm?yibs? (document.fonts.check yalan qaytarir),
+  // canvas test? f?rqi heç ölçm?y? bilm?z v? h?r h?rfi "yoxdur" kimi g?stər?r.
+  // Bu halda yoxlamani keç - h?rfi DƏSTƏKLƏNİR kimi qaytar (f?rz: yükl?n?nd?n sonra renderPvCanvas yenid?n ç?k?c?k).
+  try{
+    if(typeof document!=='undefined' && document.fonts && document.fonts.check){
+      if(!document.fonts.check(`16px '${fontFamily}'`)) return true;
+    }
+  }catch(e){}
   if(!_glyphCache[fontFamily]) _glyphCache[fontFamily] = {};
   if(ch in _glyphCache[fontFamily]) return _glyphCache[fontFamily][ch];
   const ctx = _getGlyphCanvas().getContext('2d');
@@ -1473,3 +1481,59 @@ document.head.appendChild(aiStyle);
     window._restoreGridScroll();
   }
 })();
+// ---- Page-load intro animasiyası: hərflər uçaraq "Font·Monster" sözünü əmələ gətirir ----
+// Sessiya başına 1 dəfə göstərilir (sessionStorage), reduced-motion-da skip olunur.
+function _showFmIntro(){
+  try{
+    if(sessionStorage.getItem('fm_intro_shown')) return;
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      sessionStorage.setItem('fm_intro_shown','1');
+      return;
+    }
+  }catch(e){ return; }
+  sessionStorage.setItem('fm_intro_shown','1');
+
+  const word = 'Font·Monster';
+  const fonts = ['Playfair Display','Poppins','Bebas Neue','Space Grotesk','Pacifico','Righteous','Fraunces','Unbounded','Cinzel','Caveat','Orbitron','Lilita One','Quicksand'];
+  const styles = [
+    {weight:700, italic:false}, {weight:400, italic:true}, {weight:800, italic:false},
+    {weight:500, italic:false}, {weight:600, italic:true}, {weight:900, italic:false}
+  ];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'fm-intro';
+  overlay.id = 'fmIntro';
+
+  const wordEl = document.createElement('div');
+  wordEl.className = 'fm-intro-word';
+
+  let letterIdx = 0;
+  [...word].forEach((ch) => {
+    const span = document.createElement('span');
+    span.textContent = ch;
+    if (ch !== ' ' && ch !== '·') {
+      const fam = fonts[letterIdx % fonts.length];
+      const st = styles[letterIdx % styles.length];
+      span.style.fontFamily = `'${fam}',sans-serif`;
+      span.style.fontWeight = st.weight;
+      if (st.italic) span.style.fontStyle = 'italic';
+      letterIdx++;
+    } else {
+      span.className = 'fm-intro-dot';
+    }
+    span.style.setProperty('--delay', (letterIdx * 0.045).toFixed(3) + 's');
+    span.style.setProperty('--r', Math.floor((Math.random() - 0.5) * 70) + 'deg');
+    span.style.setProperty('--x', Math.floor((Math.random() - 0.5) * 60) + 'px');
+    wordEl.appendChild(span);
+  });
+
+  overlay.appendChild(wordEl);
+  document.body.appendChild(overlay);
+
+  const totalMs = letterIdx * 45 + 700 + 450;
+  setTimeout(() => {
+    overlay.classList.add('fm-intro-hide');
+    setTimeout(() => overlay.remove(), 550);
+  }, totalMs);
+}
+document.addEventListener('DOMContentLoaded', _showFmIntro);

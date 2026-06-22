@@ -992,6 +992,11 @@ function _detailShowPage(font, fontId, dlCount){
     renderPvCanvas();
     document.querySelectorAll('#fdpLeft input[type=range], .fdp-sidebar input[type=range]').forEach(r=>{syncRangeSlider(r);r.addEventListener('input',()=>syncRangeSlider(r),{once:false});});
   },130);
+  // Şrift gec yüklən? bil?r (xüsusil? monospace/code şriftl?ri) - tam yükl?n?nd?n sonra
+  // preview-u bir d? render et ki, glyph yoxlamasi düzgün n?tic? versin (səhv "?" görünməsin)
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{ if(currentDetailFont) renderPvCanvas(); });
+  }
 
 }
 

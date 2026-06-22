@@ -498,15 +498,16 @@ nav{
 }
 .card-glyph-strip{
   position:absolute;bottom:0;left:0;right:0;
-  display:flex;overflow:hidden;
+  display:flex;align-items:baseline;overflow:hidden;white-space:nowrap;
   background:linear-gradient(to top,rgba(223,235,246,0.95),transparent);
-  padding:4px 20px 6px;gap:4px;
+  padding:5px 20px 7px;gap:8px;
   opacity:0;transform:translateY(4px);
   transition:opacity .2s,transform .2s;pointer-events:none;
 }
 [data-theme="dark"] .card-glyph-strip{background:linear-gradient(to top,rgba(26,34,40,0.95),transparent)}
 .card-preview-area:hover .card-glyph-strip{opacity:1;transform:translateY(0)}
-.card-glyph-strip span{font-size:11px;color:var(--text3);line-height:1}
+.card-glyph-strip span{font-size:12px;color:var(--text2);line-height:1}
+.card-glyph-strip .cgs-dot{color:var(--text3);opacity:.5;font-weight:400!important;font-style:normal!important;font-family:var(--sans)!important}
 .card-footer{
   display:flex;align-items:center;justify-content:space-between;
   padding:9px 20px;border-top:1px solid var(--border);
@@ -2979,4 +2980,39 @@ input[type=range].hb-bright::-moz-range-thumb {
 }
 #fm-tooltip.tip-below::after{
   bottom:100%;border-bottom-color:rgba(20,22,28,0.92);
+}
+
+/* ---- Page-load intro: "Font·Monster" hərflərinin uçaraq yerinə düşməsi ---- */
+.fm-intro{
+  position:fixed;inset:0;z-index:999999;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#1a3838 0%,#0f2424 100%);
+  opacity:1;transition:opacity .5s ease;
+  overflow:hidden;
+}
+.fm-intro.fm-intro-hide{opacity:0;pointer-events:none}
+.fm-intro-word{
+  display:flex;flex-wrap:nowrap;
+  font-size:clamp(28px,7vw,64px);
+  color:#fff;letter-spacing:0.005em;line-height:1;
+  text-shadow:0 4px 24px rgba(0,0,0,0.35);
+}
+.fm-intro-word span{
+  display:inline-block;
+  opacity:0;
+  transform:translateY(-130vh) translateX(var(--x,0)) rotate(var(--r,0deg));
+  animation:fmFall .75s cubic-bezier(.21,.85,.32,1.22) forwards;
+  animation-delay:var(--delay,0s);
+}
+.fm-intro-dot{
+  color:#5fb8a8;font-size:0.6em;align-self:center;margin:0 1px;
+}
+@keyframes fmFall{
+  0%{opacity:0;transform:translateY(-130vh) translateX(var(--x,0)) rotate(var(--r,0deg))}
+  55%{opacity:1}
+  78%{transform:translateY(6px) translateX(0) rotate(0deg)}
+  100%{opacity:1;transform:translateY(0) translateX(0) rotate(0deg)}
+}
+@media (max-width:520px){
+  .fm-intro-word{font-size:clamp(20px,8vw,40px)}
 }
