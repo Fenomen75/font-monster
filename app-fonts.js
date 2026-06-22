@@ -49,6 +49,49 @@ function parseFontGlyphCoverage(target, dataUrlOrUrl, onDone){
   }).catch(()=>{ if(onDone) onDone(); });
 }
 
+// Resolves a Google Fonts `gfamily` (e.g. "Source+Code+Pro:wght@700") to an
+// actual font-file URL (fonts.gstatic.com/.../xxx.woff2). NOTE: we can't
+// fetch() the CSS2 endpoint directly - fonts.googleapis.com does not send
+// an Access-Control-Allow-Origin header on that endpoint, so a browser
+// fetch() is blocked by CORS (this was the exact error seen in console:
+// "blocked by CORS policy: No 'Access-Control-Allow-Origin' header").
+// Only the actual font FILES on fonts.gstatic.com allow CORS. So instead
+// we inject a normal <link rel="stylesheet"> (a stylesheet load - not
+// subject to CORS) and then read the resulting parsed CSS rules straight
+// out of document.styleSheets to find the url(...) - no fetch involved.
+function _resolveGoogleFontFileUrl(gfamily){
+  return new Promise((resolve)=>{
+    const href=`https://fonts.googleapis.com/css2?family=${gfamily}&display=swap`;
+    let link=[...document.querySelectorAll('link[rel="stylesheet"]')].find(l=>l.href===href);
+    if(!link){
+      link=document.createElement('link');
+      link.rel='stylesheet';
+      link.href=href;
+      link.crossOrigin='anonymous';
+      document.head.appendChild(link);
+    }
+    const tryRead=()=>{
+      try{
+        const sheet=[...document.styleSheets].find(s=>s.href===href || s.ownerNode===link);
+        if(!sheet) return null;
+        for(const rule of sheet.cssRules){
+          if(rule.style && rule.style.src){
+            const m=rule.style.src.match(/url\((?:"|')?(https:\/\/fonts\.gstatic\.com\/[^"')]+)/);
+            if(m) return m[1];
+          }
+        }
+      }catch(e){ /* stylesheet not parsed yet or cross-origin-readable rules unavailable */ }
+      return null;
+    };
+    const existing=tryRead();
+    if(existing){ resolve(existing); return; }
+    link.addEventListener('load', ()=>resolve(tryRead()), {once:true});
+    link.addEventListener('error', ()=>resolve(null), {once:true});
+    // Safety timeout in case load/error never fire (cached stylesheet edge cases)
+    setTimeout(()=>resolve(tryRead()), 2000);
+  });
+}
+
 // ---- [app.js lines 457-509] ----
 function injectCustomFontFace(fontId, name, dataUrl, ext){
   if(!dataUrl||loadedFonts.has(fontId)) return;
@@ -91,21 +134,51 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded){
     if(onLoaded)onLoaded();
   }
 }
+// ---- Opt-in allowlist for the new real-cmap glyph check ----
+// Yalniz bu siyahidaki font ID-l?ri (v? ya font ad-lari) ü?ün opentype.js
+// il? h?qiqi cmap yoxlamasi i?? d?s?r. Siyahida olmayan H?R BIR font
+// ?vv?lki kimi - heç bir d?yi?iklik olmadan - canvas-eni heuristikasi il?
+// i?l?m?y? davam edir. Yeni font ?lav? etm?k ü?ün sad?c? onun id-sini v?
+// ya ad?ni bu setl?r? ?lav? et.
+const CMAP_GLYPH_CHECK_FONT_IDS = new Set([
+  // 'source-code-pro', // m?s: font.id buradan g?l?
+]);
+const CMAP_GLYPH_CHECK_FONT_NAMES = new Set([
+  'Source Code Pro',
+]);
+function _isCmapCheckEnabled(f){
+  if(!f) return false;
+  return CMAP_GLYPH_CHECK_FONT_IDS.has(f.id) || CMAP_GLYPH_CHECK_FONT_NAMES.has(f.name);
+}
+
 function loadFont(f){
   // Real cmap-based glyph coverage - independent of loadedFonts (the
   // @font-face style/link cache), so re-opening a font's detail page
   // still gets unicodeSet populated for the missing-glyph check.
-  if(!f.unicodeSet && (f.fontUrl||f.fontData)){
-    parseFontGlyphCoverage(f, f.fontUrl||f.fontData, ()=>{
-      // Drop any canvas-width fallback results cached before real glyph
-      // data arrived (opentype.js parsing is async) - those guesses may
-      // be wrong, especially for monospace fonts.
+  // GATED: only runs for fonts in the allowlist above - every other font
+  // is completely unaffected and keeps using the original canvas-width
+  // heuristic exactly as before.
+  if(_isCmapCheckEnabled(f)){
+    const _refreshAfterCoverage=()=>{
       if(typeof _glyphCache!=='undefined' && _glyphCache[f.name]) delete _glyphCache[f.name];
-      // Re-render the live preview once real glyph data is in, in case
-      // the canvas-width heuristic had wrongly "?"-ed monospace glyphs.
       if(typeof renderPvCanvas==='function' && currentDetailFont===f) renderPvCanvas();
       if(typeof renderCharmapLangBadges==='function' && currentDetailFont===f) renderCharmapLangBadges(f);
-    });
+    };
+    if(!f.unicodeSet){
+      if(f.fontUrl||f.fontData){
+        parseFontGlyphCoverage(f, f.fontUrl||f.fontData, _refreshAfterCoverage);
+      } else if(f.gfamily){
+        // Google Fonts entries (no fontUrl/fontData of their own) - resolve
+        // the actual font file URL from the CSS2 endpoint first, then parse
+        // it the same way. Without this, gfamily fonts (the common case)
+        // never got real glyph data and always fell back to the unreliable
+        // canvas-width heuristic - which is what was wrongly "?"-ing
+        // monospace fonts like Source Code Pro.
+        _resolveGoogleFontFileUrl(f.gfamily).then(url=>{
+          if(url) parseFontGlyphCoverage(f, url, _refreshAfterCoverage);
+        }).catch(()=>{});
+      }
+    }
   }
   if(loadedFonts.has(f.id)) return;
   // Only skip if it's a pure image-preview font (DaFont) with no actual font data
@@ -114,7 +187,7 @@ function loadFont(f){
   if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');return;}
   if(!f.gfamily) return;
   loadedFonts.add(f.id);
-  const l=document.createElement('link');l.rel='stylesheet';
+  const l=document.createElement('link');l.rel='stylesheet';l.crossOrigin='anonymous';
   l.href=`https://fonts.googleapis.com/css2?family=${f.gfamily}&display=swap`;
   document.head.appendChild(l);
 }
@@ -345,10 +418,11 @@ const LANG_SUPPORT_LIST=[
   {code:'Punct',label:'Punct',chars:'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',color:'#636366'},
 ];
 function _fontCanRender(fontName,weight,testChars){
-  // PRIMARY: If the active font has a parsed unicodeSet (real cmap data via
-  // opentype.js, see parseFontGlyphCoverage), use it - 100% accurate, works
-  // for monospace fonts too, unlike the canvas-width heuristic below.
-  if(currentDetailFont&&currentDetailFont.unicodeSet&&currentDetailFont.unicodeSet.size>0){
+  // PRIMARY: only for allowlisted fonts (CMAP_GLYPH_CHECK_FONT_IDS/NAMES) -
+  // real cmap data via opentype.js, 100% accurate, works for monospace
+  // fonts too, unlike the canvas-width heuristic below. Any font NOT in
+  // the allowlist skips this entirely and behaves exactly as before.
+  if(_isCmapCheckEnabled(currentDetailFont)&&currentDetailFont.unicodeSet&&currentDetailFont.unicodeSet.size>0){
     const set=currentDetailFont.unicodeSet;
     return (testChars||[]).some(ch=>set.has(ch.codePointAt(0)));
   }
