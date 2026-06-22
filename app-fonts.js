@@ -18,7 +18,6 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded){
     const ff=new FontFace(name, `url('${url}') format('${fmt}')`,{weight:'100 900'});
     ff.load().then(loaded=>{
       document.fonts.add(loaded);
-      if(typeof _glyphCache!=='undefined') delete _glyphCache[name];
       if(onLoaded)onLoaded();
       // Yalniz h?min fontun preview elementl?rini yenil?, bütün grid-i re-render etm?
       document.querySelectorAll(`[data-fontname="${name}"], [id^="prev-${fontId}"]`).forEach(el=>{
@@ -51,6 +50,13 @@ function loadFont(f){
   loadedFonts.add(f.id);
   const l=document.createElement('link');l.rel='stylesheet';
   l.href=`https://fonts.googleapis.com/css2?family=${f.gfamily}&display=swap`;
+  const _fname=f.name;
+  l.onload=function(){
+    if(typeof _glyphCache!=='undefined') delete _glyphCache[_fname];
+    document.fonts.ready.then(function(){
+      if(typeof renderPvCanvas==='function') renderPvCanvas();
+    });
+  };
   document.head.appendChild(l);
 }
 // ---- [app.js lines 579-757] ----
