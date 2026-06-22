@@ -306,7 +306,8 @@ function renderPvCanvas(){
   const fontWeight=pvBold?'bold':activeDetailWeight;
   const _av=font.fontVariants&&font.fontVariants[activeDetailVariantIdx||0];
   const _gBase=font.gfamily?(font.gfamily.split(':')[0].replace(/\+/g,' ')):null;
-  const _pvFamily=(_av&&_av._familyName)||_gBase||(_av?(font.name+' '+parseVariantStyle(_av.name||'').label):font.name);
+  const _stripW=(n)=>n.replace(/\b(thin|extralight|extra\s*light|light|regular|medium|semibold|semi\s*bold|bold|extrabold|extra\s*bold|black|heavy|italic|oblique|\d{3})\b/gi,'').replace(/\s+/g,' ').trim();
+  const _pvFamily=(_av&&_av._familyName)||_gBase||(_av?(font.name+' '+parseVariantStyle(_av.name||'').label):_stripW(font.name));
   // Banner mətn sinxronu - _pvFamily-dən sonra, düzgün family adı ilə
   const bannerTxt=document.getElementById('heroBannerText');
   if(bannerTxt) bannerTxt.textContent=txt||_pvFamily;

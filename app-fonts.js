@@ -615,7 +615,8 @@ function _detailRenderHero(font){
   // font.name-i deyil, düzgün CSS family adını işlət (məs: "Roboto Mono" not "Roboto Mono Bold")
   const _hbAv = font.fontVariants && font.fontVariants[0];
   const _hbGBase = font.gfamily ? (font.gfamily.split(':')[0].replace(/\+/g,' ')) : null;
-  const _hbFamily = (_hbAv && _hbAv._familyName) || _hbGBase || font.name;
+  const _hbStripWeight = (n) => n.replace(/\b(thin|extralight|extra\s*light|light|regular|medium|semibold|semi\s*bold|bold|extrabold|extra\s*bold|black|heavy|italic|oblique|\d{3})\b/gi,'').replace(/\s+/g,' ').trim();
+  const _hbFamily = (_hbAv && _hbAv._familyName) || _hbGBase || _hbStripWeight(font.name);
 
   document.getElementById('fdpHeroInner').innerHTML = heroBannerHasImg
     ? `<div style="position:relative;width:100%;min-height:420px;border-radius:14px;overflow:hidden;height:auto;margin-bottom:20px;">
