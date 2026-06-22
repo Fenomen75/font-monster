@@ -235,52 +235,36 @@ function _getGlyphCanvas(){
   if(!_glyphMeasureCanvas) _glyphMeasureCanvas = document.createElement('canvas');
   return _glyphMeasureCanvas;
 }
-function _glyphSupported(fontFamily, ch){
+function _glyphSupported(fontFamily, ch, fontWeight){
   if(!ch || ch===' ' || ch==='\n' || ch==='\t' || ch==='\r') return true;
-  // PRIMARY: only for allowlisted fonts (see CMAP_GLYPH_CHECK_FONT_IDS/NAMES
-  // and _isCmapCheckEnabled in app-fonts.js) - real cmap data parsed from
-  // the actual font file via opentype.js. 100% accurate and, unlike the
-  // canvas-width heuristic below, works correctly for monospace fonts -
-  // in a monospace font every glyph has the *same* advance width, so a
-  // width-diff test can never tell a supported glyph from an unsupported
-  // one and ends up "?"-ing characters the font actually has (this was the
-  // root cause of Latin-Ext letters like ə/ş/ğ showing as "?" in monospace
-  // previews even though the font included them). Fonts NOT in the
-  // allowlist skip this block entirely and behave exactly as before.
-  if(typeof currentDetailFont!=='undefined' && typeof _isCmapCheckEnabled==='function' && _isCmapCheckEnabled(currentDetailFont) && currentDetailFont.unicodeSet && currentDetailFont.unicodeSet.size>0){
-    return currentDetailFont.unicodeSet.has(ch.codePointAt(0));
-  }
   // Şrift hələ brauzerd? yükl?nm?yibs? (document.fonts.check yalan qaytarir),
   // canvas test? f?rqi heç ölçm?y? bilm?z v? h?r h?rfi "yoxdur" kimi g?stər?r.
-  // Bu halda yoxlamani keç - h?rfi DƏSTƏKLƏNİR kimi qaytar (f?rz: yükl?n?nd?n sonra renderPvCanvas yenid?n ç?k?c?q).
+  // Bu halda yoxlamani keç - h?rfi DƏSTƏKLƏNİR kimi qaytar (f?rz: yükl?n?nd?n sonra renderPvCanvas yenid?n ç?k?c?k).
   try{
     if(typeof document!=='undefined' && document.fonts && document.fonts.check){
-      if(!document.fonts.check(`16px '${fontFamily}'`)) return true;
+      if(!document.fonts.check(`${fontWeight||'400'} 16px '${fontFamily}'`)) return true;
     }
   }catch(e){}
-  // FALLBACK ONLY: canvas advance-width diff. Unreliable for monospace
-  // fonts (see note above) - only reached when real cmap data isn't
-  // available yet (e.g. opentype.js still loading/parsing, or font has no
-  // fontUrl/fontData to parse, like a Google Fonts @import).
-  if(!_glyphCache[fontFamily]) _glyphCache[fontFamily] = {};
-  if(ch in _glyphCache[fontFamily]) return _glyphCache[fontFamily][ch];
+  const _cacheKey = fontFamily+'::'+( fontWeight||'400');
+  if(!_glyphCache[_cacheKey]) _glyphCache[_cacheKey] = {};
+  if(ch in _glyphCache[_cacheKey]) return _glyphCache[_cacheKey][ch];
   const ctx = _getGlyphCanvas().getContext('2d');
   const size = 72;
   if(!(ch in _glyphDefaultWidths)){
     ctx.font = `${size}px ${_glyphSentinel}`;
     _glyphDefaultWidths[ch] = ctx.measureText(ch).width;
   }
-  ctx.font = `${size}px '${fontFamily}', ${_glyphSentinel}`;
+  ctx.font = `${fontWeight||'400'} ${size}px '${fontFamily}', ${_glyphSentinel}`;
   const testWidth = ctx.measureText(ch).width;
   const supported = Math.abs(testWidth - _glyphDefaultWidths[ch]) > 0.01;
-  _glyphCache[fontFamily][ch] = supported;
+  _glyphCache[_cacheKey][ch] = supported;
   return supported;
 }
-function sanitizeGlyphs(txt, fontFamily){
+function sanitizeGlyphs(txt, fontFamily, fontWeight){
   if(!txt) return txt;
   let out = '';
   for(const ch of txt){
-    out += _glyphSupported(fontFamily, ch) ? ch : '?';
+    out += _glyphSupported(fontFamily, ch, fontWeight) ? ch : '?';
   }
   return out;
 }
@@ -330,11 +314,11 @@ function renderPvCanvas(){
 
   if(pvMode==='text'){
     if(!txt){canvas.innerHTML='';return;}
-    const safeTxt=sanitizeGlyphs(txt,_pvFamily);
+    const safeTxt=sanitizeGlyphs(txt,_pvFamily,fontWeight);
     canvas.innerHTML=`<div style="${bs}font-size:${sz}px;line-height:${Math.max(lh,1.4)};text-align:${pvAlign};word-break:break-word;padding-bottom:0.25em;width:100%">${esc(safeTxt)}</div>`;
   } else if(pvMode==='waterfall'){
     const wfSizes=[10,12,14,18,24,32,48,64,80,96];
-    const wfTxt=sanitizeGlyphs(txt||font.name,_pvFamily);
+    const wfTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
     const sepColor=pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e'?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.07)';
     canvas.style.padding='6px 0';
     const wf=document.createElement('div');wf.className='pv-wf';
@@ -346,14 +330,14 @@ function renderPvCanvas(){
     });
     canvas.innerHTML='';canvas.appendChild(wf);
   } else if(pvMode==='paragraph'){
-    const paraTxt=sanitizeGlyphs(txt||font.name,_pvFamily);
+    const paraTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
     const bodySize=Math.max(14,Math.min(sz,22));
     canvas.innerHTML=`<div class="pv-para" style="${bs}text-align:${pvAlign}">
       <strong style="${bs}font-size:${sz}px;line-height:1.1;display:block;margin-bottom:14px;font-weight:700">${esc(paraTxt)}</strong>
       <span style="font-size:${bodySize}px;line-height:${lh}">${LOREM}</span>
     </div>`;
   } else if(pvMode==='pairs'){
-    const pairsTxt=sanitizeGlyphs(txt||font.name,_pvFamily);
+    const pairsTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
     const bodySize=Math.max(13,Math.round(sz*0.3));
     canvas.innerHTML=`<div class="pv-pairs">
       <div style="${bs}font-size:${sz}px;line-height:1.1;font-weight:700;text-align:${pvAlign};margin-bottom:12px">${esc(pairsTxt)}</div>

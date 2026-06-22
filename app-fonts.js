@@ -52,7 +52,7 @@ function loadFont(f){
   l.href=`https://fonts.googleapis.com/css2?family=${f.gfamily}&display=swap`;
   const _fname=f.name;
   l.onload=function(){
-    if(typeof _glyphCache!=='undefined') delete _glyphCache[_fname];
+    if(typeof _glyphCache!=='undefined'){Object.keys(_glyphCache).filter(k=>k.startsWith(_fname+'::')).forEach(k=>delete _glyphCache[k]);}
     document.fonts.ready.then(function(){
       if(typeof renderPvCanvas==='function') renderPvCanvas();
     });
