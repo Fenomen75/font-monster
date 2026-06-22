@@ -237,14 +237,29 @@ function _getGlyphCanvas(){
 }
 function _glyphSupported(fontFamily, ch){
   if(!ch || ch===' ' || ch==='\n' || ch==='\t' || ch==='\r') return true;
+  // PRIMARY: real cmap data parsed from the actual font file (opentype.js,
+  // see parseFontGlyphCoverage in app-fonts.js). 100% accurate and, unlike
+  // the canvas-width heuristic below, works correctly for monospace fonts -
+  // in a monospace font every glyph has the *same* advance width, so a
+  // width-diff test can never tell a supported glyph from an unsupported
+  // one and ends up "?"-ing characters the font actually has (this was the
+  // root cause of Latin-Ext letters like ə/ş/ğ showing as "?" in monospace
+  // previews even though the font included them).
+  if(typeof currentDetailFont!=='undefined' && currentDetailFont && currentDetailFont.unicodeSet && currentDetailFont.unicodeSet.size>0){
+    return currentDetailFont.unicodeSet.has(ch.codePointAt(0));
+  }
   // Şrift hələ brauzerd? yükl?nm?yibs? (document.fonts.check yalan qaytarir),
   // canvas test? f?rqi heç ölçm?y? bilm?z v? h?r h?rfi "yoxdur" kimi g?stər?r.
-  // Bu halda yoxlamani keç - h?rfi DƏSTƏKLƏNİR kimi qaytar (f?rz: yükl?n?nd?n sonra renderPvCanvas yenid?n ç?k?c?k).
+  // Bu halda yoxlamani keç - h?rfi DƏSTƏKLƏNİR kimi qaytar (f?rz: yükl?n?nd?n sonra renderPvCanvas yenid?n ç?k?c?q).
   try{
     if(typeof document!=='undefined' && document.fonts && document.fonts.check){
       if(!document.fonts.check(`16px '${fontFamily}'`)) return true;
     }
   }catch(e){}
+  // FALLBACK ONLY: canvas advance-width diff. Unreliable for monospace
+  // fonts (see note above) - only reached when real cmap data isn't
+  // available yet (e.g. opentype.js still loading/parsing, or font has no
+  // fontUrl/fontData to parse, like a Google Fonts @import).
   if(!_glyphCache[fontFamily]) _glyphCache[fontFamily] = {};
   if(ch in _glyphCache[fontFamily]) return _glyphCache[fontFamily][ch];
   const ctx = _getGlyphCanvas().getContext('2d');

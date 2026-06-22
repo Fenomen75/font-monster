@@ -1,3 +1,54 @@
+// ---- Real glyph-coverage parsing (opentype.js cmap) ----
+// L?vh? doldurulan h?rfl?rin ?sl ?riftd? olub-olmamasini YALNIZ canvas eni
+// müqayis?sin? ?saslanaraq müə yyə nl??dirm?k monospace ?riftl?rd? h?mi??
+// "yoxdur" n?tic?si ver? bilir (bütün simvollar?n eni eynidir). Bunun
+// ?vəzin? ?riftin ?z cmap c?dv?lini opentype.js il? parse edib h?qiqi
+// dəstəkl?n?n Unicode kodpoint dəstini ç?xar?r?q - 100% d?qiq, monospace/
+// proporsional fərqi olmadan.
+let _otjsLoadPromise = null;
+function _ensureOpentypeJs(){
+  if(typeof window!=='undefined' && window.opentype) return Promise.resolve();
+  if(_otjsLoadPromise) return _otjsLoadPromise;
+  _otjsLoadPromise = new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js';
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error('opentype.js failed to load'));
+    document.head.appendChild(s);
+  });
+  return _otjsLoadPromise;
+}
+// dataUrlOrUrl: either a remote URL or a base64 data: URL for the font file.
+// Populates target.unicodeSet (Set<number> of supported Unicode code points)
+// and calls onDone() once ready (success or failure - failure just leaves
+// unicodeSet unset, so callers fall back to the old heuristic).
+function parseFontGlyphCoverage(target, dataUrlOrUrl, onDone){
+  if(!target || !dataUrlOrUrl){ if(onDone) onDone(); return; }
+  _ensureOpentypeJs().then(()=>{
+    window.opentype.load(dataUrlOrUrl, (err, otFont)=>{
+      if(err || !otFont){ if(onDone) onDone(); return; }
+      try{
+        const set = new Set();
+        const glyphCount = otFont.glyphs.length;
+        for(let i=0;i<glyphCount;i++){
+          const g = otFont.glyphs.get(i);
+          if(!g) continue;
+          if(typeof g.unicode === 'number'){
+            set.add(g.unicode);
+          }
+          if(Array.isArray(g.unicodes)){
+            g.unicodes.forEach(u=>set.add(u));
+          }
+        }
+        target.unicodeSet = set;
+      }catch(e){
+        // Parsing succeeded loading but glyph walk failed - leave unicodeSet unset.
+      }
+      if(onDone) onDone();
+    });
+  }).catch(()=>{ if(onDone) onDone(); });
+}
+
 // ---- [app.js lines 457-509] ----
 function injectCustomFontFace(fontId, name, dataUrl, ext){
   if(!dataUrl||loadedFonts.has(fontId)) return;
@@ -41,6 +92,21 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded){
   }
 }
 function loadFont(f){
+  // Real cmap-based glyph coverage - independent of loadedFonts (the
+  // @font-face style/link cache), so re-opening a font's detail page
+  // still gets unicodeSet populated for the missing-glyph check.
+  if(!f.unicodeSet && (f.fontUrl||f.fontData)){
+    parseFontGlyphCoverage(f, f.fontUrl||f.fontData, ()=>{
+      // Drop any canvas-width fallback results cached before real glyph
+      // data arrived (opentype.js parsing is async) - those guesses may
+      // be wrong, especially for monospace fonts.
+      if(typeof _glyphCache!=='undefined' && _glyphCache[f.name]) delete _glyphCache[f.name];
+      // Re-render the live preview once real glyph data is in, in case
+      // the canvas-width heuristic had wrongly "?"-ed monospace glyphs.
+      if(typeof renderPvCanvas==='function' && currentDetailFont===f) renderPvCanvas();
+      if(typeof renderCharmapLangBadges==='function' && currentDetailFont===f) renderCharmapLangBadges(f);
+    });
+  }
   if(loadedFonts.has(f.id)) return;
   // Only skip if it's a pure image-preview font (DaFont) with no actual font data
   if(f.previewImg && !f.fontData && !f.fontUrl && !f.gfamily) return;
@@ -279,9 +345,11 @@ const LANG_SUPPORT_LIST=[
   {code:'Punct',label:'Punct',chars:'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',color:'#636366'},
 ];
 function _fontCanRender(fontName,weight,testChars){
-  // PRIMARY: If uploadedFontData has a parsed unicodeSet, use it - 100% accurate.
-  if(uploadedFontData&&uploadedFontData.unicodeSet&&uploadedFontData.unicodeSet.size>0){
-    const set=uploadedFontData.unicodeSet;
+  // PRIMARY: If the active font has a parsed unicodeSet (real cmap data via
+  // opentype.js, see parseFontGlyphCoverage), use it - 100% accurate, works
+  // for monospace fonts too, unlike the canvas-width heuristic below.
+  if(currentDetailFont&&currentDetailFont.unicodeSet&&currentDetailFont.unicodeSet.size>0){
+    const set=currentDetailFont.unicodeSet;
     return (testChars||[]).some(ch=>set.has(ch.codePointAt(0)));
   }
   // FALLBACK: canvas diff - draw char with font vs without, compare pixels.
