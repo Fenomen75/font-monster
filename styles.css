@@ -392,6 +392,9 @@ nav{
   position:relative;overflow:hidden;
   transition:filter .2s, opacity .2s;
 }
+[data-theme="dark"] .card-header{
+  background:linear-gradient(135deg, #1a3838 0%, #0f2424 100%);
+}
 /* Dekorativ böyük dair? - sag alt küncd? */
 .card-header::before{
   content:'';position:absolute;inset:0;
@@ -1784,6 +1787,10 @@ input[type=range]::-moz-range-progress {
     hotGlow 2s ease-in-out 0.5s infinite,
     newShimmer 2.4s linear 0.5s infinite;
   box-shadow:0 1px 6px rgba(255,59,48,0.5);
+}
+[data-theme="dark"] .hot-badge{
+  background:linear-gradient(135deg,#c4502a,#b32d24);
+  box-shadow:0 1px 6px rgba(255,59,48,0.3);
 }
 .hot-badge::before {
   content:'';
