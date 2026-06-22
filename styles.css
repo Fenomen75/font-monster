@@ -247,12 +247,12 @@ nav{
 .csel-arrow{width:13px;height:13px;flex-shrink:0;transition:transform .2s;color:var(--text3);margin-left:2px}
 .csel-btn.open .csel-arrow{transform:rotate(180deg)}
 .csel-drop{
-  position:absolute;bottom:calc(100% + 5px);left:0;min-width:100%;
+  position:absolute;top:calc(100% + 5px);left:0;min-width:100%;
   background:var(--surface-solid);border:1px solid var(--border2);border-radius:8px;
   box-shadow:0 8px 32px rgba(0,0,0,0.13),0 2px 8px rgba(0,0,0,0.06);
   z-index:99999;overflow:hidden;
   opacity:0;pointer-events:none;visibility:hidden;
-  transform:translateY(6px) scale(0.97);transform-origin:bottom center;
+  transform:translateY(-6px) scale(0.97);transform-origin:top center;
   transition:opacity .14s,transform .14s cubic-bezier(0.34,1.56,0.64,1),visibility .14s;
 }
 .csel.open .csel-drop{opacity:1;pointer-events:all;visibility:visible;transform:translateY(0) scale(1)}
@@ -273,7 +273,7 @@ nav{
   width:100%;justify-content:space-between;
   background:var(--surface3);border-color:var(--border2);
 }
-.csel.csel-form .csel-drop{width:100%;max-height:240px;overflow-y:auto;bottom:calc(100% + 4px)}
+.csel.csel-form .csel-drop{width:100%;max-height:240px;overflow-y:auto;top:calc(100% + 4px)}
 .csel.csel-form .csel-btn.open,.csel.csel-form .csel-btn:focus{
   background:var(--surface-solid);border-color:var(--accent);
   box-shadow:0 0 0 3px rgba(40,85,85,0.12);
@@ -285,7 +285,7 @@ nav{
   width:100%;justify-content:space-between;
   background:var(--surface3);border-color:var(--border2);
 }
-.csel.csel-pair .csel-drop{width:100%;max-height:280px;overflow:hidden;bottom:calc(100% + 4px)}
+.csel.csel-pair .csel-drop{width:100%;max-height:280px;overflow:hidden;top:calc(100% + 4px)}
 .csel.csel-pair .csel-opt-list{max-height:220px;overflow-y:auto}
 
 /* ?? LAYOUT ?? */
