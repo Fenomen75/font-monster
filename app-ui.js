@@ -306,7 +306,9 @@ function renderPvCanvas(){
   const fontWeight=pvBold?'bold':activeDetailWeight;
   const _av=font.fontVariants&&font.fontVariants[activeDetailVariantIdx||0];
   const _gBase=font.gfamily?(font.gfamily.split(':')[0].replace(/\+/g,' ')):null;
-  const _pvFamily=(_av&&_av._familyName)||_gBase||(_av?(font.name+' '+parseVariantStyle(_av.name||'').label):_stripW(font.name));
+  // fontVariants varsa _familyName istifadə et; gfamily varsa base adı; heç biri yoxdursa
+  // font.name-i olduğu kimi saxla (çünki @font-face həmin ad ilə qeydiyyatdadır)
+  const _pvFamily=(_av&&_av._familyName)||_gBase||(font.fontVariants&&font.fontVariants.length>0?(font.name+' '+parseVariantStyle((_av&&_av.name)||'').label):font.name);
   // Banner mətn sinxronu - _pvFamily-dən sonra, düzgün family adı ilə
   const bannerTxt=document.getElementById('heroBannerText');
   if(bannerTxt) bannerTxt.textContent=txt||_pvFamily;
