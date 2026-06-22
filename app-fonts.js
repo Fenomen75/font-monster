@@ -138,13 +138,23 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded){
 // Yalniz bu siyahidaki font ID-l?ri (v? ya font ad-lari) ü?ün opentype.js
 // il? h?qiqi cmap yoxlamasi i?? d?s?r. Siyahida olmayan H?R BIR font
 // ?vv?lki kimi - heç bir d?yi?iklik olmadan - canvas-eni heuristikasi il?
-// i?l?m?y? davam edir. Yeni font ?lav? etm?k ü?ün sad?c? onun id-sini v?
-// ya ad?ni bu setl?r? ?lav? et.
+// i?l?m?y? davam edir. Yeni font ?lav? etm?k ü?ün sad?c? onun id-sini bu
+// set? ?lav? et (id-l?r fonts-data.js-d?ki "id:" sah?sind?n g?lir - n.b.
+// font.name "Source Code Pro Bold" kimi "Bold" v.s. ?lav?l?r? mal?k ola
+// bil?r, ona g?r? ID istifad? etm?k daha t?hl?k?sizdir).
 const CMAP_GLYPH_CHECK_FONT_IDS = new Set([
-  // 'source-code-pro', // m?s: font.id buradan g?l?
+  'source-mono-v2',   // Source Code Pro Bold
+  'roboto-mono-v2',   // Roboto Mono Bold
+  'source-code-pro',  // Source Code Pro (regular variant)
+  'roboto-mono',      // Roboto Mono (regular variant)
 ]);
 const CMAP_GLYPH_CHECK_FONT_NAMES = new Set([
+  // Fallback by name, in case the same font is reachable without going
+  // through its id (e.g. compare view). Kept in sync with the IDs above.
   'Source Code Pro',
+  'Source Code Pro Bold',
+  'Roboto Mono',
+  'Roboto Mono Bold',
 ]);
 function _isCmapCheckEnabled(f){
   if(!f) return false;
@@ -152,44 +162,48 @@ function _isCmapCheckEnabled(f){
 }
 
 function loadFont(f){
-  // Real cmap-based glyph coverage - independent of loadedFonts (the
-  // @font-face style/link cache), so re-opening a font's detail page
-  // still gets unicodeSet populated for the missing-glyph check.
-  // GATED: only runs for fonts in the allowlist above - every other font
-  // is completely unaffected and keeps using the original canvas-width
-  // heuristic exactly as before.
-  if(_isCmapCheckEnabled(f)){
-    const _refreshAfterCoverage=()=>{
-      if(typeof _glyphCache!=='undefined' && _glyphCache[f.name]) delete _glyphCache[f.name];
-      if(typeof renderPvCanvas==='function' && currentDetailFont===f) renderPvCanvas();
-      if(typeof renderCharmapLangBadges==='function' && currentDetailFont===f) renderCharmapLangBadges(f);
-    };
-    if(!f.unicodeSet){
-      if(f.fontUrl||f.fontData){
-        parseFontGlyphCoverage(f, f.fontUrl||f.fontData, _refreshAfterCoverage);
-      } else if(f.gfamily){
-        // Google Fonts entries (no fontUrl/fontData of their own) - resolve
-        // the actual font file URL from the CSS2 endpoint first, then parse
-        // it the same way. Without this, gfamily fonts (the common case)
-        // never got real glyph data and always fell back to the unreliable
-        // canvas-width heuristic - which is what was wrongly "?"-ing
-        // monospace fonts like Source Code Pro.
-        _resolveGoogleFontFileUrl(f.gfamily).then(url=>{
-          if(url) parseFontGlyphCoverage(f, url, _refreshAfterCoverage);
-        }).catch(()=>{});
-      }
-    }
+  if(loadedFonts.has(f.id)){
+    _maybeStartCmapCheck(f);
+    return;
   }
-  if(loadedFonts.has(f.id)) return;
   // Only skip if it's a pure image-preview font (DaFont) with no actual font data
   if(f.previewImg && !f.fontData && !f.fontUrl && !f.gfamily) return;
-  if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');return;}
-  if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');return;}
+  if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');_maybeStartCmapCheck(f);return;}
+  if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');_maybeStartCmapCheck(f);return;}
   if(!f.gfamily) return;
   loadedFonts.add(f.id);
   const l=document.createElement('link');l.rel='stylesheet';l.crossOrigin='anonymous';
   l.href=`https://fonts.googleapis.com/css2?family=${f.gfamily}&display=swap`;
   document.head.appendChild(l);
+  _maybeStartCmapCheck(f);
+}
+// Real cmap-based glyph coverage - independent of loadedFonts (the
+// @font-face style/link cache), so re-opening a font's detail page still
+// gets unicodeSet populated for the missing-glyph check.
+// GATED: only runs for fonts in the CMAP_GLYPH_CHECK_FONT_IDS/NAMES
+// allowlist above - every other font is completely unaffected and keeps
+// using the original canvas-width heuristic exactly as before.
+function _maybeStartCmapCheck(f){
+  if(!_isCmapCheckEnabled(f) || f.unicodeSet) return;
+  const _refreshAfterCoverage=()=>{
+    if(typeof _glyphCache!=='undefined' && _glyphCache[f.name]) delete _glyphCache[f.name];
+    if(typeof renderPvCanvas==='function' && currentDetailFont===f) renderPvCanvas();
+    if(typeof renderCharmapLangBadges==='function' && currentDetailFont===f) renderCharmapLangBadges(f);
+  };
+  if(f.fontUrl||f.fontData){
+    parseFontGlyphCoverage(f, f.fontUrl||f.fontData, _refreshAfterCoverage);
+  } else if(f.gfamily){
+    // Google Fonts entries (no fontUrl/fontData of their own) - resolve the
+    // actual font file URL from the CSS2 endpoint first (reusing the same
+    // <link> that was just injected above, no duplicate request), then
+    // parse it the same way. Without this, gfamily fonts (the common case)
+    // never got real glyph data and always fell back to the unreliable
+    // canvas-width heuristic - which is what was wrongly "?"-ing monospace
+    // fonts like Source Code Pro Bold / Roboto Mono Bold.
+    _resolveGoogleFontFileUrl(f.gfamily).then(url=>{
+      if(url) parseFontGlyphCoverage(f, url, _refreshAfterCoverage);
+    }).catch(()=>{});
+  }
 }
 // ---- [app.js lines 579-757] ----
 function addToCompare(fontId){
