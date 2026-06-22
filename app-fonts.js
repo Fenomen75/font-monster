@@ -612,6 +612,10 @@ function _detailRenderHero(font){
   ];
   const pal = heroBgPalettes[Math.floor(Math.random()*heroBgPalettes.length)];
   const heroBannerHasImg = !!font.previewImg;
+  // font.name-i deyil, düzgün CSS family adını işlət (məs: "Roboto Mono" not "Roboto Mono Bold")
+  const _hbAv = font.fontVariants && font.fontVariants[0];
+  const _hbGBase = font.gfamily ? (font.gfamily.split(':')[0].replace(/\+/g,' ')) : null;
+  const _hbFamily = (_hbAv && _hbAv._familyName) || _hbGBase || font.name;
 
   document.getElementById('fdpHeroInner').innerHTML = heroBannerHasImg
     ? `<div style="position:relative;width:100%;min-height:420px;border-radius:14px;overflow:hidden;height:auto;margin-bottom:20px;">
@@ -645,7 +649,7 @@ function _detailRenderHero(font){
           position:relative;box-sizing:border-box;flex-shrink:1;
         ">
         <div id="heroBannerText" style="
-          font-family:'${esc(font.name)}',sans-serif;
+          font-family:'${esc(_hbFamily)}',sans-serif;
           font-weight:${font.weight};
           font-size:72px;
           color:${pal.text};
