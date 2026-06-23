@@ -57,8 +57,9 @@ function loadFont(f){
   if(!_hasVariants && _fname!==_gBase){
     fetch(_gUrl).then(function(r){return r.text();}).then(function(css){
       if(typeof _glyphCache!=='undefined'){Object.keys(_glyphCache).filter(function(k){return k.startsWith(_fname+'::');}).forEach(function(k){delete _glyphCache[k];});}
-      var match=css.match(/url\(([^)]+\.woff2[^)]*?)\)/);
-      var src=match?match[1]:null;
+      var _latinSec=css.match(/\/\*\s*\[latin\]\s*\*\/[\s\S]*?url\(([^)]+\.woff2[^)]*?)\)/);
+      var _allW=[...css.matchAll(/url\(([^)]+\.woff2[^)]*?)\)/g)];
+      var src=_latinSec?_latinSec[1]:(_allW.length?_allW[_allW.length-1][1]:null);
       if(src&&!document.getElementById('ff-alias-'+f.id)){
         var s=document.createElement('style');s.id='ff-alias-'+f.id;
         var w=f.weight||'400';
