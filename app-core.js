@@ -456,7 +456,6 @@ function _buildCardHTML(font, opts){
           <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(font.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(font.author)}</span> · ${font.year}</div>
         </div>
         <div class="card-actions" style="position:relative;z-index:2">
-          ${(window.currentUser&&window.currentUser.isAdmin)?`<button onclick="event.stopPropagation();adminDeleteFontFromCard('${font.id}','${esc(font.name)}',this)" style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:none;background:rgba(255,59,48,0.15);color:var(--red,#ff3b30);font-size:13px;cursor:pointer;flex-shrink:0;transition:background .15s" onmouseover="this.style.background='rgba(255,59,48,0.35)'" onmouseout="this.style.background='rgba(255,59,48,0.15)'" title="Delete font" data-tip="Delete this font">✕</button>`:''}
           <div class="dl-count" data-fid="${font.id}">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             ${fmtDlCountFor(font.id)}
