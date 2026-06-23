@@ -90,8 +90,12 @@ function loadFont(f){
   if(loadedFonts.has(f.id)) return;
   // Only skip if it's a pure image-preview font (DaFont) with no actual font data
   if(f.previewImg && !f.fontData && !f.fontUrl && !f.gfamily) return;
-  if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf',null,f.weight||'400');return;}
-  if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');return;}
+  if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf',function(){
+    const hb=document.getElementById('heroBannerText');
+    if(hb){hb.style.fontFamily="'"+f.name+"',sans-serif";}
+    if(typeof renderPvCanvas==='function')renderPvCanvas();
+  },f.weight||'400');return;}
+  if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');document.fonts.ready.then(function(){const hb=document.getElementById('heroBannerText');if(hb){hb.style.fontFamily="'"+f.name+"',sans-serif";}if(typeof renderPvCanvas==='function')renderPvCanvas();});return;}
   if(!f.gfamily) return;
   loadedFonts.add(f.id);
   const _fname=f.name;
@@ -759,12 +763,12 @@ function _detailRenderHero(font){
           <!-- Bg color -->
             <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:980px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);cursor:pointer;" data-tip="Background color">
               <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);font-family:inherit;">BG</span>
-              <input type="color" value="#0a0a0a" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const b=document.getElementById('heroBannerAuto');if(b)b.style.background=v;})(this.value)">
+              <input type="color" value="${pal.bg}" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const b=document.getElementById('heroBannerAuto');if(b)b.style.background=v;})(this.value)">
             </label>
             <!-- Font color -->
             <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:980px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);cursor:pointer;" data-tip="Text color">
               <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);font-family:inherit;">Text</span>
-              <input type="color" value="#ffffff" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const t=document.getElementById('heroBannerText');if(t)t.style.color=v;})(this.value)">
+              <input type="color" value="${pal.text}" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const t=document.getElementById('heroBannerText');if(t)t.style.color=v;})(this.value)">
             </label>
           </div>
           <label style="cursor:pointer;display:flex;align-items:center;gap:6px;
