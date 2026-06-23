@@ -1841,12 +1841,16 @@ function _renderFileList(){
   zone.style.opacity='0.55';
   zone.style.minHeight='40px';
   sel.classList.add('show');
+  lst.style.maxHeight = uploadedFontFiles.length > 2 ? '96px' : '';
+  lst.style.overflowY = uploadedFontFiles.length > 2 ? 'auto' : '';
   lst.innerHTML=uploadedFontFiles.map((f,i)=>
     `<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       <span style="font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
       <span style="font-size:11px;color:var(--text3);flex-shrink:0">${(f.size/1024).toFixed(0)} KB</span>
-      <button onclick="removeUploadedFile(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0 2px;line-height:1;flex-shrink:0" title="Remove">?</button>
+      <button onclick="removeUploadedFile(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0 2px;line-height:1;flex-shrink:0;display:flex;align-items:center;" title="Remove">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>`
   ).join('');
 }
