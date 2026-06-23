@@ -1,3 +1,19 @@
+// Hero banner image error fallback - şəkil yüklənməsə auto banner göstər
+function _heroBannerImgError(img, fam, wt, bg, textColor){
+  const wrap = img.closest('div');
+  if(!wrap) return;
+  wrap.outerHTML = `<div id="heroBannerAuto" style="width:100%;max-width:100%;min-width:0;min-height:420px;border-radius:14px;overflow:hidden;height:auto;background:${bg};display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;box-sizing:border-box;">
+    <div id="heroBannerText" style="font-family:'${fam}',sans-serif;font-weight:${wt};font-size:72px;color:${textColor};line-height:1.1;letter-spacing:-0.03em;user-select:none;text-align:center;word-break:break-word;width:90%;">${fam}</div>
+    <div style="position:absolute;bottom:12px;right:12px;">
+      <label style="cursor:pointer;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);color:rgba(255,255,255,0.85);font-size:11px;font-weight:600;padding:6px 12px;border-radius:980px;border:1px solid rgba(255,255,255,0.2);">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Add image
+        <input type="file" accept="image/*" style="display:none" onchange="heroBannerUpload(this)">
+      </label>
+    </div>
+  </div>`;
+}
+
 // ---- Custom confirm modal (replaces native confirm()) ----
 function showDeleteConfirm({title, message, confirmLabel, onConfirm, danger=true}){
   const id='__del_modal_'+Date.now();
@@ -681,14 +697,14 @@ function _detailRenderHero(font){
     {bg:'#18181b',text:'#f4f4f5'},
   ];
   const pal = heroBgPalettes[Math.floor(Math.random()*heroBgPalettes.length)];
-  const heroBannerHasImg = !!font.previewImg;
+  const heroBannerHasImg = !!(font.previewImg && (font.previewImg.startsWith('http') || font.previewImg.startsWith('data:')));
   // font.name-i deyil, düzgün CSS family adını işlət (məs: "Roboto Mono" not "Roboto Mono Bold")
   const _hbAv = font.fontVariants && font.fontVariants[0];
   const _hbFamily = (_hbAv && _hbAv._familyName) || font.name;
 
   document.getElementById('fdpHeroInner').innerHTML = heroBannerHasImg
     ? `<div style="position:relative;width:100%;min-height:420px;border-radius:14px;overflow:hidden;height:auto;margin-bottom:20px;">
-        <img src="${font.previewImg}" id="heroBannerImg" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <img src="${font.previewImg}" id="heroBannerImg" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="_heroBannerImgError(this,'${esc(_hbFamily)}','${font.weight?String(font.weight):_inferWeightFromName(font.name)}','${pal.bg}','${pal.text}')">
         <div id="heroBannerTint" style="position:absolute;inset:0;background:rgba(0,0,0,0.4);transition:background .2s;"></div>
         <div style="position:absolute;bottom:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:7px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);padding:6px 11px;border-radius:980px;border:1px solid rgba(255,255,255,0.15);">
