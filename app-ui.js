@@ -229,7 +229,7 @@ function _showPvScriptWarning(script, supported){
 // ---- Glyph-level missing-character detection (no default-font fallback) ----
 const _glyphCache = {}; // fontFamily -> { char: boolean }
 const _glyphDefaultWidths = {}; // char -> width rendered with a font that can never exist
-const _glyphSentinel = 'glyphProbeSentinel404';
+const _glyphSentinel = 'serif';
 let _glyphMeasureCanvas = null;
 function _getGlyphCanvas(){
   if(!_glyphMeasureCanvas) _glyphMeasureCanvas = document.createElement('canvas');
@@ -261,7 +261,12 @@ function _glyphSupported(fontFamily, ch, fontWeight){
   return supported;
 }
 function sanitizeGlyphs(txt, fontFamily, fontWeight){
-  return txt || txt;
+  if(!txt) return txt;
+  let out = '';
+  for(const ch of txt){
+    out += _glyphSupported(fontFamily, ch, fontWeight) ? ch : '';
+  }
+  return out;
 }
 
 function renderPvCanvas(){
