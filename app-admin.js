@@ -1850,7 +1850,7 @@ function _renderFileList(){
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       <span style="font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
       <span style="font-size:11px;color:var(--text3);flex-shrink:0">${(f.size/1024).toFixed(0)} KB</span>
-      <button onclick="removeUploadedFile(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0 2px;line-height:1;flex-shrink:0" title="Remove">?</button>
+      <button onclick="removeUploadedFile(${i})" style="background:none;border:none;cursor:pointer;color:var(--red,#ff3b30);font-size:15px;font-weight:700;padding:0 2px;line-height:1;flex-shrink:0" title="Remove">×</button>
     </div>`
   ).join('');
 }
