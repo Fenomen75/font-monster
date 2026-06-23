@@ -815,6 +815,15 @@ document.addEventListener('keydown', function(e){
 // ---- [app.js lines 5932-6113] ----
 const _cselInstances = {};
 
+// csel-drop-up: dropdown yuxarı deyil aşağı açılsın
+(function(){
+  if(document.getElementById('_csel_dir_style')) return;
+  const s=document.createElement('style');
+  s.id='_csel_dir_style';
+  s.textContent='.csel-drop{top:100%;bottom:auto;}.csel-drop-up{top:auto!important;bottom:100%!important;}';
+  document.head.appendChild(s);
+})();
+
 function initCustomSelect(nativeId, variant) {
   // variant: 'toolbar' | 'form' | 'pair'
   const native = document.getElementById(nativeId);
@@ -939,6 +948,14 @@ function initCustomSelect(nativeId, variant) {
     buildOptions();
     wrap.classList.add('open');
     btn.classList.add('open');
+    // Dropdown istiqamətini müəyyən et: yuxarıda yer varsa yuxarı, yoxsa aşağı aç
+    drop.classList.remove('csel-drop-up');
+    const rect = wrap.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropH = drop.scrollHeight || 220;
+    if (spaceBelow < dropH + 8 && rect.top > spaceBelow) {
+      drop.classList.add('csel-drop-up');
+    }
     // Pair: axtaris inputunu t?mizl? v? fokusla
     if (searchInput) {
       searchInput.value = '';
