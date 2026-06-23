@@ -248,7 +248,6 @@ function _showExistingFontFile(f){
   lst.innerHTML=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       <span style="font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(label)}</span>
-      <button onclick="clearEditFile();document.getElementById('ef-file').click();" style="background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--accent);font-size:11px;padding:2px 8px;font-family:var(--sans);white-space:nowrap;flex-shrink:0">Replace</button>
     </div>`;
 }
 
@@ -1933,20 +1932,6 @@ function openSubmit(){
     return;
   }
   _resetSubmitForm();
-  // Admin isə author-u avtomatik "Administrator" yaz və read-only et
-  const sfAuthor=document.getElementById('sf-author');
-  if(sfAuthor){
-    if(_isAdmin(window.currentUser)){
-      sfAuthor.value='Administrator';
-      sfAuthor.readOnly=true;
-      sfAuthor.style.opacity='0.55';
-      sfAuthor.style.cursor='default';
-    } else {
-      sfAuthor.readOnly=false;
-      sfAuthor.style.opacity='';
-      sfAuthor.style.cursor='';
-    }
-  }
   document.getElementById('submitFormWrap').style.display='';
   document.getElementById('submitSuccess').classList.remove('show');
   document.getElementById('submitModal').classList.add('open');document.body.style.overflow='hidden';
@@ -2217,7 +2202,6 @@ function _persistSubmittedFontLocally(font, fontForStorage, savedToFirestore){
 // 7/7 — clear the submit form and show the success state
 function _resetSubmitForm(){
   ['sf-name','sf-author','sf-tags','sf-year','sf-url','sf-affiliate','sf-description'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
-  const sfA=document.getElementById('sf-author');if(sfA){sfA.readOnly=false;sfA.style.opacity='';sfA.style.cursor='';};
   const sfBox=document.getElementById('sf-tags-box');
   if(sfBox&&sfBox._tags){sfBox._tags.length=0;sfBox._renderChips();}
   document.getElementById('sf-tags-input').value='';
@@ -2286,7 +2270,8 @@ function injectVariantFaces(font){
     // Each variant gets its own unique font-family name so browser won't confuse them
     const vFamily=font.name+' '+vi.label;
     v._familyName=vFamily;
-    const vFamilyEsc=vFamily.replace(/'/g,"\'");
+    const vFamilyEsc=vFamily.replace(/'/g,"\\'");
+    const nameEsc=font.name.replace(/'/g,"\\'");
     if(typeof FontFace!=='undefined'){
       const ff=new FontFace(vFamily,`url('${v.url}') format('${f2}')`,{weight:String(vi.weight),style:vi.style});
       ff.load().then(l=>{document.fonts.add(l);}).catch(()=>{
@@ -2294,10 +2279,24 @@ function injectVariantFaces(font){
         s.textContent=`@font-face{font-family:'${vFamilyEsc}';src:url('${v.url}') format('${f2}');font-weight:${vi.weight};font-style:${vi.style}}`;
         document.head.appendChild(s);
       });
+      // i===0: also inject under font.name so card preview (font-family:'FontName') works
+      if(i===0){
+        const ff2=new FontFace(font.name,`url('${v.url}') format('${f2}')`,{weight:'400',style:'normal'});
+        ff2.load().then(l=>{document.fonts.add(l);}).catch(()=>{
+          const s=document.createElement('style');
+          s.textContent=`@font-face{font-family:'${nameEsc}';src:url('${v.url}') format('${f2}');font-weight:400;font-style:normal}`;
+          document.head.appendChild(s);
+        });
+      }
     } else {
       const s=document.createElement('style');
       s.textContent=`@font-face{font-family:'${vFamilyEsc}';src:url('${v.url}') format('${f2}');font-weight:${vi.weight};font-style:${vi.style}}`;
       document.head.appendChild(s);
+      if(i===0){
+        const s2=document.createElement('style');
+        s2.textContent=`@font-face{font-family:'${nameEsc}';src:url('${v.url}') format('${f2}');font-weight:400;font-style:normal}`;
+        document.head.appendChild(s2);
+      }
     }
   });
   loadedFonts.add(font.id);
@@ -2680,11 +2679,6 @@ function adminPermDeleteFont(fontId, fontName){
   const panel = document.getElementById('fontDetailPanel');
   if(panel) panel.classList.remove('open');
   renderFonts();
-  // Firestore-dan da sil
-  if(window._fbDb && window._fbFns){
-    const {doc, deleteDoc} = window._fbFns;
-    deleteDoc(doc(window._fbDb,'submitted_fonts',fontId)).catch(e=>console.warn('Firestore permanent delete error:',e));
-  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
