@@ -48,16 +48,38 @@ function loadFont(f){
   if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');return;}
   if(!f.gfamily) return;
   loadedFonts.add(f.id);
-  const l=document.createElement('link');l.rel='stylesheet';
-  l.href=`https://fonts.googleapis.com/css2?family=${f.gfamily}&display=swap`;
   const _fname=f.name;
-  l.onload=function(){
-    if(typeof _glyphCache!=='undefined'){Object.keys(_glyphCache).filter(k=>k.startsWith(_fname+'::')).forEach(k=>delete _glyphCache[k]);}
-    document.fonts.ready.then(function(){
-      if(typeof renderPvCanvas==='function') renderPvCanvas();
+  const _gBase=f.gfamily.split(':')[0].replace(/\+/g,' ');
+  const _hasVariants=f.fontVariants&&f.fontVariants.length>0;
+  const _gUrl='https://fonts.googleapis.com/css2?family='+f.gfamily+'&display=swap';
+  // fontVariants yoxdursa və ad fərqlidirsə (məs: "Roboto Mono Bold" vs "Roboto Mono"):
+  // Google Fonts CSS-ini fetch et, woff2 URL-ini al, font.name ilə @font-face inject et
+  if(!_hasVariants && _fname!==_gBase){
+    fetch(_gUrl).then(function(r){return r.text();}).then(function(css){
+      if(typeof _glyphCache!=='undefined'){Object.keys(_glyphCache).filter(function(k){return k.startsWith(_fname+'::');}).forEach(function(k){delete _glyphCache[k];});}
+      var match=css.match(/url\(([^)]+\.woff2[^)]*?)\)/);
+      var src=match?match[1]:null;
+      if(src&&!document.getElementById('ff-alias-'+f.id)){
+        var s=document.createElement('style');s.id='ff-alias-'+f.id;
+        var w=f.weight||'400';
+        s.textContent="@font-face{font-family:'"+_fname.replace(/'/g,"\\'")+
+          "';src:url("+src+") format('woff2');font-weight:"+w+";font-style:normal}";
+        document.head.appendChild(s);
+      }
+      document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas();});
+    }).catch(function(){
+      var l=document.createElement('link');l.rel='stylesheet';l.href=_gUrl;
+      l.onload=function(){document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas();});};
+      document.head.appendChild(l);
     });
-  };
-  document.head.appendChild(l);
+  } else {
+    var l=document.createElement('link');l.rel='stylesheet';l.href=_gUrl;
+    l.onload=function(){
+      if(typeof _glyphCache!=='undefined'){Object.keys(_glyphCache).filter(function(k){return k.startsWith(_fname+'::');}).forEach(function(k){delete _glyphCache[k];});}
+      document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas();});
+    };
+    document.head.appendChild(l);
+  }
 }
 // ---- [app.js lines 579-757] ----
 function addToCompare(fontId){
@@ -811,7 +833,7 @@ function _detailResetPreviewControls(font){
     });
   }
   // Reset controls
-  document.getElementById('fdpPvInput').value=previewText||_stripW(font.name);
+  document.getElementById('fdpPvInput').value=previewText||font.name;
   document.getElementById('fdpSizeRange').value=56;document.getElementById('fdpSizeVal').textContent=56;
   document.getElementById('pvBoldBtn').classList.remove('on');document.getElementById('pvItalicBtn').classList.remove('on');
   document.getElementById('pvAlL').classList.add('on');document.getElementById('pvAlC').classList.remove('on');document.getElementById('pvAlR').classList.remove('on');
