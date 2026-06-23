@@ -381,7 +381,7 @@ function renderCharmapLangBadges(font){
 function renderCharmap(font){
   const grid=document.getElementById('charmapGrid');
   const chars=CHARMAP_SETS[activeCharTab];
-  const _ff=activeVariantFamily||(font.fontVariants&&font.fontVariants.length&&font.fontVariants[0]._familyName)||font.name;
+  const _ff=activeVariantFamily||font.name;
   const _fw=activeDetailWeight;
   grid.innerHTML=chars.map(ch=>`<div class="charmap-cell" style="font-family:'${_ff}',sans-serif;font-weight:${_fw};" title="${ch}">${esc(ch)}</div>`).join('');
   // Sync active tab highlight
@@ -945,7 +945,8 @@ function _detailBuildCharmap(font){
   (function buildCharmapTabs(){
     const tabsEl=document.querySelector('.fdp-charmap-box .charmap-tabs');
     if(!tabsEl)return;
-    const ff=`'${font.name}',sans-serif`;
+    const _ffName=(font.fontVariants&&font.fontVariants.length&&font.fontVariants[0]._familyName)||font.name;
+    const ff=`'${_ffName}',sans-serif`;
     const fw=font.weight||'400';
     // Base tabs always present - label rendered in the font itself
     tabsEl.innerHTML=`
