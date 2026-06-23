@@ -941,7 +941,7 @@ function _detailRenderWeights(font){
 function _detailBuildCharmap(font){
   // Charmap - rebuild tabs based on this font's language support
   activeCharTab='upper';
-  activeVariantFamily=null;
+  // activeVariantFamily-ni SIFIRLAMIRIK - _detailInit-də düzgün set edilib
   (function buildCharmapTabs(){
     const tabsEl=document.querySelector('.fdp-charmap-box .charmap-tabs');
     if(!tabsEl)return;
