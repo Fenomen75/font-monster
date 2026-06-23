@@ -1,3 +1,32 @@
+// ---- Custom confirm modal (replaces native confirm()) ----
+function showDeleteConfirm({title, message, confirmLabel, onConfirm, danger=true}){
+  const id='__del_modal_'+Date.now();
+  const overlay=document.createElement('div');
+  overlay.id=id;
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:99999;padding:1rem';
+  const iconColor=danger?'#d32f20':'#0a7aff';
+  const iconBg=danger?'rgba(211,47,32,0.1)':'rgba(10,122,255,0.1)';
+  const btnBg=danger?'#d32f20':'#0a7aff';
+  const icon=danger
+    ?'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>'
+    :'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  overlay.innerHTML=`
+    <div style="background:var(--surface-solid,#fff);border-radius:16px;border:0.5px solid var(--border,rgba(0,0,0,0.12));padding:2rem;max-width:340px;width:100%;font-family:var(--sans,system-ui)">
+      <div style="width:52px;height:52px;border-radius:50%;background:${iconBg};display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;color:${iconColor}">${icon}</div>
+      <p style="text-align:center;font-size:16px;font-weight:500;color:var(--text,#111);margin:0 0 0.5rem">${title}</p>
+      <p style="text-align:center;font-size:13px;color:var(--text2,#666);margin:0 0 1.75rem;line-height:1.6">${message}</p>
+      <div style="display:flex;gap:10px">
+        <button id="${id}_cancel" style="flex:1;padding:10px;border-radius:8px;border:0.5px solid var(--border,rgba(0,0,0,0.15));background:var(--surface2,#f5f5f5);color:var(--text,#111);font-size:14px;cursor:pointer;font-family:inherit">Ləğv et</button>
+        <button id="${id}_ok" style="flex:1;padding:10px;border-radius:8px;border:none;background:${btnBg};color:#fff;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">${icon}<span>${confirmLabel||'Təsdiqlə'}</span></button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close=()=>overlay.remove();
+  overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+  document.getElementById(id+'_cancel').onclick=close;
+  document.getElementById(id+'_ok').onclick=()=>{close();onConfirm();};
+}
+
 // ---- [app.js lines 457-509] ----
 function injectCustomFontFace(fontId, name, dataUrl, ext){
   if(!dataUrl||loadedFonts.has(fontId)) return;
@@ -788,10 +817,10 @@ function _detailRenderHeader(font, dlCount, licM){
           Delete
         </button>
         <div id="fdpDeleteMenu_${font.id}" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-solid);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:6px;z-index:9999;min-width:180px;flex-direction:column;gap:4px">
-          <button onclick="event.stopPropagation();if(!confirm('Bu fontu trashə atmaq istəyirsən? Admin paneldən bərpa edə bilərsən.'))return;adminTrashFont('${font.id}','${font.name.replace(/'/g,"\'")}');document.getElementById('fdpDeleteMenu_${font.id}').style.display='none'" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;border-radius:7px;background:transparent;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--text2);text-align:left" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
+          <button onclick="event.stopPropagation();showDeleteConfirm({title:'Bu fontu trashə at?',message:'Admin paneldən bərpa edə bilərsən.',confirmLabel:'Trashə at',danger:false,onConfirm:()=>{adminTrashFont('${font.id}','${font.name.replace(/\'/g,"\\\'")}');document.getElementById('fdpDeleteMenu_${font.id}').style.display='none';}})" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;border-radius:7px;background:transparent;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--text2);text-align:left" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
             🗑️ Trash <span style="font-size:11px;color:var(--text3);margin-left:auto">bərpa olar</span>
           </button>
-          <button onclick="event.stopPropagation();if(!confirm('Bu fontu HƏMİŞƏLİK silmək istəyirsən? Geri qaytarıla bilməz!'))return;adminPermDeleteFont('${font.id}','${font.name.replace(/'/g,"\'")}');document.getElementById('fdpDeleteMenu_${font.id}').style.display='none'" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;border-radius:7px;background:transparent;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--red,#ff3b30);text-align:left" onmouseover="this.style.background='rgba(255,59,48,0.08)'" onmouseout="this.style.background='transparent'">
+          <button onclick="event.stopPropagation();showDeleteConfirm({title:'Bu fontu HƏMİŞƏLİK sil?',message:'Bu əməliyyat <strong>geri qaytarıla bilməz</strong>.',confirmLabel:'Həmişəlik sil',danger:true,onConfirm:()=>{adminPermDeleteFont('${font.id}','${font.name.replace(/\'/g,"\\\'")}');document.getElementById('fdpDeleteMenu_${font.id}').style.display='none';}})" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;border-radius:7px;background:transparent;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--red,#ff3b30);text-align:left" onmouseover="this.style.background='rgba(255,59,48,0.08)'" onmouseout="this.style.background='transparent'">
             ✕ Həmişəlik sil
           </button>
         </div>
