@@ -4,4 +4,4 @@ Disallow: /admin
 Disallow: /profile
 Disallow: /api/
 
-Sitemap: https://fontmonster.app/sitemap.xml
+Sitemap: https://font-monster.vercel.app/sitemap.xml

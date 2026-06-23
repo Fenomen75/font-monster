@@ -309,7 +309,7 @@ function _safeHistoryReplace(state, title, url){
 // ── Dynamic SEO meta update ──────────────────────────────────────────────
 function updatePageMeta(opts){
   // opts: { title, description, url, image }
-  const base = 'https://fontmonster.app';
+  const base = 'https://font-monster.vercel.app';
   const title = opts.title || 'Font·Monster - Free Font Discovery';
   const desc = opts.description || 'Browse 1,900+ free fonts by category, style and license.';
   const url = opts.url ? (base + opts.url) : (base + location.pathname + location.search);
