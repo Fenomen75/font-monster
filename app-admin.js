@@ -252,6 +252,7 @@ function _showExistingFontFile(f){
   lst.innerHTML=`<div style="display:flex;align-items:center;gap:6px;padding:2px 0">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       <span style="font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(label)}</span>
+      <button onclick="clearEditFile();document.getElementById('ef-file').click();" style="background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;color:var(--accent);font-size:11px;padding:2px 8px;font-family:var(--sans);white-space:nowrap;flex-shrink:0">Replace</button>
     </div>`;
 }
 
