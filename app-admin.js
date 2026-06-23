@@ -179,8 +179,9 @@ function handleEditImgSelect(inp){
     _efImgData=ev.target.result;
     _efImgRemoved=false;
     document.getElementById('efImgThumb').src=_efImgData;
+    document.getElementById('efImgFileName').textContent=f.name;
     document.getElementById('efImgPlaceholder').style.display='none';
-    document.getElementById('efImgPreview').style.display='block';
+    document.getElementById('efImgPreview').style.display='flex';
   };
   r.readAsDataURL(f);
 }
@@ -199,8 +200,9 @@ function handleEditImgUrl(url){
       _efImgData=url;
       _efImgRemoved=false;
       document.getElementById('efImgThumb').src=url;
+      document.getElementById('efImgFileName').textContent=url.split('/').pop().split('?')[0]||url;
       document.getElementById('efImgPlaceholder').style.display='none';
-      document.getElementById('efImgPreview').style.display='block';
+      document.getElementById('efImgPreview').style.display='flex';
     };
     img.onerror=()=>{showToast('⚠ Could not load image from that URL');};
     img.src=url;
@@ -211,6 +213,7 @@ function clearEditImg(){
   _efImgRemoved=true;
   document.getElementById('ef-img').value='';
   const efu=document.getElementById('ef-img-url');if(efu)efu.value='';
+  document.getElementById('efImgFileName').textContent='';
   document.getElementById('efImgPlaceholder').style.display='';
   document.getElementById('efImgPreview').style.display='none';
 }
@@ -279,7 +282,7 @@ function openEditFont(fontId){
     efDescCounter.textContent=efDescVal.length+'/300';
     efDescCounter.style.color=efDescVal.length>=280?'var(--red)':efDescVal.length>=240?'var(--orange)':'var(--text3)';
   }
-  if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
+  if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgFileName').textContent='Current image';document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='flex';}
   _showExistingFontFile(f);
   document.getElementById('ef-admin-notice').style.display='none';
   document.getElementById('ef-user-notice').style.display='';
@@ -1102,7 +1105,7 @@ function adminEditFontDirect(fontId){
   document.getElementById('ef-url').value=f.sourceUrl||f.url||'';
   const efAffAdmin=document.getElementById('ef-affiliate');if(efAffAdmin)efAffAdmin.value=f.affiliateUrl||'';
   const efDescAdmin=document.getElementById('ef-description');if(efDescAdmin)efDescAdmin.value=f.description||'';
-  if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='block';}
+  if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgFileName').textContent='Current image';document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='flex';}
   _showExistingFontFile(f);
   // Show admin notice, hide user review notice
   document.getElementById('ef-admin-notice').style.display='';
