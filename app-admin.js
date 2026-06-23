@@ -1936,6 +1936,20 @@ function openSubmit(){
     return;
   }
   _resetSubmitForm();
+  // Admin isə author-u avtomatik "Administrator" yaz və read-only et
+  const _sfAuthor=document.getElementById('sf-author');
+  if(_sfAuthor){
+    if(_isAdmin(window.currentUser)){
+      _sfAuthor.value='Administrator';
+      _sfAuthor.readOnly=true;
+      _sfAuthor.style.opacity='0.55';
+      _sfAuthor.style.cursor='default';
+    } else {
+      _sfAuthor.readOnly=false;
+      _sfAuthor.style.opacity='';
+      _sfAuthor.style.cursor='';
+    }
+  }
   document.getElementById('submitFormWrap').style.display='';
   document.getElementById('submitSuccess').classList.remove('show');
   document.getElementById('submitModal').classList.add('open');document.body.style.overflow='hidden';
@@ -2206,6 +2220,7 @@ function _persistSubmittedFontLocally(font, fontForStorage, savedToFirestore){
 // 7/7 — clear the submit form and show the success state
 function _resetSubmitForm(){
   ['sf-name','sf-author','sf-tags','sf-year','sf-url','sf-affiliate','sf-description'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
+  const _sfA=document.getElementById('sf-author');if(_sfA){_sfA.readOnly=false;_sfA.style.opacity='';_sfA.style.cursor='';}
   const sfBox=document.getElementById('sf-tags-box');
   if(sfBox&&sfBox._tags){sfBox._tags.length=0;sfBox._renderChips();}
   document.getElementById('sf-tags-input').value='';
