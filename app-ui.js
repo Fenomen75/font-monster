@@ -303,12 +303,11 @@ function renderPvCanvas(){
   // Add bottom padding to bgWrap based on font size so descenders are covered
   bgWrap.style.paddingBottom='';
   const fontStyle=pvItalic?'italic':'normal';
-  const fontWeight=pvBold?'bold':activeDetailWeight;
+  // fontVariants varsa weight lazımdır; yoxdursa font.name özü variantı təyin edir
+  const fontWeight=pvBold?'bold':(font.fontVariants&&font.fontVariants.length>0?activeDetailWeight:'normal');
   const _av=font.fontVariants&&font.fontVariants[activeDetailVariantIdx||0];
-  const _gBase=font.gfamily?(font.gfamily.split(':')[0].replace(/\+/g,' ')):null;
-  // fontVariants varsa _familyName istifadə et; gfamily varsa base adı; heç biri yoxdursa
-  // font.name-i olduğu kimi saxla (çünki @font-face həmin ad ilə qeydiyyatdadır)
-  const _pvFamily=(_av&&_av._familyName)||_gBase||(font.fontVariants&&font.fontVariants.length>0?(font.name+' '+parseVariantStyle((_av&&_av.name)||'').label):font.name);
+  // Ana səhifə ilə eyni: variant _familyName varsa onu, yoxsa font.name
+  const _pvFamily=(_av&&_av._familyName)||font.name;
   // Banner mətn sinxronu - _pvFamily-dən sonra, düzgün family adı ilə
   const bannerTxt=document.getElementById('heroBannerText');
   if(bannerTxt) bannerTxt.textContent=txt||_pvFamily;
