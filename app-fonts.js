@@ -733,7 +733,7 @@ function _detailRenderHero(font){
           margin-bottom:20px;
           box-shadow:0 4px 24px rgba(0,0,0,0.18);
           position:relative;box-sizing:border-box;flex-shrink:1;
-          clip-path:inset(0 round 14px);
+          border-radius:14px;overflow:hidden;
         ">
         <div id="heroBannerText" style="
           font-family:'${esc(_hbFamily)}',sans-serif;
@@ -779,13 +779,6 @@ function _detailRenderHero(font){
         </div>
       </div>`;
 
-  // Əgər font artıq yüklüdürsə (loadedFonts-da varsa), heroBannerText-ə font-family məcbur tətbiq et
-  if(!heroBannerHasImg && loadedFonts.has(font.id)){
-    requestAnimationFrame(function(){
-      var hb=document.getElementById('heroBannerText');
-      if(hb) hb.style.fontFamily="'"+_hbFamily+"',sans-serif";
-    });
-  }
 }
 
 // 3/8 — title/author/tags/actions header bar
