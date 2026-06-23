@@ -42,12 +42,33 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded, weight){
   if(!url||loadedFonts.has(fontId)){if(onLoaded)onLoaded();return;}
   loadedFonts.add(fontId);
   const fmt={'.ttf':'truetype','.otf':'opentype','.woff':'woff','.woff2':'woff2'}[ext]||'truetype';
-  const _w=weight||'400';
-  // OTF kimi dərhal <style> inject et - charmap/preview sinxron işləsin
-  const s=document.createElement('style');
-  s.textContent=`@font-face{font-family:'${name.replace(/'/g,"\'")}';src:url('${url}') format('${fmt}');font-weight:${_w};font-style:normal}`;
-  document.head.appendChild(s);
-  if(onLoaded)onLoaded();
+  // FontFace API: font yükl?nib bitdikd?n sonra callback
+  if(typeof FontFace!=='undefined'){
+    const _w=weight||'400';
+    const ff=new FontFace(name, `url('${url}') format('${fmt}')`,{weight:_w});
+    ff.load().then(loaded=>{
+      document.fonts.add(loaded);
+      if(onLoaded)onLoaded();
+      // Yalniz h?min fontun preview elementl?rini yenil?, bütün grid-i re-render etm?
+      document.querySelectorAll(`[data-fontname="${name}"], [id^="prev-${fontId}"]`).forEach(el=>{
+        const txt=el.dataset.previewtext||el.dataset.fontname||el.textContent||name;
+        el.style.fontFamily=`'${name}',sans-serif`;
+        if(el.textContent!==txt) el.textContent=txt;
+      });
+    }).catch(()=>{
+      // Fallback: köhn? style inject
+      const s=document.createElement('style');
+      s.textContent=`@font-face{font-family:'${name.replace(/'/g,"\'")}';src:url('${url}') format('${fmt}');font-weight:${_w||'400'};font-style:normal}`;
+      document.head.appendChild(s);
+      if(onLoaded)onLoaded();
+    });
+  } else {
+    // Köhn? browser fallback
+    const s=document.createElement('style');
+    s.textContent=`@font-face{font-family:'${name.replace(/'/g,"\'")}';src:url('${url}') format('${fmt}');font-weight:${_w||'400'};font-style:normal}`;
+    document.head.appendChild(s);
+    if(onLoaded)onLoaded();
+  }
 }
 function loadFont(f){
   if(loadedFonts.has(f.id)) return;
@@ -360,7 +381,7 @@ function renderCharmapLangBadges(font){
 function renderCharmap(font){
   const grid=document.getElementById('charmapGrid');
   const chars=CHARMAP_SETS[activeCharTab];
-  const _ff=activeVariantFamily||font.name;
+  const _ff=activeVariantFamily||(font.fontVariants&&font.fontVariants.length&&font.fontVariants[0]._familyName)||font.name;
   const _fw=activeDetailWeight;
   grid.innerHTML=chars.map(ch=>`<div class="charmap-cell" style="font-family:'${_ff}',sans-serif;font-weight:${_fw};" title="${ch}">${esc(ch)}</div>`).join('');
   // Sync active tab highlight
