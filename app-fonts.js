@@ -1,11 +1,29 @@
-// Hero banner image error fallback - şəkil yüklənməsə auto banner göstər
+// Hero banner image error fallback - şəkil yüklənməsə tam canvas göstər
 function _heroBannerImgError(img, fam, wt, bg, textColor){
-  const wrap = img.closest('div');
-  if(!wrap) return;
-  wrap.outerHTML = `<div id="heroBannerAuto" style="width:100%;max-width:100%;min-width:0;min-height:420px;border-radius:14px;overflow:hidden;height:auto;background:${bg};display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;box-sizing:border-box;">
-    <div id="heroBannerText" style="font-family:'${fam}',sans-serif;font-weight:${wt};font-size:72px;color:${textColor};line-height:1.1;letter-spacing:-0.03em;user-select:none;text-align:center;word-break:break-word;width:90%;">${fam}</div>
-    <div style="position:absolute;bottom:12px;right:12px;">
-      <label style="cursor:pointer;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);color:rgba(255,255,255,0.85);font-size:11px;font-weight:600;padding:6px 12px;border-radius:980px;border:1px solid rgba(255,255,255,0.2);">
+  const fdpHeroInner = document.getElementById('fdpHeroInner');
+  if(!fdpHeroInner) return;
+  const previewTxt = (typeof previewText !== 'undefined' && previewText) ? previewText : fam;
+  fdpHeroInner.innerHTML = `<div style="margin-bottom:20px;">
+    <div id="heroBannerAuto" style="width:100%;max-width:100%;min-width:0;min-height:420px;border-radius:14px;overflow:hidden;height:auto;background:${bg};display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;box-sizing:border-box;flex-shrink:1;">
+      <div id="heroBannerText" style="font-family:'${fam}',sans-serif;font-weight:${wt};font-size:72px;color:${textColor};line-height:1.1;letter-spacing:-0.03em;user-select:none;text-align:center;word-break:break-word;white-space:normal;width:90%;max-width:90%;min-width:0;overflow:visible;display:block;transition:font-size .1s;">${previewTxt}</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;padding:0 2px;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:980px;background:var(--surface3);border:1px solid var(--border);">
+          <span style="font-size:11px;font-weight:700;color:var(--text3);font-family:inherit;">A</span>
+          <input type="range" class="hb-zoom" min="16" max="600" value="72" step="4" oninput="(function(v){var b=document.getElementById('heroBannerText');if(b)b.style.fontSize=v+'px';})(this.value)">
+          <span style="font-size:15px;font-weight:700;color:var(--text3);font-family:inherit;">A</span>
+        </div>
+        <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:980px;background:var(--surface3);border:1px solid var(--border);cursor:pointer;">
+          <span style="font-size:10px;font-weight:600;color:var(--text3);font-family:inherit;">BG</span>
+          <input type="color" value="${bg}" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const b=document.getElementById('heroBannerAuto');if(b)b.style.background=v;})(this.value)">
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:980px;background:var(--surface3);border:1px solid var(--border);cursor:pointer;">
+          <span style="font-size:10px;font-weight:600;color:var(--text3);font-family:inherit;">Text</span>
+          <input type="color" value="${textColor}" style="width:18px;height:18px;border:none;border-radius:50%;padding:0;cursor:pointer;background:none;" oninput="(function(v){const t=document.getElementById('heroBannerText');if(t)t.style.color=v;})(this.value)">
+        </label>
+      </div>
+      <label style="cursor:pointer;display:flex;align-items:center;gap:6px;background:var(--surface3);color:var(--text2);font-size:11px;font-weight:600;padding:6px 12px;border-radius:980px;border:1px solid var(--border);transition:background .15s;flex-shrink:0;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface3)'">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         Add image
         <input type="file" accept="image/*" style="display:none" onchange="heroBannerUpload(this)">
@@ -733,7 +751,7 @@ function _detailRenderHero(font){
           margin-bottom:20px;
           box-shadow:0 4px 24px rgba(0,0,0,0.18);
           position:relative;box-sizing:border-box;flex-shrink:1;
-          border-radius:14px;overflow:hidden;
+          clip-path:inset(0 round 14px);
         ">
         <div id="heroBannerText" style="
           font-family:'${esc(_hbFamily)}',sans-serif;
