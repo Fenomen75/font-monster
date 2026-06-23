@@ -311,7 +311,7 @@ function updatePageMeta(opts){
   // opts: { title, description, url, image }
   const base = 'https://fontmonster.app';
   const title = opts.title || 'Font·Monster - Free Font Discovery';
-  const desc = opts.description || 'Discover and download thousands of free fonts.';
+  const desc = opts.description || 'Browse 1,900+ free fonts by category, style and license.';
   const url = opts.url ? (base + opts.url) : (base + location.pathname + location.search);
   const img = opts.image || (base + '/og-cover.png');
 
@@ -365,7 +365,7 @@ function syncUrl(pushNav){
   let _metaTitle, _metaDesc;
   if(activeCategory && activeCategory!=='all'){
     _metaTitle = activeCategory.charAt(0).toUpperCase()+activeCategory.slice(1)+' Fonts – Font·Monster';
-    _metaDesc = 'Browse free ' + activeCategory + ' fonts on Font·Monster.';
+    _metaDesc = 'Browse free ' + activeCategory + ' fonts — 1,900+ fonts on Font·Monster.';
   } else if(searchTerm){
     _metaTitle = '"'+searchTerm+'" – Font·Monster';
     _metaDesc = 'Search results for "' + searchTerm + '" on Font·Monster.';
