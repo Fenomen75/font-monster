@@ -310,7 +310,10 @@ function renderPvCanvas(){
   // Variant font (məs: "Roboto Mono Bold" != "Roboto Mono"): font.name ilə @font-face inject edilib, onu işlət
   const _isVariant=_gBase&&font.name!==_gBase&&!_hasVariants;
   const _pvFamily=(_av&&_av._familyName)||(_isVariant?font.name:(_gBase||font.name));
-  const fontWeight=pvBold?'bold':(_hasVariants||_gBase?activeDetailWeight:'normal');
+  // _isVariant olanda font.name özü stili daşıyır (məs. "Roboto Mono Bold") -
+  // weight-i ayrıca tətbiq etmə, yoxsa ikiqat bold tətbiqi sentinel-müqayisəsini
+  // (sanitizeGlyphs/_glyphSupported) yanlış nəticəyə aparır və hərflər silinir.
+  const fontWeight=pvBold?'bold':(_isVariant?'normal':((_hasVariants||_gBase)?activeDetailWeight:'normal'));
   // Banner mətn sinxronu - _pvFamily-dən sonra, düzgün family adı ilə
   const bannerTxt=document.getElementById('heroBannerText');
   if(bannerTxt) bannerTxt.textContent=txt||_pvFamily;
