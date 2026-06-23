@@ -2596,6 +2596,52 @@ function adminDeleteFontFromCard(fontId, fontName, btn){
   showToast(`🗑️ "${fontName}" deleted`);
 }
 
+
+// ?? Admin delete from font detail page ??
+function adminDeleteFontFromDetail(fontId, fontName){
+  if(!_isAdmin(window.currentUser)){ showToast('Access denied'); return; }
+  const btn = document.getElementById('fdpDeleteBtn_' + fontId);
+  if(btn && btn.dataset.confirm !== 'yes'){
+    btn.textContent = 'Sure?';
+    btn.dataset.confirm = 'yes';
+    btn.style.background = 'rgba(255,59,48,0.3)';
+    setTimeout(()=>{
+      if(btn && btn.dataset.confirm === 'yes'){
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg> Delete';
+        btn.dataset.confirm = '';
+        btn.style.background = 'rgba(255,59,48,0.1)';
+      }
+    }, 3000);
+    return;
+  }
+  const isBase = !!FONTS_BASE.find(b => b.id === fontId);
+  const f = FONTS.find(x => x.id === fontId) || FONTS_BASE.find(x => x.id === fontId);
+  if(!f){ showToast('Font not found'); return; }
+  const trash = _getTrash();
+  trash.push({...f, trashedAt: new Date().toISOString(), _wasBase: isBase});
+  _saveTrash(trash);
+  if(isBase){
+    try{
+      const del = new Set(JSON.parse(localStorage.getItem('fn_deleted_base') || '[]'));
+      del.add(fontId);
+      localStorage.setItem('fn_deleted_base', JSON.stringify([...del]));
+    }catch(e){}
+  } else {
+    let sub = JSON.parse(localStorage.getItem('tv_submitted') || '[]');
+    sub = sub.filter(x => x.id !== fontId);
+    localStorage.setItem('tv_submitted', JSON.stringify(sub));
+  }
+  const fi = FONTS.findIndex(x => x.id === fontId);
+  if(fi >= 0) FONTS.splice(fi, 1);
+  _updateTrashBadge();
+  adminLog('delete', fontName, 'Deleted from detail');
+  showToast('Deleted "' + fontName + '"');
+  // Detail paneli bağla, ana səhifəyə qayıt
+  const panel = document.getElementById('fontDetailPanel');
+  if(panel) panel.classList.remove('open');
+  renderFonts();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   ['loginEmail','loginPassword'].forEach(id => {
     const el = document.getElementById(id);
