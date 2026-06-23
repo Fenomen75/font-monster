@@ -2550,6 +2550,52 @@ async function deleteReportAdmin(id){
 // PASSWORD VISIBILITY TOGGLE
 // ??????????????????????????????????????????
 // ?? ENTER KEY on auth inputs ??
+
+// ?? Admin quick-delete from main font grid ??
+function adminDeleteFontFromCard(fontId, fontName, btn){
+  if(!_isAdmin(window.currentUser)){ showToast('🚫 Access denied'); return; }
+  if(btn.dataset.confirm!=='yes'){
+    btn.textContent='?';
+    btn.style.background='rgba(255,149,0,0.35)';
+    btn.style.color='var(--orange,#ff9500)';
+    btn.dataset.confirm='yes';
+    setTimeout(()=>{
+      if(btn.dataset.confirm==='yes'){
+        btn.textContent='✕';
+        btn.style.background='rgba(255,59,48,0.15)';
+        btn.style.color='var(--red,#ff3b30)';
+        btn.dataset.confirm='';
+      }
+    },3000);
+    return;
+  }
+  btn.dataset.confirm='';
+  // Move to trash
+  const isBase=!!FONTS_BASE.find(b=>b.id===fontId);
+  const f=FONTS.find(x=>x.id===fontId)||FONTS_BASE.find(x=>x.id===fontId);
+  if(!f){ showToast('Font not found'); return; }
+  const trash=_getTrash();
+  trash.push({...f, trashedAt:new Date().toISOString(), _wasBase:isBase});
+  _saveTrash(trash);
+  if(isBase){
+    try{
+      const del=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));
+      del.add(fontId);
+      localStorage.setItem('fn_deleted_base',JSON.stringify([...del]));
+    }catch(e){}
+  } else {
+    let sub=JSON.parse(localStorage.getItem('tv_submitted')||'[]');
+    sub=sub.filter(x=>x.id!==fontId);
+    localStorage.setItem('tv_submitted',JSON.stringify(sub));
+  }
+  const fi=FONTS.findIndex(x=>x.id===fontId);
+  if(fi>=0) FONTS.splice(fi,1);
+  renderFonts();
+  _updateTrashBadge();
+  adminLog('delete',fontName,'Deleted from card');
+  showToast(`🗑️ "${fontName}" deleted`);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   ['loginEmail','loginPassword'].forEach(id => {
     const el = document.getElementById(id);
