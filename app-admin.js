@@ -70,6 +70,7 @@ async function syncSubmittedFontsFromFirestore(){
       if(!existingIds.has(f.id)){sub.push(f);existingIds.add(f.id);}
       else{ const idx=sub.findIndex(x=>x.id===f.id); if(idx>=0) sub[idx]={...sub[idx],...f}; }
     });
+    localStorage.setItem('tv_submitted', JSON.stringify(sub));
     // Only re-render if new fonts were actually added that aren't already in the grid
     const prevCount = FONTS.length;
     syncSubmittedFonts();
