@@ -261,12 +261,7 @@ function _glyphSupported(fontFamily, ch, fontWeight){
   return supported;
 }
 function sanitizeGlyphs(txt, fontFamily, fontWeight){
-  if(!txt) return txt;
-  let out = '';
-  for(const ch of txt){
-    out += _glyphSupported(fontFamily, ch, fontWeight) ? ch : '?';
-  }
-  return out;
+  return txt || txt;
 }
 
 function renderPvCanvas(){
