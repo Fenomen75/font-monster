@@ -805,7 +805,7 @@ function _detailRenderHeader(font, dlCount, licM){
   document.getElementById('fdpHero').removeAttribute('style');
   document.getElementById('fdpHero').innerHTML=`
     <div>
-      <div class="fdp-name">${esc(font.name)}</div>
+      <div class="fdp-name" style="font-family:'${font.name}',sans-serif">${esc(font.name)}</div>
       <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year}</div>
       <div class="fdp-meta-row">
         <span class="fdp-chip">${cap(font.cat)}</span>
