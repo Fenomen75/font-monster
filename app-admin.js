@@ -1144,27 +1144,42 @@ function adminDeleteFont(fontId,btn){
   }
   btn.dataset.confirmDelete='';
   let sub=_allSub();
-  const f=sub.find(x=>x.id===fontId);
+  let f=sub.find(x=>x.id===fontId);
+  // If not in submitted, check FONTS_BASE (built-in Google fonts)
+  const isBase=!f && !!FONTS_BASE.find(b=>b.id===fontId);
+  if(isBase) f=FONTS_BASE.find(b=>b.id===fontId);
   if(!f) return;
   // Move to trash
   const trash=_getTrash();
-  trash.push({...f, trashedAt:new Date().toISOString()});
+  trash.push({...f, trashedAt:new Date().toISOString(), _wasBase:isBase});
   _saveTrash(trash);
-  // Remove from submitted
-  sub=sub.filter(x=>x.id!==fontId);
-  localStorage.setItem("tv_submitted",JSON.stringify(sub));
+  if(!isBase){
+    sub=sub.filter(x=>x.id!==fontId);
+    localStorage.setItem("tv_submitted",JSON.stringify(sub));
+  }
+  // Track deleted base font IDs so they stay removed after page reload
+  if(isBase){
+    try{
+      const del=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));
+      del.add(fontId);
+      localStorage.setItem('fn_deleted_base',JSON.stringify([...del]));
+    }catch(e){}
+  }
   // Remove from admin requests too
   let reqs=getAdminRequests();
   reqs=reqs.filter(r=>r.id!==fontId);
   saveAdminRequests(reqs);
+  // Remove from runtime FONTS immediately
+  const fi=FONTS.findIndex(x=>x.id===fontId);
+  if(fi>=0) FONTS.splice(fi,1);
   syncSubmittedFonts();
   renderFonts();
   _renderAdminAll();
   _updateTrashBadge();
   adminLog('delete',f.name,'Moved to Trash');
   showToast(`🗑️ "${f.name}" moved to Trash`);
-  // Firestore-dan da sil
-  if(window._fbDb && window._fbFns){
+  // Firestore-dan da sil (community fonts only)
+  if(!isBase && window._fbDb && window._fbFns){
     const {doc, deleteDoc} = window._fbFns;
     deleteDoc(doc(window._fbDb,'submitted_fonts',fontId)).catch(e=>console.warn('Firestore delete error:',e));
   }
@@ -1178,10 +1193,25 @@ function adminRestoreFont(fontId){
   let sub=_allSub();
   const restored={...f};
   delete restored.trashedAt;
+  delete restored._wasBase;
   restored.pending=true;
   restored.restoredAt=new Date().toISOString();
-  sub.push(restored);
-  localStorage.setItem("tv_submitted",JSON.stringify(sub));
+  // If it was a base font, remove from deleted list (makes it appear in FONTS_BASE again on reload)
+  if(f._wasBase){
+    try{
+      const del=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));
+      del.delete(fontId);
+      localStorage.setItem('fn_deleted_base',JSON.stringify([...del]));
+      // Re-add to runtime FONTS from FONTS_BASE
+      if(!FONTS.find(x=>x.id===fontId)){
+        const base=FONTS_BASE.find(x=>x.id===fontId);
+        if(base) FONTS.push(base);
+      }
+    }catch(e){}
+  } else {
+    sub.push(restored);
+    localStorage.setItem("tv_submitted",JSON.stringify(sub));
+  }
   // Remove from trash
   const newTrash=trash.filter(x=>x.id!==fontId);
   _saveTrash(newTrash);
@@ -1214,6 +1244,16 @@ function adminPermanentDelete(fontId,btn){
   const name=f?f.name:fontId;
   const newTrash=trash.filter(x=>x.id!==fontId);
   _saveTrash(newTrash);
+  // If it was a base font, keep it in fn_deleted_base so it stays gone
+  // (already there from when it was first deleted — nothing extra needed)
+  // If somehow not there, add it now
+  if(f && f._wasBase){
+    try{
+      const del=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));
+      del.add(fontId);
+      localStorage.setItem('fn_deleted_base',JSON.stringify([...del]));
+    }catch(e){}
+  }
   _renderAdminTrash();
   _updateTrashBadge();
   adminLog('delete',name,'Permanently deleted');

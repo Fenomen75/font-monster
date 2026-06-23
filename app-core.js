@@ -126,7 +126,9 @@ function incrementDownload(id){
   }
 }
 
-let FONTS=[...FONTS_BASE],activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
+// Remove admin-deleted base fonts on init
+const _deletedBase=(function(){try{return new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));}catch(e){return new Set();}})();
+let FONTS=FONTS_BASE.filter(f=>!_deletedBase.has(f.id)),activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
 // Buq 4 düzəlişi: type="module" script defer kimi işləyir — onAuthStateChanged gəlməzdən
 // əvvəl window.currentUser null qalır. localStorage cache-dən ilkin dəyəri oxuyuruq ki yarış vəziyyəti olmasın.
 window.currentUser=(function(){
