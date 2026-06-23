@@ -395,6 +395,14 @@ async function saveEditFont(){
     window._adminPanelWasOpen=false;
     document.body.style.overflow=_adminOpen?'hidden':'';
     _renderAdminAll();
+    // Firestore-a da yaz
+    if(window._fbDb && window._fbFns){
+      const {doc, setDoc} = window._fbFns;
+      const fsUpdates={...updates};
+      // fontData çox böyükdürsə Firestore-a yazmaq olmaz, local saxla
+      if(fsUpdates.fontData && fsUpdates.fontData.length > 900000) delete fsUpdates.fontData;
+      setDoc(doc(window._fbDb,'submitted_fonts',id), fsUpdates, {merge:true}).catch(e=>console.warn('Firestore edit error:',e));
+    }
     adminLog('edit',updates.name,'Admin direct edit');
     showToast(`✅ "${updates.name}" updated`);
     return;
