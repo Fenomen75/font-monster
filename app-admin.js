@@ -251,6 +251,18 @@ function _showExistingFontFile(f){
     </div>`;
 }
 
+
+// previewImg-in həqiqi xarici şəkil URL-i olub olmadığını yoxla
+function _isRealPreviewImg(url){
+  if(!url||typeof url!=='string') return false;
+  const u=url.trim();
+  if(!u.startsWith('http')&&!u.startsWith('data:')) return false;
+  // Saytın öz URL-i deyil
+  if(u.startsWith(window.location.origin)) return false;
+  // data: URL-i qısa deyil (boş img deyil)
+  if(u.startsWith('data:')&&u.length<100) return false;
+  return true;
+}
 // ?? EDIT FONT ??
 function openEditFont(fontId){
   const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
@@ -283,7 +295,7 @@ function openEditFont(fontId){
     efDescCounter.textContent=efDescVal.length+'/300';
     efDescCounter.style.color=efDescVal.length>=280?'var(--red)':efDescVal.length>=240?'var(--orange)':'var(--text3)';
   }
-  if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgFileName').textContent='Current image';document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='flex';}
+  if(_isRealPreviewImg(f.previewImg)){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgFileName').textContent='Current image';document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='flex';}
   _showExistingFontFile(f);
   document.getElementById('ef-admin-notice').style.display='none';
   document.getElementById('ef-user-notice').style.display='';
@@ -1106,7 +1118,7 @@ function adminEditFontDirect(fontId){
   document.getElementById('ef-url').value=f.sourceUrl||f.url||'';
   const efAffAdmin=document.getElementById('ef-affiliate');if(efAffAdmin)efAffAdmin.value=f.affiliateUrl||'';
   const efDescAdmin=document.getElementById('ef-description');if(efDescAdmin)efDescAdmin.value=f.description||'';
-  if(f.previewImg){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgFileName').textContent='Current image';document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='flex';}
+  if(_isRealPreviewImg(f.previewImg)){_efImgData=f.previewImg;document.getElementById('efImgThumb').src=f.previewImg;document.getElementById('efImgFileName').textContent='Current image';document.getElementById('efImgPlaceholder').style.display='none';document.getElementById('efImgPreview').style.display='flex';}
   _showExistingFontFile(f);
   // Show admin notice, hide user review notice
   document.getElementById('ef-admin-notice').style.display='';
@@ -1910,7 +1922,7 @@ function handleFontImgUrl(url){
 function clearFontImg(){
   document.getElementById('sf-img').value='';
   document.getElementById('sf-img-url').value='';
-  document.getElementById('sfImgThumb').removeAttribute('src');
+  document.getElementById('sfImgThumb').src='';
   document.getElementById('sfImgFileName').textContent='';
   document.getElementById('sfImgPlaceholder').style.display='flex';
   document.getElementById('sfImgPreview').style.display='none';
@@ -2044,8 +2056,7 @@ function _buildNewFontFromForm(){
   const year=parseInt(document.getElementById('sf-year').value)||new Date().getFullYear();
   const tags=tagsRaw?tagsRaw.split(/[,\s]+/).map(t=>t.trim()).filter(Boolean):['Custom'];
   const imgThumb=document.getElementById('sfImgThumb');
-  const _rawSrc=imgThumb?imgThumb.getAttribute('src'):'';
-  const previewImg=_rawSrc&&(_rawSrc.startsWith('data:')||_rawSrc.startsWith('http'))&&_rawSrc!==window.location.href&&_rawSrc!==window.location.origin+'/'?_rawSrc:null;
+  const previewImg=imgThumb&&imgThumb.src&&(imgThumb.src.startsWith('data:')||imgThumb.src.startsWith('http'))?imgThumb.src:null;
   const newFont={
     id,name,author,cat,gfamily,weight:'400',tags,license,year,popular:60,sourceUrl:url||'',affiliateUrl:affiliateUrl||'',
     description:description||'',
