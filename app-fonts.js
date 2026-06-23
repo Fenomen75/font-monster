@@ -586,8 +586,23 @@ function refreshDetailHeaderForAuth(){
 function _stripW(n){ return n.replace(/\b(thin|extralight|extra\s*light|light|regular|medium|semibold|semi\s*bold|bold|extrabold|extra\s*bold|black|heavy|italic|oblique|\d{3})\b/gi,'').replace(/\s+/g,' ').trim(); }
 
 // 1/8 — state setup: globals, preview defaults, breadcrumb, derived license/download values
+// Font adından weight inferensiyası: "Roboto Mono Bold" -> '700'
+function _inferWeightFromName(name){
+  const n=(name||'').toLowerCase();
+  if(/\bextralight\b|extra\s*light\b/.test(n))return'200';
+  if(/\bthin\b/.test(n))return'100';
+  if(/\blight\b/.test(n))return'300';
+  if(/\bmedium\b/.test(n))return'500';
+  if(/\bsemibold\b|semi\s*bold\b/.test(n))return'600';
+  if(/\bextrabold\b|extra\s*bold\b/.test(n))return'800';
+  if(/\bblack\b|\bheavy\b/.test(n))return'900';
+  if(/\bbold\b/.test(n))return'700';
+  return'400';
+}
 function _detailInit(font, fontId){
-  currentDetailFont=font;activeDetailWeight=font.weight||'400';activeDetailVariantIdx=0;
+  currentDetailFont=font;
+  activeDetailWeight=font.weight?String(font.weight):_inferWeightFromName(font.name);
+  activeDetailVariantIdx=0;
   activeVariantFamily=(font.fontVariants&&font.fontVariants.length>0)?(font.fontVariants[0]._familyName||null):null;
   pvMode='text';pvBold=false;pvItalic=false;pvAlign='left';pvBgColor='#ffffff';pvTextColor='#111111';
   const _bh=document.getElementById('pvBgHue');if(_bh)_bh.value='#ffffff';
@@ -653,7 +668,7 @@ function _detailRenderHero(font){
         ">
         <div id="heroBannerText" style="
           font-family:'${esc(_hbFamily)}',sans-serif;
-          font-weight:${font.weight};
+          font-weight:${font.weight?String(font.weight):_inferWeightFromName(font.name)};
           font-size:72px;
           color:${pal.text};
           line-height:1.1;letter-spacing:-0.03em;
