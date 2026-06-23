@@ -7,9 +7,11 @@ function saveAdminRequests(arr){try{localStorage.setItem('tv_admin_requests',JSO
 function syncSubmittedFonts(){
   // Remove all previously-loaded submitted fonts from runtime FONTS
   const ids=JSON.parse(localStorage.getItem("tv_submitted")||"[]").map(f=>f.id);
-  // Rebuild: FONTS = FONTS_BASE + approved + current user's pending
+  const _deletedBase=(function(){try{return new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));}catch(e){return new Set();}})();
+  // Rebuild: FONTS = FONTS_BASE (minus deleted) + approved + current user's pending
   for(let i=FONTS.length-1;i>=0;i--){
     if(!FONTS_BASE.find(b=>b.id===FONTS[i].id)) FONTS.splice(i,1);
+    else if(_deletedBase.has(FONTS[i].id)) FONTS.splice(i,1);
   }
   const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
   sub.forEach(f=>{
@@ -2597,29 +2599,17 @@ function adminDeleteFontFromCard(fontId, fontName, btn){
 }
 
 
-// ?? Admin delete from font detail page ??
-function adminDeleteFontFromDetail(fontId, fontName){
-  if(!_isAdmin(window.currentUser)){ showToast('Access denied'); return; }
-  const btn = document.getElementById('fdpDeleteBtn_' + fontId);
-  if(btn && btn.dataset.confirm !== 'yes'){
-    btn.textContent = 'Sure?';
-    btn.dataset.confirm = 'yes';
-    btn.style.background = 'rgba(255,59,48,0.3)';
-    setTimeout(()=>{
-      if(btn && btn.dataset.confirm === 'yes'){
-        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg> Delete';
-        btn.dataset.confirm = '';
-        btn.style.background = 'rgba(255,59,48,0.1)';
-      }
-    }, 3000);
-    return;
-  }
+// ?? Admin trash/delete from font detail page ??
+function _adminRemoveFontRuntime(fontId, perm){
   const isBase = !!FONTS_BASE.find(b => b.id === fontId);
   const f = FONTS.find(x => x.id === fontId) || FONTS_BASE.find(x => x.id === fontId);
-  if(!f){ showToast('Font not found'); return; }
-  const trash = _getTrash();
-  trash.push({...f, trashedAt: new Date().toISOString(), _wasBase: isBase});
-  _saveTrash(trash);
+  if(!f) return null;
+  if(!perm){
+    // Move to trash
+    const trash = _getTrash();
+    trash.push({...f, trashedAt: new Date().toISOString(), _wasBase: isBase});
+    _saveTrash(trash);
+  }
   if(isBase){
     try{
       const del = new Set(JSON.parse(localStorage.getItem('fn_deleted_base') || '[]'));
@@ -2633,10 +2623,29 @@ function adminDeleteFontFromDetail(fontId, fontName){
   }
   const fi = FONTS.findIndex(x => x.id === fontId);
   if(fi >= 0) FONTS.splice(fi, 1);
+  return f;
+}
+function adminTrashFont(fontId, fontName){
+  if(!_isAdmin(window.currentUser)){ showToast('Access denied'); return; }
+  const f = _adminRemoveFontRuntime(fontId, false);
+  if(!f) return;
   _updateTrashBadge();
-  adminLog('delete', fontName, 'Deleted from detail');
-  showToast('Deleted "' + fontName + '"');
-  // Detail paneli bağla, ana səhifəyə qayıt
+  adminLog('delete', fontName, 'Moved to Trash');
+  showToast('🗑️ "' + fontName + '" trashə atıldı — Admin Paneldən bərpa edə bilərsən');
+  const panel = document.getElementById('fontDetailPanel');
+  if(panel) panel.classList.remove('open');
+  renderFonts();
+}
+function adminPermDeleteFont(fontId, fontName){
+  if(!_isAdmin(window.currentUser)){ showToast('Access denied'); return; }
+  const f = _adminRemoveFontRuntime(fontId, true);
+  if(!f) return;
+  // Also remove from trash if it's there
+  const newTrash = _getTrash().filter(x => x.id !== fontId);
+  _saveTrash(newTrash);
+  _updateTrashBadge();
+  adminLog('delete', fontName, 'Permanently deleted');
+  showToast('✕ "' + fontName + '" həmişəlik silindi');
   const panel = document.getElementById('fontDetailPanel');
   if(panel) panel.classList.remove('open');
   renderFonts();
