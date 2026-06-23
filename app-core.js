@@ -237,8 +237,15 @@ function getFiltered(){
     const scoreB=rb?rb.avg*(1+Math.log(rb.count+1)):0;
     return scoreB-scoreA;
   });
-  // Default (popular): sort by download count desc; tie-break with popular score
+  // Default (popular): yeni fontlar (son 3 gün) ilk növbədə, sonra download sayına görə
+  const _THREE_DAYS=3*24*60*60*1000;
+  const _isFresh=f=>{
+    const t=Math.max(f.submittedAt?new Date(f.submittedAt).getTime():0, f.approvedAt?new Date(f.approvedAt).getTime():0);
+    return t>0 && (Date.now()-t)<_THREE_DAYS;
+  };
   return[...list].sort((a,b)=>{
+    const freshDiff=(_isFresh(b)?1:0)-(_isFresh(a)?1:0);
+    if(freshDiff!==0)return freshDiff;
     const dlDiff=(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0);
     if(dlDiff!==0)return dlDiff;
     return b.popular-a.popular;
