@@ -727,12 +727,13 @@ function _detailRenderHero(font){
         </div>
       </div>`
     : `<div id="heroBannerAuto" style="
-          width:100%;max-width:100%;min-width:0;min-height:420px;border-radius:14px;overflow:hidden;height:auto;
+          width:100%;max-width:100%;min-width:0;min-height:420px;border-radius:14px;overflow:visible;height:auto;
           background:${pal.bg};
           display:flex;align-items:center;justify-content:center;
           margin-bottom:20px;
           box-shadow:0 4px 24px rgba(0,0,0,0.18);
           position:relative;box-sizing:border-box;flex-shrink:1;
+          clip-path:inset(0 round 14px);
         ">
         <div id="heroBannerText" style="
           font-family:'${esc(_hbFamily)}',sans-serif;
