@@ -601,6 +601,7 @@ function renderAuthorPage(authorName, authorFonts){
   if(authorFonts.length === 0){
     grid.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:20px 0">No fonts found for this designer.</div>`;
   } else {
+    grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px';
     grid.innerHTML = authorFonts
       .slice().sort((a,b)=>(b.popular||0)-(a.popular||0))
       .map(_renderAuthorFontCard).join('');
@@ -634,7 +635,7 @@ function _renderAuthorFontCard(font){
       </div>
     </div>
     <div class="card-preview-area">
-      <div class="card-preview" style="font-family:'${font.name}',sans-serif;font-size:36px">${esc(font.name)}</div>
+      <div class="card-preview" style="font-family:'${font.name}',sans-serif;font-size:clamp(18px,3.5vw,40px);word-break:break-word;overflow-wrap:break-word;white-space:normal;line-height:1.1">${esc(font.name)}</div>
     </div>
     <div class="card-footer">
       <div class="tags">${font.tags.slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
