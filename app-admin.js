@@ -1910,7 +1910,7 @@ function handleFontImgUrl(url){
 function clearFontImg(){
   document.getElementById('sf-img').value='';
   document.getElementById('sf-img-url').value='';
-  document.getElementById('sfImgThumb').src='';
+  document.getElementById('sfImgThumb').removeAttribute('src');
   document.getElementById('sfImgFileName').textContent='';
   document.getElementById('sfImgPlaceholder').style.display='flex';
   document.getElementById('sfImgPreview').style.display='none';
@@ -2044,7 +2044,8 @@ function _buildNewFontFromForm(){
   const year=parseInt(document.getElementById('sf-year').value)||new Date().getFullYear();
   const tags=tagsRaw?tagsRaw.split(/[,\s]+/).map(t=>t.trim()).filter(Boolean):['Custom'];
   const imgThumb=document.getElementById('sfImgThumb');
-  const previewImg=imgThumb&&imgThumb.src&&(imgThumb.src.startsWith('data:')||imgThumb.src.startsWith('http'))?imgThumb.src:null;
+  const _rawSrc=imgThumb?imgThumb.getAttribute('src'):'';
+  const previewImg=_rawSrc&&(_rawSrc.startsWith('data:')||_rawSrc.startsWith('http'))&&_rawSrc!==window.location.href&&_rawSrc!==window.location.origin+'/'?_rawSrc:null;
   const newFont={
     id,name,author,cat,gfamily,weight:'400',tags,license,year,popular:60,sourceUrl:url||'',affiliateUrl:affiliateUrl||'',
     description:description||'',
