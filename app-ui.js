@@ -245,18 +245,22 @@ function _glyphSupported(fontFamily, ch, fontWeight){
       if(!document.fonts.check(`${fontWeight||'400'} 16px '${fontFamily}'`)) return true;
     }
   }catch(e){}
-  const _cacheKey = fontFamily+'::'+( fontWeight||'400');
+  const _weight = fontWeight||'400';
+  const _cacheKey = fontFamily+'::'+_weight;
   if(!_glyphCache[_cacheKey]) _glyphCache[_cacheKey] = {};
   if(ch in _glyphCache[_cacheKey]) return _glyphCache[_cacheKey][ch];
   const ctx = _getGlyphCanvas().getContext('2d');
   const size = 72;
-  if(!(ch in _glyphDefaultWidths)){
-    ctx.font = `${size}px ${_glyphSentinel}`;
-    _glyphDefaultWidths[ch] = ctx.measureText(ch).width;
+  // Sentinel eni d? hi mi çəki il? ölçülm?lidi, yoxsa bold m?tn yanlislikla
+  // "dest?klenmir" sayilir (bold hərf eni normal-serif enind?n f?rqli olur).
+  const _defKey = _weight+'::'+ch;
+  if(!(_defKey in _glyphDefaultWidths)){
+    ctx.font = `${_weight} ${size}px ${_glyphSentinel}`;
+    _glyphDefaultWidths[_defKey] = ctx.measureText(ch).width;
   }
-  ctx.font = `${fontWeight||'400'} ${size}px '${fontFamily}', ${_glyphSentinel}`;
+  ctx.font = `${_weight} ${size}px '${fontFamily}', ${_glyphSentinel}`;
   const testWidth = ctx.measureText(ch).width;
-  const supported = Math.abs(testWidth - _glyphDefaultWidths[ch]) > 0.01;
+  const supported = Math.abs(testWidth - _glyphDefaultWidths[_defKey]) > 0.01;
   _glyphCache[_cacheKey][ch] = supported;
   return supported;
 }
@@ -310,7 +314,9 @@ function renderPvCanvas(){
   // Variant font (məs: "Roboto Mono Bold" != "Roboto Mono"): font.name ilə @font-face inject edilib, onu işlət
   const _isVariant=_gBase&&font.name!==_gBase&&!_hasVariants;
   const _pvFamily=(_av&&_av._familyName)||(_isVariant?font.name:(_gBase||font.name));
-  const fontWeight=pvBold?'bold':(_hasVariants||_gBase?activeDetailWeight:'normal');
+  // _isVariant olanda font.name özü stili daşıyır (məs. "Geologica Bold") -
+  // weight-i ayrıca tətbiq etmə, yoxsa ikiqat bold/sentinel yanlışlığı yaranır.
+  const fontWeight=pvBold?'bold':(_isVariant?'normal':((_hasVariants||_gBase)?activeDetailWeight:'normal'));
   // Banner mətn sinxronu - _pvFamily-dən sonra, düzgün family adı ilə
   const bannerTxt=document.getElementById('heroBannerText');
   if(bannerTxt) bannerTxt.textContent=txt||_pvFamily;
