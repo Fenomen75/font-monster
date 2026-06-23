@@ -65,6 +65,10 @@ async function syncSubmittedFontsFromFirestore(){
     if(!allCloud.length) return;
     // Merge into localStorage and runtime FONTS
     let sub = JSON.parse(localStorage.getItem("tv_submitted")||"[]");
+    const cloudIds = new Set(allCloud.map(f=>f.id));
+    const baseFontIds = new Set((typeof FONTS_BASE!=='undefined'?FONTS_BASE:[]).map(f=>f.id));
+    // Remove community fonts from localStorage that no longer exist in Firestore (deleted from another browser)
+    sub = sub.filter(f => baseFontIds.has(f.id) || cloudIds.has(f.id));
     const existingIds = new Set(sub.map(f=>f.id));
     allCloud.forEach(f=>{
       if(!existingIds.has(f.id)){sub.push(f);existingIds.add(f.id);}
