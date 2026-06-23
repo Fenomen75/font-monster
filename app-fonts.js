@@ -698,8 +698,7 @@ function _detailRenderHero(font){
   ];
   const pal = heroBgPalettes[Math.floor(Math.random()*heroBgPalettes.length)];
   const _pImg = (font.previewImg||'').trim();
-  const _isUploaded = !!(font.fontData || font.fontUrl || (font.fontVariants && font.fontVariants.length));
-  const heroBannerHasImg = !_isUploaded && !!(_pImg && (_pImg.startsWith('http') || _pImg.startsWith('data:')));
+  const heroBannerHasImg = !!(_pImg && (_pImg.startsWith('http') || _pImg.startsWith('data:')));
   // font.name-i deyil, düzgün CSS family adını işlət (məs: "Roboto Mono" not "Roboto Mono Bold")
   const _hbAv = font.fontVariants && font.fontVariants[0];
   const _hbFamily = (_hbAv && _hbAv._familyName) || font.name;
