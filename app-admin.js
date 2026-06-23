@@ -1879,8 +1879,9 @@ function handleFontImgSelect(input){
   const reader=new FileReader();
   reader.onload=e=>{
     document.getElementById('sfImgThumb').src=e.target.result;
+    document.getElementById('sfImgFileName').textContent=file.name;
     document.getElementById('sfImgPlaceholder').style.display='none';
-    document.getElementById('sfImgPreview').style.display='block';
+    document.getElementById('sfImgPreview').style.display='flex';
   };
   reader.readAsDataURL(file);
 }
@@ -1894,8 +1895,9 @@ function handleFontImgUrl(url){
     img.onload=()=>{
       document.getElementById('sf-img').value='';
       document.getElementById('sfImgThumb').src=url;
+      document.getElementById('sfImgFileName').textContent=url.split('/').pop().split('?')[0]||url;
       document.getElementById('sfImgPlaceholder').style.display='none';
-      document.getElementById('sfImgPreview').style.display='block';
+      document.getElementById('sfImgPreview').style.display='flex';
     };
     img.onerror=()=>{showToast('⚠ Could not load image from that URL');};
     img.src=url;
@@ -1905,6 +1907,7 @@ function clearFontImg(){
   document.getElementById('sf-img').value='';
   document.getElementById('sf-img-url').value='';
   document.getElementById('sfImgThumb').src='';
+  document.getElementById('sfImgFileName').textContent='';
   document.getElementById('sfImgPlaceholder').style.display='flex';
   document.getElementById('sfImgPreview').style.display='none';
 }
@@ -2063,13 +2066,15 @@ async function _uploadSubmittedFontFiles(newFont){
     if(submitBtn) submitBtn.textContent=`Uploading ${i+1}/${uploadedFontFiles.length}.`;
     try{
       const fRef2=window._fbStorageRef(window._fbStorage,'fonts/'+(newFont.id+(i>0?('_'+i):'')+fd.ext));
-      await window._fbUploadBytes(fRef2, fd.file);
-      const url2=await window._fbGetDownloadURL(fRef2);
+      const _timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000));
+      await Promise.race([window._fbUploadBytes(fRef2, fd.file),_timeout]);
+      const url2=await Promise.race([window._fbGetDownloadURL(fRef2),_timeout]);
       fontVariants.push({url:url2, ext:fd.ext, name:fd.name});
       if(!primaryUrl){ primaryUrl=url2; primaryExt=fd.ext; primaryName=null; }
       console.log('✅ Firebase Storage upload ok:', fd.name);
     }catch(e){
       console.warn('Storage upload failed, falling back to dataUrl:', e.message);
+      if(e.message==='timeout') showToast(`⚠ "${fd.name}" yüklənməsi çox uzun çəkdi, lokal saxlanılır`);
       if(fd.dataUrl) fontVariants.push({url:fd.dataUrl, ext:fd.ext, name:fd.name});
     }
   }
