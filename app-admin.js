@@ -2680,6 +2680,11 @@ function adminPermDeleteFont(fontId, fontName){
   const panel = document.getElementById('fontDetailPanel');
   if(panel) panel.classList.remove('open');
   renderFonts();
+  // Firestore-dan da sil
+  if(window._fbDb && window._fbFns){
+    const {doc, deleteDoc} = window._fbFns;
+    deleteDoc(doc(window._fbDb,'submitted_fonts',fontId)).catch(e=>console.warn('Firestore permanent delete error:',e));
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
