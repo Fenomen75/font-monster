@@ -697,7 +697,10 @@ function _detailRenderHero(font){
     {bg:'#18181b',text:'#f4f4f5'},
   ];
   const pal = heroBgPalettes[Math.floor(Math.random()*heroBgPalettes.length)];
-  const heroBannerHasImg = !!(font.previewImg && (font.previewImg.startsWith('http') || font.previewImg.startsWith('data:')));
+  const _pImg = (font.previewImg||'').trim();
+  // Uploaded font-da (fontData/fontUrl/fontVariants varsa) previewImg-i ignore et
+  const _isUploadedHero = !!(font.fontData || font.fontUrl || (font.fontVariants && font.fontVariants.length));
+  const heroBannerHasImg = !_isUploadedHero && !!(_pImg && (_pImg.startsWith('http') || _pImg.startsWith('data:')));
   // font.name-i deyil, düzgün CSS family adını işlət (məs: "Roboto Mono" not "Roboto Mono Bold")
   const _hbAv = font.fontVariants && font.fontVariants[0];
   const _hbFamily = (_hbAv && _hbAv._familyName) || font.name;
