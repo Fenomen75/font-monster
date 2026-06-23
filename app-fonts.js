@@ -782,18 +782,20 @@ function _detailRenderHeader(font, dlCount, licM){
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Edit
       </button>
-      <div id="fdpDeleteMenu_${font.id}" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-solid);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:6px;z-index:999;min-width:170px;flex-direction:column;gap:4px">
-          <button onclick="if(!confirm('🗑️ Bu fontu trashə atmaq istəyirsən? Admin paneldən bərpa edə bilərsən.'))return;adminTrashFont('${font.id}','${font.name.replace(/'/g,"\'")}');document.getElementById('fdpDeleteMenu_${font.id}').style.display='none'" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;border-radius:7px;background:transparent;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--text2);text-align:left" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
+      <div style="position:relative">
+        <button onclick="event.stopPropagation();const m=document.getElementById('fdpDeleteMenu_${font.id}');m.style.display=m.style.display==='flex'?'none':'flex'" title="Delete font (admin)" style="color:var(--red,#ff3b30);background:rgba(255,59,48,0.1);border-color:rgba(255,59,48,0.25)" class="fdp-like">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Delete
+        </button>
+        <div id="fdpDeleteMenu_${font.id}" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-solid);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:6px;z-index:9999;min-width:180px;flex-direction:column;gap:4px">
+          <button onclick="event.stopPropagation();if(!confirm('Bu fontu trashə atmaq istəyirsən? Admin paneldən bərpa edə bilərsən.'))return;adminTrashFont('${font.id}','${font.name.replace(/'/g,"\'")}');document.getElementById('fdpDeleteMenu_${font.id}').style.display='none'" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;border-radius:7px;background:transparent;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--text2);text-align:left" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
             🗑️ Trash <span style="font-size:11px;color:var(--text3);margin-left:auto">bərpa olar</span>
           </button>
-          <button onclick="if(!confirm('⚠️ Bu fontu HƏMİŞƏLİK silmək istəyirsən? Bu əməliyyat geri qaytarıla bilməz!'))return;adminPermDeleteFont('${font.id}','${font.name.replace(/'/g,"\'")}');document.getElementById('fdpDeleteMenu_${font.id}').style.display='none'" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;border-radius:7px;background:transparent;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--red,#ff3b30);text-align:left" onmouseover="this.style.background='rgba(255,59,48,0.08)'" onmouseout="this.style.background='transparent'">
+          <button onclick="event.stopPropagation();if(!confirm('Bu fontu HƏMİŞƏLİK silmək istəyirsən? Geri qaytarıla bilməz!'))return;adminPermDeleteFont('${font.id}','${font.name.replace(/'/g,"\'")}');document.getElementById('fdpDeleteMenu_${font.id}').style.display='none'" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;border-radius:7px;background:transparent;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--red,#ff3b30);text-align:left" onmouseover="this.style.background='rgba(255,59,48,0.08)'" onmouseout="this.style.background='transparent'">
             ✕ Həmişəlik sil
           </button>
         </div>
-      <button onclick="event.stopPropagation();const m=document.getElementById('fdpDeleteMenu_${font.id}');m.style.display=m.style.display==='flex'?'none':'flex'" title="Delete font (admin)" style="position:relative;color:var(--red,#ff3b30);background:rgba(255,59,48,0.1);border-color:rgba(255,59,48,0.25)" class="fdp-like">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-        Delete
-      </button>`:''}
+      </div>`:''}
     </div>`;
 
 }
