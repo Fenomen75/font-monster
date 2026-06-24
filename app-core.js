@@ -651,14 +651,41 @@ function handleDownloadClick(fontId,fontName){
       }
     })();
   } else if(font && (font.fontData || font.fontUrl)){
-    const ext=font.fontExt||'.ttf';
-    const href = font.fontUrl || font.fontData;
-    const a=document.createElement('a');
-    a.href=href;
-    a.download=fontName.replace(/\s+/g,'_')+ext;
-    if(font.fontUrl) a.target='_blank';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    showToast(`⬇️ Downloading ${fontName}${ext}.`);
+    showToast(`⏳ ZIP hazırlanır...`);
+    (async()=>{
+      try{
+        const ext=font.fontExt||'.ttf';
+        const href=font.fontUrl||font.fontData;
+        const cleanName=fontName.replace(/\s+/g,'_');
+        const zip=new JSZip();
+        const folder=zip.folder(cleanName);
+        const fileName=cleanName+ext;
+        if(href.startsWith('data:')){
+          const base64=href.split(',')[1];
+          folder.file(fileName,base64,{base64:true});
+        } else {
+          const res=await fetch(href);
+          const buf=await res.arrayBuffer();
+          folder.file(fileName,buf);
+        }
+        const blob=await zip.generateAsync({type:'blob'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=cleanName+'_font.zip';
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+        showToast(`✅ ${fontName} ZIP kimi yükləndi`);
+      }catch(err){
+        console.error(err);
+        const ext=font.fontExt||'.ttf';
+        const href=font.fontUrl||font.fontData;
+        const a=document.createElement('a');
+        a.href=href;
+        a.download=fontName.replace(/\s+/g,'_')+ext;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        showToast(`⬇️ Downloading ${fontName}${ext}.`);
+      }
+    })();
   } else if(font && font.affiliateUrl){
     // Faylı bizdə saxlamırıq (mes. CreativeFabrica) - affiliate linkinə yönləndir
     window.open(font.affiliateUrl,'_blank','noopener');
