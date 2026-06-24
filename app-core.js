@@ -618,12 +618,11 @@ function handleDownloadClick(fontId,fontName){
     })();
   } else if(font && font.gfamily){
     const _gName=(font.gfamily||font.name).split(':')[0].replace(/\+/g,' ');
-    const _gUrl='https://fonts.google.com/download?family='+encodeURIComponent(_gName);
-    const _ifr=document.createElement('iframe');
-    _ifr.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
-    _ifr.src=_gUrl;
-    document.body.appendChild(_ifr);
-    setTimeout(()=>document.body.removeChild(_ifr),30000);
+    const _proxyUrl='https://gfont-proxy.uroboros130875.workers.dev/?family='+encodeURIComponent(_gName);
+    const _a=document.createElement('a');
+    _a.href=_proxyUrl;
+    _a.download=_gName.replace(/\s+/g,'_')+'_fonts.zip';
+    document.body.appendChild(_a);_a.click();document.body.removeChild(_a);
     showToast(`⬇️ ${fontName} yüklənir...`);
   } else if(font && (font.fontData || font.fontUrl)){
     const ext=font.fontExt||'.ttf';
