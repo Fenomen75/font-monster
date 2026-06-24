@@ -619,23 +619,31 @@ function handleDownloadClick(fontId,fontName){
   } else if(font && font.gfamily){
     showToast(`⏳ ${fontName} hazırlanır...`);
     (async()=>{
-      const ttfUrl=(typeof FONT_TTF_URLS!=='undefined')?FONT_TTF_URLS[font.id]:null;
+      const ttfUrls=(typeof FONT_TTF_URLS!=='undefined')?FONT_TTF_URLS[font.id]:null;
       try{
-        if(!ttfUrl) throw new Error('no-ttf-url');
-        const res=await fetch(ttfUrl);
-        if(!res.ok) throw new Error('fetch-failed-'+res.status);
-        const buf=await res.arrayBuffer();
-        const ext=ttfUrl.split('.').pop().split('?')[0]||'ttf';
+        if(!ttfUrls || !ttfUrls.length) throw new Error('no-ttf-url');
         const cleanName=fontName.replace(/\s+/g,'_');
         const zip=new JSZip();
-        zip.file(`${cleanName}.${ext}`, buf);
+        const folder=zip.folder(cleanName);
+        let okCount=0;
+        await Promise.all(ttfUrls.map(async(url)=>{
+          try{
+            const res=await fetch(url);
+            if(!res.ok) return;
+            const buf=await res.arrayBuffer();
+            const fname=decodeURIComponent(url.split('/').pop());
+            folder.file(fname, buf);
+            okCount++;
+          }catch(e){ console.error('style file failed:', url, e); }
+        }));
+        if(okCount===0) throw new Error('all-files-failed');
         const blob=await zip.generateAsync({type:'blob'});
         const a=document.createElement('a');
         a.href=URL.createObjectURL(blob);
-        a.download=`${cleanName}_font.zip`;
+        a.download=`${cleanName}_fonts.zip`;
         document.body.appendChild(a);a.click();document.body.removeChild(a);
         setTimeout(()=>URL.revokeObjectURL(a.href),60000);
-        showToast(`✅ ${fontName} yükləndi`);
+        showToast(`✅ ${fontName} yükləndi (${okCount} stil)`);
       }catch(err){
         console.error('Direct GitHub TTF download failed:',err);
         showToast('⚠ Birbaşa endirmə alınmadı, Google Fonts səhifəsinə yönləndirilir...');
