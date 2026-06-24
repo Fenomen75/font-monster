@@ -617,15 +617,10 @@ function handleDownloadClick(fontId,fontName){
       }
     })();
   } else if(font && font.gfamily){
-    // Google Fonts TTF ZIP-i birbaşa yüklə (WOFF2 yox, TTF verir)
-    const _gName=(font.gfamily||font.name).split(':')[0].replace(/\+/g,' ');
-    const _gDlUrl='https://fonts.google.com/download?family='+encodeURIComponent(_gName);
-    const _a=document.createElement('a');
-    _a.href=_gDlUrl;
-    _a.target='_blank';
-    _a.rel='noopener';
-    document.body.appendChild(_a);_a.click();document.body.removeChild(_a);
-    showToast(`⬇️ ${fontName} — Google Fonts TTF ZIP açılır`);
+    showToast(`⏳ Preparing download...`);
+    downloadGoogleFontZip(font).then(ok=>{
+      if(ok) showToast(`⬇️ ${fontName} downloaded`);
+    });
   } else if(font && (font.fontData || font.fontUrl)){
     const ext=font.fontExt||'.ttf';
     const href = font.fontUrl || font.fontData;
@@ -656,7 +651,7 @@ async function downloadGoogleFontZip(font){
   try{
     const family=font.gfamily||font.name.replace(/\s+/g,'+');
     const cssUrl=`https://fonts.googleapis.com/css2?family=${family}&display=swap`;
-    const resp=await fetch(cssUrl,{headers:{'User-Agent':'Mozilla/5.0'}});
+    const resp=await fetch(cssUrl,{headers:{'User-Agent':'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)'}});
     let css=await resp.text();
     // Bezi shilder/userAgent format-larinda woff2 yoxdur; ttf üçün fallback istəyirik
     if(!/url\(/.test(css)){
