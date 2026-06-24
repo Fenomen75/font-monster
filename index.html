@@ -502,6 +502,19 @@
   rtSet(sesRef, { t: rtServerTimestamp() });
   onDisconnect(sesRef).remove();
   window.addEventListener('pagehide', () => rtSet(sesRef, null));
+  // Heartbeat: hər 30 saniyədə timestamp yenilə
+  const _heartbeatInterval = setInterval(() => rtSet(sesRef, { t: rtServerTimestamp() }), 30000);
+  window.addEventListener('pagehide', () => clearInterval(_heartbeatInterval));
+  // Stale cleanup: 2 dəqiqədən köhnə session-ları sil (yalnız ilk yükləmədə)
+  onValue(ref(rtdb, 'presence'), snap => {
+    if(!snap.exists()) return;
+    const now = Date.now();
+    Object.entries(snap.val()).forEach(([key, val]) => {
+      if(key !== sid && val.t && (now - val.t) > 120000){
+        rtSet(ref(rtdb, 'presence/' + key), null);
+      }
+    });
+  }, { onlyOnce: true });
 
   // Yalanci sayğac üçün random dəyər generatoru (1500-2000 arası)
   function _fakeOnlineCount(){
