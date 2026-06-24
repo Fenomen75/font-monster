@@ -493,7 +493,7 @@ document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.addEventListener('
 
 const allTags=[...new Set(FONTS_BASE.flatMap(f=>f.tags))].sort();
 const tagList=document.getElementById('tagList');
-allTags.slice(0,18).forEach(tag=>{
+allTags.forEach(tag=>{
   const d=document.createElement('div');d.className='sb-item';d.textContent=tag;d.dataset.tag=tag;
   d.addEventListener('click',()=>{
     showGrid();
