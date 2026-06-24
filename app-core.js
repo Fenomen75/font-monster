@@ -617,13 +617,31 @@ function handleDownloadClick(fontId,fontName){
       }
     })();
   } else if(font && font.gfamily){
-    const _gName=(font.gfamily||font.name).split(':')[0].replace(/\+/g,' ');
-    const _proxyUrl='https://gfont-proxy.uroboros130875.workers.dev/?family='+encodeURIComponent(_gName);
-    const _a=document.createElement('a');
-    _a.href=_proxyUrl;
-    _a.download=_gName.replace(/\s+/g,'_')+'_fonts.zip';
-    document.body.appendChild(_a);_a.click();document.body.removeChild(_a);
-    showToast(`⬇️ ${fontName} yüklənir...`);
+    showToast(`⏳ ${fontName} hazırlanır...`);
+    (async()=>{
+      const ttfUrl=(typeof FONT_TTF_URLS!=='undefined')?FONT_TTF_URLS[font.id]:null;
+      try{
+        if(!ttfUrl) throw new Error('no-ttf-url');
+        const res=await fetch(ttfUrl);
+        if(!res.ok) throw new Error('fetch-failed-'+res.status);
+        const buf=await res.arrayBuffer();
+        const ext=ttfUrl.split('.').pop().split('?')[0]||'ttf';
+        const cleanName=fontName.replace(/\s+/g,'_');
+        const zip=new JSZip();
+        zip.file(`${cleanName}.${ext}`, buf);
+        const blob=await zip.generateAsync({type:'blob'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=`${cleanName}_font.zip`;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+        showToast(`✅ ${fontName} yükləndi`);
+      }catch(err){
+        console.error('Direct GitHub TTF download failed:',err);
+        showToast('⚠ Birbaşa endirmə alınmadı, Google Fonts səhifəsinə yönləndirilir...');
+        window.open(`https://fonts.google.com/specimen/${encodeURIComponent(font.name)}`,'_blank');
+      }
+    })();
   } else if(font && (font.fontData || font.fontUrl)){
     const ext=font.fontExt||'.ttf';
     const href = font.fontUrl || font.fontData;
