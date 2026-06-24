@@ -617,10 +617,15 @@ function handleDownloadClick(fontId,fontName){
       }
     })();
   } else if(font && font.gfamily){
-    showToast(`⏳ Preparing download...`);
-    downloadGoogleFontZip(font).then(ok=>{
-      if(ok) showToast(`⬇️ ${fontName} downloaded`);
-    });
+    // Google Fonts TTF ZIP-i birbaşa yüklə (WOFF2 yox, TTF verir)
+    const _gName=(font.gfamily||font.name).split(':')[0].replace(/\+/g,' ');
+    const _gDlUrl='https://fonts.google.com/download?family='+encodeURIComponent(_gName);
+    const _a=document.createElement('a');
+    _a.href=_gDlUrl;
+    _a.target='_blank';
+    _a.rel='noopener';
+    document.body.appendChild(_a);_a.click();document.body.removeChild(_a);
+    showToast(`⬇️ ${fontName} — Google Fonts TTF ZIP açılır`);
   } else if(font && (font.fontData || font.fontUrl)){
     const ext=font.fontExt||'.ttf';
     const href = font.fontUrl || font.fontData;
