@@ -1,13 +1,49 @@
+// ---- Firestore-based deleted base fonts ----
+async function _fsGetDeletedBase(){
+  try{
+    if(!window._fbDb||!window._fbFns) throw new Error('no-fb');
+    const {doc,getDoc}=window._fbFns;
+    const snap=await getDoc(doc(window._fbDb,'admin_settings','deleted_base_fonts'));
+    return new Set(snap.exists()?snap.data().ids||[]:[]);
+  }catch(e){
+    try{return new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));}catch(_){return new Set();}
+  }
+}
+async function _fsAddDeletedBase(fontId){
+  try{
+    if(!window._fbDb||!window._fbFns) throw new Error('no-fb');
+    const {doc,getDoc,setDoc}=window._fbFns;
+    const ref=doc(window._fbDb,'admin_settings','deleted_base_fonts');
+    const snap=await getDoc(ref);
+    const ids=snap.exists()?snap.data().ids||[]:[];
+    if(!ids.includes(fontId)){ids.push(fontId);await setDoc(ref,{ids});}
+  }catch(e){
+    try{const d=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));d.add(fontId);localStorage.setItem('fn_deleted_base',JSON.stringify([...d]));}catch(_){}
+  }
+}
+async function _fsRemoveDeletedBase(fontId){
+  try{
+    if(!window._fbDb||!window._fbFns) throw new Error('no-fb');
+    const {doc,getDoc,setDoc}=window._fbFns;
+    const ref=doc(window._fbDb,'admin_settings','deleted_base_fonts');
+    const snap=await getDoc(ref);
+    const ids=(snap.exists()?snap.data().ids||[]:[] ).filter(id=>id!==fontId);
+    await setDoc(ref,{ids});
+  }catch(e){
+    try{const d=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));d.delete(fontId);localStorage.setItem('fn_deleted_base',JSON.stringify([...d]));}catch(_){}
+  }
+}
+
 // ---- [app.js lines 350-353] ----
 function getAdminRequests(){try{return JSON.parse(localStorage.getItem('tv_admin_requests')||'[]');}catch(e){return[];}}
 function saveAdminRequests(arr){try{localStorage.setItem('tv_admin_requests',JSON.stringify(arr));}catch(e){}}
 
 // ?? Sync approved/pending submitted fonts for current user ??
 // ---- [app.js lines 354-456] ----
-function syncSubmittedFonts(){
+async function syncSubmittedFonts(){
   // Remove all previously-loaded submitted fonts from runtime FONTS
   const ids=JSON.parse(localStorage.getItem("tv_submitted")||"[]").map(f=>f.id);
-  const _deletedBase=(function(){try{return new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));}catch(e){return new Set();}})();
+  const _deletedBase=await _fsGetDeletedBase();
   // Rebuild: FONTS = FONTS_BASE (minus deleted) + approved + current user's pending
   for(let i=FONTS.length-1;i>=0;i--){
     if(!FONTS_BASE.find(b=>b.id===FONTS[i].id)) FONTS.splice(i,1);
@@ -1182,13 +1218,7 @@ function adminDeleteFont(fontId,btn){
     localStorage.setItem("tv_submitted",JSON.stringify(sub));
   }
   // Track deleted base font IDs so they stay removed after page reload
-  if(isBase){
-    try{
-      const del=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));
-      del.add(fontId);
-      localStorage.setItem('fn_deleted_base',JSON.stringify([...del]));
-    }catch(e){}
-  }
+  if(isBase){ _fsAddDeletedBase(fontId); }
   // Remove from admin requests too
   let reqs=getAdminRequests();
   reqs=reqs.filter(r=>r.id!==fontId);
@@ -1222,16 +1252,12 @@ function adminRestoreFont(fontId){
   restored.restoredAt=new Date().toISOString();
   // If it was a base font, remove from deleted list (makes it appear in FONTS_BASE again on reload)
   if(f._wasBase){
-    try{
-      const del=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));
-      del.delete(fontId);
-      localStorage.setItem('fn_deleted_base',JSON.stringify([...del]));
-      // Re-add to runtime FONTS from FONTS_BASE
-      if(!FONTS.find(x=>x.id===fontId)){
-        const base=FONTS_BASE.find(x=>x.id===fontId);
-        if(base) FONTS.push(base);
-      }
-    }catch(e){}
+    _fsRemoveDeletedBase(fontId);
+    // Re-add to runtime FONTS from FONTS_BASE
+    if(!FONTS.find(x=>x.id===fontId)){
+      const base=FONTS_BASE.find(x=>x.id===fontId);
+      if(base) FONTS.push(base);
+    }
   } else {
     sub.push(restored);
     localStorage.setItem("tv_submitted",JSON.stringify(sub));
@@ -1269,15 +1295,7 @@ function adminPermanentDelete(fontId,btn){
   const newTrash=trash.filter(x=>x.id!==fontId);
   _saveTrash(newTrash);
   // If it was a base font, keep it in fn_deleted_base so it stays gone
-  // (already there from when it was first deleted — nothing extra needed)
-  // If somehow not there, add it now
-  if(f && f._wasBase){
-    try{
-      const del=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));
-      del.add(fontId);
-      localStorage.setItem('fn_deleted_base',JSON.stringify([...del]));
-    }catch(e){}
-  }
+  if(f && f._wasBase){ _fsAddDeletedBase(fontId); }
   _renderAdminTrash();
   _updateTrashBadge();
   adminLog('delete',name,'Permanently deleted');
@@ -2029,9 +2047,19 @@ window._setTagChipValues=function(boxId,chipsId,inputId,hiddenId,tagsArr){
 };
 
 // Init both tag chip inputs when DOM ready
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',()=>{ 
   _initTagChip('sf-tags-box','sf-tags-chips','sf-tags-input','sf-tags',5);
   _initTagChip('ef-tags-box','ef-tags-chips','ef-tags-input','ef-tags',5);
+  // Migrate fn_deleted_base from localStorage to Firestore (one-time)
+  (async()=>{
+    try{
+      const local=JSON.parse(localStorage.getItem('fn_deleted_base')||'[]');
+      if(local.length>0 && window._fbDb && window._fbFns){
+        for(const id of local) await _fsAddDeletedBase(id);
+        localStorage.removeItem('fn_deleted_base');
+      }
+    }catch(e){}
+  })();
 });
 function closeSubmitOutside(e){if(e.target===document.getElementById('submitModal')&&e.type!=='touchmove')closeSubmit();}
 async function submitFont(){
@@ -2638,11 +2666,7 @@ function adminDeleteFontFromCard(fontId, fontName, btn){
   trash.push({...f, trashedAt:new Date().toISOString(), _wasBase:isBase});
   _saveTrash(trash);
   if(isBase){
-    try{
-      const del=new Set(JSON.parse(localStorage.getItem('fn_deleted_base')||'[]'));
-      del.add(fontId);
-      localStorage.setItem('fn_deleted_base',JSON.stringify([...del]));
-    }catch(e){}
+    _fsAddDeletedBase(fontId);
   } else {
     let sub=JSON.parse(localStorage.getItem('tv_submitted')||'[]');
     sub=sub.filter(x=>x.id!==fontId);
@@ -2669,11 +2693,7 @@ function _adminRemoveFontRuntime(fontId, perm){
     _saveTrash(trash);
   }
   if(isBase){
-    try{
-      const del = new Set(JSON.parse(localStorage.getItem('fn_deleted_base') || '[]'));
-      del.add(fontId);
-      localStorage.setItem('fn_deleted_base', JSON.stringify([...del]));
-    }catch(e){}
+    _fsAddDeletedBase(fontId);
   } else {
     let sub = JSON.parse(localStorage.getItem('tv_submitted') || '[]');
     sub = sub.filter(x => x.id !== fontId);
