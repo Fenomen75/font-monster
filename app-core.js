@@ -618,11 +618,9 @@ function handleDownloadClick(fontId,fontName){
     })();
   } else if(font && font.gfamily){
     const _gName=(font.gfamily||font.name).split(':')[0].replace(/\+/g,' ');
-    const _a=document.createElement('a');
-    _a.href='/api/gfont-download?family='+encodeURIComponent(_gName);
-    _a.download=_gName.replace(/\s+/g,'_')+'_fonts.zip';
-    document.body.appendChild(_a);_a.click();document.body.removeChild(_a);
-    showToast(`⬇️ ${fontName} yüklənir...`);
+    const _gUrl='https://fonts.google.com/download?family='+encodeURIComponent(_gName);
+    window.open(_gUrl,'_blank','noopener');
+    showToast(`⬇️ ${fontName} — ZIP yüklənir`);
   } else if(font && (font.fontData || font.fontUrl)){
     const ext=font.fontExt||'.ttf';
     const href = font.fontUrl || font.fontData;
