@@ -806,7 +806,7 @@ function _detailRenderHeader(font, dlCount, licM){
   document.getElementById('fdpHero').removeAttribute('style');
   document.getElementById('fdpHero').innerHTML=`
     <div>
-      <div class="fdp-name" style="font-family:'${font.name}',sans-serif">${esc(font.name)}</div>
+      <h1 class="fdp-name" style="font-family:'${font.name}',sans-serif;margin:0;font-size:inherit;font-weight:inherit">${esc(font.name)}</h1>
       <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year}</div>
       <div class="fdp-meta-row">
         <span class="fdp-chip">${cap(font.cat)}</span>
@@ -1075,9 +1075,9 @@ function _detailShowPage(font, fontId, dlCount){
   // URL routing + title
   const slug = font.id;
   _safeHistoryPush({page:'font', fontId: slug}, '', '/font/' + slug);
-  document.title = font.name + ' — Font·Monster';
+  document.title = font.name + ' Font — Font·Monster';
   updatePageMeta({
-    title: font.name + ' — Font·Monster',
+    title: font.name + ' Font — Font·Monster',
     description: (font.description || ('Download ' + font.name + ' free font by ' + font.author + '. Category: ' + font.cat + '.')),
     url: '/font/' + slug,
     image: font.imgSrc || undefined
