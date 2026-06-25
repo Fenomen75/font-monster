@@ -493,23 +493,40 @@ document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.addEventListener('
 
 const allTags=[...new Set(FONTS_BASE.flatMap(f=>f.tags))].sort();
 const tagList=document.getElementById('tagList');
-allTags.forEach(tag=>{
-  const d=document.createElement('div');d.className='sb-item';d.textContent=tag;d.dataset.tag=tag;
-  d.addEventListener('click',()=>{
-    showGrid();
-    activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;
-    searchTerm='';document.getElementById('searchInput').value='';
-    activeTag=tag;
-    document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.toggle('active',b.dataset.tag===tag));
-    document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));
-    document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
-    renderFonts();showToast(`"${tag}" fonts`);
-    syncUrl(true);
+
+function _shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderTagList(tags){
+  tagList.innerHTML='';
+  tags.slice(0,15).forEach(tag=>{
+    const d=document.createElement('div');d.className='sb-item';d.textContent=tag;d.dataset.tag=tag;
+    if(activeTag===tag)d.classList.add('active');
+    d.addEventListener('click',()=>{
+      showGrid();
+      activeCategory='all';activeLicenseFilter=null;alphaFilter='';currentPage=1;
+      searchTerm='';document.getElementById('searchInput').value='';
+      activeTag=tag;
+      document.querySelectorAll('#tagList .sb-item').forEach(b=>b.classList.toggle('active',b.dataset.tag===tag));
+      document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat==='all'));
+      document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()==='All'));
+      renderFonts();showToast(`"${tag}" fonts`);
+      syncUrl(true);
+    });
+    tagList.appendChild(d);
   });
-  tagList.appendChild(d);
-});
+}
+
+renderTagList(_shuffle(allTags));
+
+function updateTagsForFont(font){
+  if(!font||!font.tags||!font.tags.length)return;
+  const rest=_shuffle(allTags.filter(t=>!font.tags.includes(t)));
+  renderTagList([...font.tags,...rest]);
+}
+window._updateTagsForFont=updateTagsForFont;
 
 // init dark icon
+
 if(darkMode){_setDarkIcon(true);}
 
 // ?? APPLE RANGE SLIDERS - sync fill percentage ??

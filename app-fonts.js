@@ -654,6 +654,7 @@ function openDetail(fontId){
   _detailRenderInfoBox(font, weights, licM);
   _detailShowPage(font, fontId, dlCount);
   _detailRenderExtras(font, fontId);
+  if(typeof window._updateTagsForFont==='function') window._updateTagsForFont(font);
 }
 
 // Firebase auth (isAdmin) gec ge?ldikd? - s?hif? art?q a??q olsa - header-i (Edit
