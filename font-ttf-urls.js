@@ -1766,7 +1766,6 @@ const FONT_TTF_URLS={
   "wellfleet":["https://raw.githubusercontent.com/google/fonts/main/ofl/wellfleet/Wellfleet-Regular.ttf"],
   "wendy-one":["https://raw.githubusercontent.com/google/fonts/main/ofl/wendyone/WendyOne-Regular.ttf"],
   "whisper":["https://raw.githubusercontent.com/google/fonts/main/ofl/whisper/Whisper-Regular.ttf"],
-  "windSong":["https://raw.githubusercontent.com/google/fonts/main/ofl/windsong/WindSong-Medium.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/windsong/WindSong-Regular.ttf"],
   "winky-rough":["https://raw.githubusercontent.com/google/fonts/main/ofl/winkyrough/WinkyRough%5Bwght%5D.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/winkyrough/WinkyRough-Italic%5Bwght%5D.ttf"],
   "winky-sans":["https://raw.githubusercontent.com/google/fonts/main/ofl/winkysans/WinkySans%5Bwght%5D.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/winkysans/WinkySans-Italic%5Bwght%5D.ttf"],
   "wire-one":["https://raw.githubusercontent.com/google/fonts/main/ofl/wireone/WireOne-Regular.ttf"],
@@ -1822,7 +1821,6 @@ const FONT_TTF_URLS={
   "zhi-mang-xing":["https://raw.githubusercontent.com/google/fonts/main/ofl/zhimangxing/ZhiMangXing-Regular.ttf"],
   "zilla-slab":["https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-Bold.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-BoldItalic.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-Italic.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-Light.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-LightItalic.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-Medium.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-MediumItalic.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-Regular.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-SemiBold.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslab/ZillaSlab-SemiBoldItalic.ttf"],
   "zilla-slab-highlight":["https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslabhighlight/ZillaSlabHighlight-Bold.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/zillaslabhighlight/ZillaSlabHighlight-Regular.ttf"],
-,
   "playwrite-co": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwriteco/PlaywriteCO[wght].ttf"],
   "playwrite-br": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwritebr/PlaywriteBR[wght].ttf"],
   "playwrite-mx": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwritemx/PlaywriteMX[wght].ttf"],
@@ -1892,6 +1890,6 @@ const FONT_TTF_URLS={
   "big-shoulders-stencil-text": ["https://raw.githubusercontent.com/google/fonts/main/ofl/bigshouldersstenciltext/BigShouldersStencilText[wght].ttf"],
   "playwrite-au-vic": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwriteauvic/PlaywriteAUVIC[wght].ttf"],
   "playwrite-at": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwriteat/PlaywriteAT[wght].ttf"],
-  "playwrite-it-trad": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwriteittrad/PlaywriteITTrad[wght].ttf"]
+  "playwrite-it-trad": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwriteittrad/PlaywriteITTrad[wght].ttf"],
   "windsong":["https://raw.githubusercontent.com/google/fonts/main/ofl/windsong/WindSong-Regular.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/windsong/WindSong-Medium.ttf"],
 };
