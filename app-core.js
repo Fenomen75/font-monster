@@ -647,7 +647,12 @@ function handleDownloadClick(fontId,fontName){
       }catch(err){
         console.error('Download failed:',err);
         if(ttfUrls && ttfUrls.length){
-          window.open(ttfUrls[0],'_blank');
+          // ZIP alınmadı - tək faylı birbaşa yüklə, AMMA heç vaxt yeni səhifə/tab açma
+          const a=document.createElement('a');
+          a.href=ttfUrls[0];
+          a.download=decodeURIComponent(ttfUrls[0].split('/').pop())||(fontName.replace(/\s+/g,'_')+'.ttf');
+          a.rel='noopener';
+          document.body.appendChild(a);a.click();document.body.removeChild(a);
           showToast(`⬇ ${fontName} yüklənir...`);
         } else {
           showToast('⚠ Fayl tapılmadı');
@@ -752,8 +757,7 @@ async function downloadGoogleFontZip(font){
     return true;
   }catch(err){
     console.error('downloadGoogleFontZip error:',err);
-    showToast('⚠ Download failed, opening Google Fonts...');
-    window.open(`https://fonts.google.com/specimen/${encodeURIComponent(font.name)}`,'_blank');
+    showToast('⚠ Download uğursuz oldu, yenidən cəhd edin.');
     return false;
   }
 }
