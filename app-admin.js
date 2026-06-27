@@ -2722,6 +2722,11 @@ function adminPermDeleteFont(fontId, fontName){
   const newTrash = _getTrash().filter(x => x.id !== fontId);
   _saveTrash(newTrash);
   _updateTrashBadge();
+  // Delete from Firestore if it's a community font
+  if(!f._wasBase && window._fbDb && window._fbFns){
+    const {doc, deleteDoc} = window._fbFns;
+    deleteDoc(doc(window._fbDb,'submitted_fonts',fontId)).catch(e=>console.warn('Firestore perm delete error:',e));
+  }
   adminLog('delete', fontName, 'Permanently deleted');
   showToast('✕ "' + fontName + '" həmişəlik silindi');
   const panel = document.getElementById('fontDetailPanel');
