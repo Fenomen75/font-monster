@@ -645,9 +645,13 @@ function handleDownloadClick(fontId,fontName){
         setTimeout(()=>URL.revokeObjectURL(a.href),60000);
         showToast(`✅ ${fontName} yükləndi (${okCount} stil)`);
       }catch(err){
-        console.error('Direct GitHub TTF download failed:',err);
-        showToast('⚠ Birbaşa endirmə alınmadı, Google Fonts səhifəsinə yönləndirilir...');
-        window.open(`https://fonts.google.com/specimen/${encodeURIComponent(font.name)}`,'_blank');
+        console.error('Download failed:',err);
+        if(ttfUrls && ttfUrls.length){
+          window.open(ttfUrls[0],'_blank');
+          showToast(`⬇ ${fontName} yüklənir...`);
+        } else {
+          showToast('⚠ Fayl tapılmadı');
+        }
       }
     })();
   } else if(font && (font.fontData || font.fontUrl)){

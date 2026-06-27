@@ -1893,4 +1893,5 @@ const FONT_TTF_URLS={
   "playwrite-au-vic": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwriteauvic/PlaywriteAUVIC[wght].ttf"],
   "playwrite-at": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwriteat/PlaywriteAT[wght].ttf"],
   "playwrite-it-trad": ["https://raw.githubusercontent.com/google/fonts/main/ofl/playwriteittrad/PlaywriteITTrad[wght].ttf"]
+  "windsong":["https://raw.githubusercontent.com/google/fonts/main/ofl/windsong/WindSong-Regular.ttf","https://raw.githubusercontent.com/google/fonts/main/ofl/windsong/WindSong-Medium.ttf"],
 };
