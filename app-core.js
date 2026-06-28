@@ -659,6 +659,32 @@ function handleDownloadClick(fontId,fontName){
         }
       }
     })();
+  } else if(font && font.b2Url){
+    showToast(`⏳ ${fontName} hazırlanır...`);
+    (async()=>{
+      try{
+        const ext=font.b2Url.endsWith('.otf')?'.otf':'.ttf';
+        const b2path=font.b2Url.replace('https://f005.backblazeb2.com/file/font-monster/','');
+        const proxyUrl='https://gfont-proxy.uroboros130875.workers.dev/b2/'+b2path;
+        const res=await fetch(proxyUrl);
+        if(!res.ok) throw new Error('fetch failed');
+        const buf=await res.arrayBuffer();
+        const cleanName=fontName.replace(/\s+/g,'_');
+        const zip=new JSZip();
+        const folder=zip.folder(cleanName);
+        folder.file(cleanName+ext,buf);
+        const blob=await zip.generateAsync({type:'blob'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=cleanName+'_font.zip';
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+        showToast(`✅ ${fontName} ZIP kimi yükləndi`);
+      }catch(err){
+        console.error(err);
+        showToast('⚠ Yükləmə xətası');
+      }
+    })();
   } else if(font && (font.fontData || font.fontUrl)){
     showToast(`⏳ ZIP hazırlanır...`);
     (async()=>{
