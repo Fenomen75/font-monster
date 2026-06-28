@@ -107,8 +107,9 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded, weight){
 function loadFont(f){
   if(loadedFonts.has(f.id)) return;
   // Only skip if it's a pure image-preview font (DaFont) with no actual font data
-  if(f.previewImg && !f.fontData && !f.fontUrl && !f.gfamily) return;
+  if(f.previewImg && !f.fontData && !f.fontUrl && !f.b2Url && !f.gfamily) return;
   if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf',null,f.weight||'400');return;}
+  if(f.b2Url){const _b2ext=f.b2Url.endsWith('.otf')?'.otf':'.ttf';injectCustomFontFaceUrl(f.id,f.name,f.b2Url,_b2ext,null,f.weight||'400');return;}
   if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');return;}
   if(!f.gfamily) return;
   loadedFonts.add(f.id);
