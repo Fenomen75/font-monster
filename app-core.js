@@ -539,6 +539,7 @@ function _buildCardHTML(font, opts){
 }
 
 function renderFonts(){
+  console.trace('renderFonts called');
   window._lastRenderFontsAt = Date.now();
   const grid=document.getElementById('fontGrid');grid.innerHTML="";
   const allList=getFiltered();updateCounts();
