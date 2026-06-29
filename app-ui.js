@@ -559,8 +559,11 @@ renderRecentList();
 // localStorage-da keş varsa dərhal render et, yoxdursa skeleton göstər
 var _hasDlCache=!!(function(){try{return localStorage.getItem('fm_dl_counts');}catch(e){}}());
 if(_hasDlCache){
-  // FONTS_BASE async yüklənir — hazır olanda render et
-  document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true});
+  if(_fontsBaseReady){
+    renderFonts();
+  } else {
+    document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true});
+  }
 } else {
   (function(){
     var grid=document.getElementById('fontGrid');
@@ -575,7 +578,8 @@ if(_hasDlCache){
     }
   }());
   // Skeleton path: FONTS_BASE hazır olanda render et
-  document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true});
+  if(_fontsBaseReady){ renderFonts(); }
+  else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
 }
 // Firebase-dən real data gəlir; keş varsa yalnız sıralama dəyişibsə render et
 (function _waitFbAndLoadStats(attempt){
@@ -583,7 +587,6 @@ if(_hasDlCache){
     var _orderBefore=_hasDlCache?Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join():'';
     loadDownloadStatsCache().then(function(){
       var _orderAfter=Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join();
-      // FONTS_BASE hazır deyilsə render-i gözlə
       if(!_hasDlCache||_orderBefore!==_orderAfter){
         if(_fontsBaseReady){ renderFonts(); }
         else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
@@ -593,7 +596,6 @@ if(_hasDlCache){
   } else if(attempt < 40){
     setTimeout(function(){ _waitFbAndLoadStats(attempt+1); }, 250);
   } else {
-    // Firebase yoxdur — FONTS_BASE hazır olanda render et
     if(_fontsBaseReady){ renderFonts(); }
     else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
   }
