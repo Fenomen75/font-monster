@@ -574,6 +574,8 @@ if(_hasDlCache){
       document.head.appendChild(st);
     }
   }());
+  // Skeleton path: FONTS_BASE hazır olanda render et
+  document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true});
 }
 // Firebase-dən real data gəlir; keş varsa yalnız sıralama dəyişibsə render et
 (function _waitFbAndLoadStats(attempt){
@@ -581,13 +583,19 @@ if(_hasDlCache){
     var _orderBefore=_hasDlCache?Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join():'';
     loadDownloadStatsCache().then(function(){
       var _orderAfter=Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join();
-      if(!_hasDlCache||_orderBefore!==_orderAfter) renderFonts();
+      // FONTS_BASE hazır deyilsə render-i gözlə
+      if(!_hasDlCache||_orderBefore!==_orderAfter){
+        if(_fontsBaseReady){ renderFonts(); }
+        else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
+      }
       loadRatingsCache();
     });
   } else if(attempt < 40){
     setTimeout(function(){ _waitFbAndLoadStats(attempt+1); }, 250);
   } else {
-    renderFonts();
+    // Firebase yoxdur — FONTS_BASE hazır olanda render et
+    if(_fontsBaseReady){ renderFonts(); }
+    else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
   }
 })(0);
 // initAuth loads window.currentUser from localStorage for offline/non-Firebase fallback
