@@ -195,11 +195,15 @@ function resolveFontLangs(font, callback) {
     callback(_LANG_CACHE[font.id]);
     return;
   }
-  // Uploaded font without pre-computed langs - try canvas fallback
-  if (font.fontData || font.fontUrl) {
+  // Uploaded/b2 font - try canvas fallback.
+  // b2 fonts have no fontData/fontUrl but are loaded via @font-face (loadFont()),
+  // so canvas detection works as long as the font is in FONTS_BASE or is a community font.
+  const _isNonGF = font.fontData || font.fontUrl ||
+    (typeof FONTS_BASE !== 'undefined' && !FONTS_BASE.find(f => f.id === font.id));
+  if (_isNonGF) {
     document.fonts.ready.then(() => {
       const detected = (typeof LANG_SUPPORT_LIST !== 'undefined' ? LANG_SUPPORT_LIST : [])
-        .filter(l => _fontCanRender(font.name, font.weight||'400', l.chars))
+        .filter(l => !['Digits','Punct'].includes(l.code) && _fontCanRender(font.name, font.weight||'400', l.chars))
         .map(l => l.label);
       _LANG_CACHE[font.id] = detected.length ? detected : ['Latin'];
       callback(_LANG_CACHE[font.id]);
