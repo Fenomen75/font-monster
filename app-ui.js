@@ -559,7 +559,8 @@ renderRecentList();
 // localStorage-da keş varsa dərhal render et, yoxdursa skeleton göstər
 var _hasDlCache=!!(function(){try{return localStorage.getItem('fm_dl_counts');}catch(e){}}());
 if(_hasDlCache){
-  renderFonts();
+  // FONTS_BASE async yüklənir — hazır olanda render et
+  document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true});
 } else {
   (function(){
     var grid=document.getElementById('fontGrid');
