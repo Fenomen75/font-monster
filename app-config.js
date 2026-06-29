@@ -195,12 +195,8 @@ function resolveFontLangs(font, callback) {
     callback(_LANG_CACHE[font.id]);
     return;
   }
-  // Uploaded/b2 font - try canvas fallback.
-  // b2 fonts have no fontData/fontUrl but are loaded via @font-face (loadFont()),
-  // so canvas detection works as long as the font is in FONTS_BASE or is a community font.
-  const _isNonGF = font.fontData || font.fontUrl ||
-    (typeof FONTS_BASE !== 'undefined' && !FONTS_BASE.find(f => f.id === font.id));
-  if (_isNonGF) {
+  // Uploaded font with explicit data - async (font may not be in @font-face yet)
+  if (font.fontData || font.fontUrl) {
     document.fonts.ready.then(() => {
       const detected = (typeof LANG_SUPPORT_LIST !== 'undefined' ? LANG_SUPPORT_LIST : [])
         .filter(l => !['Digits','Punct'].includes(l.code) && _fontCanRender(font.name, font.weight||'400', l.chars))
@@ -208,6 +204,15 @@ function resolveFontLangs(font, callback) {
       _LANG_CACHE[font.id] = detected.length ? detected : ['Latin'];
       callback(_LANG_CACHE[font.id]);
     });
+    return;
+  }
+  // b2/community font — already in @font-face via loadFont(), sync canvas detect, no flicker
+  if (typeof FONTS_BASE !== 'undefined' && !FONTS_BASE.find(f => f.id === font.id)) {
+    const detected = (typeof LANG_SUPPORT_LIST !== 'undefined' ? LANG_SUPPORT_LIST : [])
+      .filter(l => !['Digits','Punct'].includes(l.code) && _fontCanRender(font.name, font.weight||'400', l.chars))
+      .map(l => l.label);
+    _LANG_CACHE[font.id] = detected.length ? detected : ['Latin'];
+    callback(_LANG_CACHE[font.id]);
     return;
   }
   // Built-in Google Font - use accurate FONT_SUBSETS table
