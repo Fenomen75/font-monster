@@ -1433,11 +1433,9 @@ document.head.appendChild(aiStyle);
     } else if(location.search){
       // Query params varsa grid state-ini bərpa et
       waitFonts(function(){ if(typeof restoreFromUrl==='function') restoreFromUrl(); }, 0);
-    } else {
-      // Sadə ana səhifə — query yoxdur, font/author/admin yoxdur
-      // FONTS async yüklənir, hazır olanda grid-i render et
-      waitFonts(function(){ if(typeof renderFonts==='function') renderFonts(); }, 0);
     }
+    // Sadə ana səhifə üçün renderFonts buradan çağırılmır —
+    // _waitFbAndLoadStats (yuxarıda) artıq render edir. İkinci render flicker yaradırdı.
   });
 
   // Global keyboard shortcuts
