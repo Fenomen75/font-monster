@@ -1,3 +1,21 @@
+// ---- ASYNC FONTS_BASE LOADER ----
+// fonts-data.js əvəzinə fonts-data.json async yüklənir.
+// Bu, 7MB JS parse yükünü aradan qaldırır (JSON parse ~10x sürətlidir).
+let FONTS_BASE = [];
+let _fontsBaseReady = false;
+
+(async function _loadFontsBase() {
+  try {
+    const resp = await fetch('/fonts-data.json');
+    FONTS_BASE = await resp.json();
+    _fontsBaseReady = true;
+    window.FONTS_BASE = FONTS_BASE;
+    _initWithFontsBase();
+  } catch(e) {
+    console.error('fonts-data.json yüklənmədi:', e);
+  }
+})();
+
 // ---- [app.js lines 199-349] ----
 function _estimatedDownloadCounts(){
   const s={};
@@ -9,9 +27,13 @@ function _estimatedYesterdayDownloads(){
   FONTS_BASE.forEach(f=>{ s[f.id]=0; });
   return s;
 }
-let DL_COUNTS=_estimatedDownloadCounts();
-// localStorage-da saxlanmış real data varsa dərhal yüklə (1 saatdan köhnədirsə istifadə etmə)
-(function(){
+let DL_COUNTS={};
+let DL_YESTERDAY={};
+let DL_IS_ESTIMATED={};
+
+function _initWithFontsBase(){
+  DL_COUNTS=_estimatedDownloadCounts();
+  // localStorage-da saxlanmış real data varsa dərhal yüklə (1 saatdan köhnədirsə istifadə etmə)
   try{
     const raw=localStorage.getItem('fm_dl_counts');
     if(raw){
@@ -19,36 +41,39 @@ let DL_COUNTS=_estimatedDownloadCounts();
       const cachedAt=parsed._cachedAt||0;
       const ONE_HOUR=60*60*1000;
       if(Date.now()-cachedAt<ONE_HOUR){
-        // _cachedAt açarını silərək yalnız font saylarını götür
         const {_cachedAt:_,...counts}=parsed;
         Object.assign(DL_COUNTS,counts);
       } else {
-        // Cache köhnədir — Firebase-dən yenidən yüklənəcək, local cache silinir
         localStorage.removeItem('fm_dl_counts');
       }
     }
   }catch(e){}
-}());
-window.DL_COUNTS = DL_COUNTS;
+  window.DL_COUNTS = DL_COUNTS;
 
-// yesterday counter-ni gecə yarısında sıfırla
-let DL_YESTERDAY=_estimatedYesterdayDownloads();
-(function(){
+  // yesterday counter-ni gecə yarısında sıfırla
+  DL_YESTERDAY=_estimatedYesterdayDownloads();
   try{
     const KEY='fm_yesterday_date';
     const todayStr=new Date().toDateString();
     const lastDate=localStorage.getItem(KEY);
     if(lastDate && lastDate!==todayStr){
-      // Yeni gün — yesterday sıfırlanır (Firebase-dən yenidən gəlir)
       DL_YESTERDAY=_estimatedYesterdayDownloads();
     }
     localStorage.setItem(KEY,todayStr);
   }catch(e){}
-}());
-// true => the count for this font is still the seeded estimate, not real data
-let DL_IS_ESTIMATED={};
-FONTS_BASE.forEach(f=>DL_IS_ESTIMATED[f.id]=!(DL_COUNTS[f.id]>0));
-window.DL_IS_ESTIMATED=DL_IS_ESTIMATED;
+
+  // true => the count for this font is still the seeded estimate, not real data
+  FONTS_BASE.forEach(f=>DL_IS_ESTIMATED[f.id]=!(DL_COUNTS[f.id]>0));
+  window.DL_IS_ESTIMATED=DL_IS_ESTIMATED;
+
+  // FONTS array-ni başlat
+  FONTS=[...FONTS_BASE];
+  window.FONTS_BASE = FONTS_BASE;
+
+  // App-ı başlat — bütün digər scriptlər bu event-i dinləyir
+  if(typeof window._appCoreReady === 'function') window._appCoreReady();
+  document.dispatchEvent(new CustomEvent('fontsBaseReady'));
+}
 
 // Load real per-font download totals from Firestore ('download_stats/{fontId}')
 // and overlay them on top of the estimated baseline.
@@ -126,7 +151,7 @@ function incrementDownload(id){
   }
 }
 
-let FONTS=[...FONTS_BASE],activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
+let FONTS=[],activeCategory="all",searchTerm="",previewText="",fontSize=window.innerWidth<=768?38:100;
 // Buq 4 düzəlişi: type="module" script defer kimi işləyir — onAuthStateChanged gəlməzdən
 // əvvəl window.currentUser null qalır. localStorage cache-dən ilkin dəyəri oxuyuruq ki yarış vəziyyəti olmasın.
 window.currentUser=(function(){
