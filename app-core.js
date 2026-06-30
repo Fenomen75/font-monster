@@ -272,8 +272,10 @@ function isNewFont(f){
 }
 function getFiltered(){
   let list=FONTS.filter(f=>!f.pending||(window.currentUser&&f.submittedById===window.currentUser.id));
-  if(activeCategory==="new")list=list.filter(isNewFont);
-  else if(activeCategory!=="all")list=list.filter(f=>f.cat===activeCategory);
+  if(!searchTerm){ // axtarış aktivdirsə kateqoriya filtrini tətbiq etmə - bütün kitabxanada axtarsın
+    if(activeCategory==="new")list=list.filter(isNewFont);
+    else if(activeCategory!=="all")list=list.filter(f=>f.cat===activeCategory);
+  }
   if(activeLicenseFilter)list=list.filter(f=>activeLicenseFilter==='free'?['free','ofl','apache'].includes(f.license):f.license===activeLicenseFilter);
   if(activeSubsetFilter)list=list.filter(f=>getFontLangs(f).some(l=>l.toLowerCase().replace(/\s+/g,'-')===activeSubsetFilter));
   if(freeOnly)list=list.filter(f=>f.license==='free'||f.license==='ofl'||f.license==='apache');
