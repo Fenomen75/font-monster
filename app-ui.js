@@ -329,21 +329,26 @@ function renderPvCanvas(){
   const _isVariant=_gBase&&font.name!==_gBase&&!_hasVariants;
   const _pvFamily=(_av&&_av._familyName)||(_isVariant?font.name:(_gBase||font.name));
   const fontWeight=pvBold?'bold':(_hasVariants||_gBase?activeDetailWeight:'normal');
+  // Google Fonts-dan gələn fontların @font-face-lərində artıq DƏQİQ unicode-range məlumatı var -
+  // brauzer özü düzgün subset-i (latin/cyrillic/arabic və s.) seçib göstərir. Canvas-en-müqayisəsi
+  // ilə "bu hərf vardır?" təxmin etmək yalnız CUSTOM (yüklənmiş, etibarlı subset metadatası
+  // olmayan) fontlar üçün lazımdır - Google fontlarında bu test etibarsızdır və real hərfləri
+  // səhvən silə bilər. Ona görə Google fontları üçün heç bir sanitizasiya APARMIRIQ.
+  const _isCustomFont=!!(font.fontData||font.fontUrl||font.b2Url);
+  const _sanitize=_isCustomFont?(t)=>sanitizeGlyphs(t,_pvFamily,fontWeight):(t)=>t;
   // Banner mətn sinxronu - _pvFamily-dən sonra, düzgün family adı ilə
-  // sanitizeGlyphs ilə filtrlənir ki, aşağıdaki canvas ilə eyni nəticəni göstərsin
-  // (dəstəklənməyən hərflər - məs. Ə latın əsaslı fontlarda - hər iki yerdə silinsin)
   const bannerTxt=document.getElementById('heroBannerText');
-  if(bannerTxt) bannerTxt.textContent=(txt?sanitizeGlyphs(txt,_pvFamily,fontWeight):'')||_pvFamily;
+  if(bannerTxt) bannerTxt.textContent=(txt?_sanitize(txt):'')||_pvFamily;
   const bs=`font-family:'${_pvFamily}',sans-serif;font-weight:${fontWeight};font-style:${fontStyle};letter-spacing:${ls}px;color:${pvTextColor};`;
   document.querySelectorAll('.wt-sample').forEach(el=>el.textContent=txt||font.name);
 
   if(pvMode==='text'){
     if(!txt){canvas.innerHTML='';return;}
-    const safeTxt=sanitizeGlyphs(txt,_pvFamily,fontWeight);
+    const safeTxt=_sanitize(txt);
     canvas.innerHTML=`<div style="${bs}font-size:${sz}px;line-height:${Math.max(lh,1.4)};text-align:${pvAlign};word-break:break-word;padding-bottom:0.25em;width:100%">${esc(safeTxt)}</div>`;
   } else if(pvMode==='waterfall'){
     const wfSizes=[10,12,14,18,24,32,48,64,80,96];
-    const wfTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
+    const wfTxt=_sanitize(txt||font.name);
     const sepColor=pvBgColor==='#1a1a1a'||pvBgColor==='#1e3a5f'||pvBgColor==='#2d0a3e'?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.07)';
     canvas.style.padding='6px 0';
     const wf=document.createElement('div');wf.className='pv-wf';
@@ -355,14 +360,14 @@ function renderPvCanvas(){
     });
     canvas.innerHTML='';canvas.appendChild(wf);
   } else if(pvMode==='paragraph'){
-    const paraTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
+    const paraTxt=_sanitize(txt||font.name);
     const bodySize=Math.max(14,Math.min(sz,22));
     canvas.innerHTML=`<div class="pv-para" style="${bs}text-align:${pvAlign}">
       <strong style="${bs}font-size:${sz}px;line-height:1.1;display:block;margin-bottom:14px;font-weight:700">${esc(paraTxt)}</strong>
       <span style="font-size:${bodySize}px;line-height:${lh}">${LOREM}</span>
     </div>`;
   } else if(pvMode==='pairs'){
-    const pairsTxt=sanitizeGlyphs(txt||font.name,_pvFamily,fontWeight);
+    const pairsTxt=_sanitize(txt||font.name);
     const bodySize=Math.max(13,Math.round(sz*0.3));
     canvas.innerHTML=`<div class="pv-pairs">
       <div style="${bs}font-size:${sz}px;line-height:1.1;font-weight:700;text-align:${pvAlign};margin-bottom:12px">${esc(pairsTxt)}</div>
