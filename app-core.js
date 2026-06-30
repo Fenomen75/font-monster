@@ -881,6 +881,7 @@ function setCategory(cat){
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===cat));
   renderFonts();
+  window.scrollTo({top:0,behavior:'smooth'});
   if(cat==='new')showToast('✨ Recently added & new releases');
   syncUrl(true);
 }
