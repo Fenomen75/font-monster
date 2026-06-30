@@ -1470,10 +1470,10 @@ document.head.appendChild(aiStyle);
     } else if(path.startsWith('/profile')){
       var tab = path.slice(9) || 'myfonts';
       waitFonts(function(){ if(typeof showProfile==='function') showProfile(tab); }, 0);
-    } else if(location.search){
-      // Query params varsa grid state-ini bərpa et
-      waitFonts(function(){ if(typeof restoreFromUrl==='function') restoreFromUrl(); }, 0);
     }
+    // Qeyd: location.search halı buradan idarə olunmur — _doFirstPaint (yuxarıda,
+    // fontsBaseReady event-i üzərindən) artıq restoreFromUrl()-u çağırır. Burda
+    // ikinci, paralel restoreFromUrl() çağırışı 2x render-ə (flicker) səbəb olurdu.
     // Sadə ana səhifə üçün renderFonts buradan çağırılmır —
     // _waitFbAndLoadStats (yuxarıda) artıq render edir. İkinci render flicker yaradırdı.
   });
