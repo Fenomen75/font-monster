@@ -656,8 +656,7 @@ function renderFonts(){
   title.innerHTML=`<strong>${total}</strong> font${total!==1?'s':''}${pp>0&&total>pp?` <span style="color:var(--text3);font-size:.78em">· showing ${from}-${to}</span>`:''}${activeLicenseFilter?` · <span style="color:var(--text3)">${LICENSE_META[activeLicenseFilter]?.label||''} only</span>`:''}`;
   const top5ids=FONTS_BASE.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0)).slice(0,5).map(f=>f.id);
   list.forEach((font,i)=>{
-    loadFont(font);
-    const card=document.createElement('div');card.className='font-card';
+    const card=document.createElement('div');card.className='font-card';card.dataset.fontid=font.id;
     card.style.animationDelay=`${Math.min(i*0.03,0.28)}s`;
     const isLiked=likedFonts.has(font.id),isCom=!FONTS_BASE.find(f=>f.id===font.id);
     const isNew=isNewFont(font);
@@ -672,7 +671,22 @@ function renderFonts(){
     grid.appendChild(card);
   });
 
-  // Font yüklənəndə preview-ləri göstər
+  // Lazy font loading: əvvəllər list-dəki HƏR font üçün loadFont() səhifə açılan kimi
+  // çağırılırdı (görünür-görünmür fərq etmədən) - 100/page seçimində bu, 100 TTF/woff
+  // faylının paralel yüklənməsi deməkdir (~13MB, saytı 5-7sn dondururdu). İndi yalnız
+  // ekrana yaxınlaşan (rootMargin: 400px) kartlar üçün font yüklənir.
+  if(window._fontLazyObserver) window._fontLazyObserver.disconnect();
+  const _fontMap={}; list.forEach(f=>{_fontMap[f.id]=f;});
+  window._fontLazyObserver=new IntersectionObserver((entries,obs)=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting) return;
+      const fid=entry.target.dataset.fontid;
+      const f=_fontMap[fid];
+      if(f) loadFont(f);
+      obs.unobserve(entry.target);
+    });
+  },{root:null,rootMargin:'400px 0px',threshold:0.01});
+  grid.querySelectorAll('.font-card').forEach(card=>window._fontLazyObserver.observe(card));
   document.fonts.ready.then(function(){
     grid.querySelectorAll('.card-preview').forEach(function(el){ el.style.opacity='1'; });
   });
