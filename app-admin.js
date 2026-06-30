@@ -2296,24 +2296,9 @@ async function _finalizeSubmit(font){
 
 // TOAST
 // ?? Parse weight & style from font filename ?????????????????????????????????
-function parseVariantStyle(filename){
-  const base=(filename||'').replace(/\.[^.]+$/,'');
-  const lower=base.toLowerCase();
-  const parts=lower.split(/[-_\s]+/);
-  let weight=400,style='normal';
-  if(parts.includes('it')||parts.includes('ital')||/italic|oblique/.test(lower)) style='italic';
-  if(parts.includes('hv')||parts.includes('heavy')||parts.includes('blk')||parts.includes('black')) weight=900;
-  else if(parts.includes('extrabold')||parts.includes('xbd')) weight=800;
-  else if(parts.includes('bd')||parts.includes('bold')) weight=700;
-  else if(parts.includes('sb')||parts.includes('semibold')||parts.includes('demi')) weight=600;
-  else if(parts.includes('md')||parts.includes('med')||parts.includes('medium')) weight=500;
-  else if(parts.includes('lt')||parts.includes('light')) weight=300;
-  else if(parts.includes('el')||parts.includes('extralight')) weight=200;
-  else if(parts.includes('th')||parts.includes('thin')||parts.includes('hairline')) weight=100;
-  const ABBR={'rg':'Regular','bd':'Bold','lt':'Light','md':'Medium','th':'Thin','hv':'Heavy','blk':'Black','it':'Italic','ob':'Oblique','sb':'Semi Bold','el':'Extra Light','cond':'Condensed','comp':'Compressed','cram':'Crammed','ext':'Extended','exp':'Expanded','nar':'Narrow','ital':'Italic','reg':'Regular','bold':'Bold','light':'Light','black':'Black','heavy':'Heavy','thin':'Thin','italic':'Italic','condensed':'Condensed','compressed':'Compressed','extended':'Extended','semibold':'Semi Bold','extrabold':'Extra Bold','extralight':'Extra Light'};
-  const label=parts.slice(1).map(p=>ABBR[p]||(p.charAt(0).toUpperCase()+p.slice(1))).join(' ').trim()||'Regular';
-  return {weight,style,label};
-}
+// parseVariantStyle artıq app-core.js-ə köçürülüb (renderFonts() ona sinxron
+// ehtiyac duyur, app-admin.js-dən asılı qalmamalıdır — script load race bug-ı).
+
 // ?? Inject one @font-face per variant with correct weight+style ??????????????
 function injectVariantFaces(font){
   if(!font.fontVariants||!font.fontVariants.length) return false;

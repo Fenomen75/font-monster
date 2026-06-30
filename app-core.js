@@ -364,6 +364,28 @@ function renderRecentList(){
 
 // COMPARE
 // ---- [app.js lines 758-1283] ----
+// parseVariantStyle BURDA olmalıdır (app-admin.js-də deyil) — renderFonts() bunu
+// kart qurarkən SİNXRON çağırır; əgər app-admin.js hələ yüklənməyibsə (script
+// load race, məs. fonts-data.json keşdən ani cavab verəndə), ReferenceError
+// renderFonts()-u yarımçıq kəsib grid-i həmişəlik gizli saxlayırdı.
+function parseVariantStyle(filename){
+  const base=(filename||'').replace(/\.[^.]+$/,'');
+  const lower=base.toLowerCase();
+  const parts=lower.split(/[-_\s]+/);
+  let weight=400,style='normal';
+  if(parts.includes('it')||parts.includes('ital')||/italic|oblique/.test(lower)) style='italic';
+  if(parts.includes('hv')||parts.includes('heavy')||parts.includes('blk')||parts.includes('black')) weight=900;
+  else if(parts.includes('extrabold')||parts.includes('xbd')) weight=800;
+  else if(parts.includes('bd')||parts.includes('bold')) weight=700;
+  else if(parts.includes('sb')||parts.includes('semibold')||parts.includes('demi')) weight=600;
+  else if(parts.includes('md')||parts.includes('med')||parts.includes('medium')) weight=500;
+  else if(parts.includes('lt')||parts.includes('light')) weight=300;
+  else if(parts.includes('el')||parts.includes('extralight')) weight=200;
+  else if(parts.includes('th')||parts.includes('thin')||parts.includes('hairline')) weight=100;
+  const ABBR={'rg':'Regular','bd':'Bold','lt':'Light','md':'Medium','th':'Thin','hv':'Heavy','blk':'Black','it':'Italic','ob':'Oblique','sb':'Semi Bold','el':'Extra Light','cond':'Condensed','comp':'Compressed','cram':'Crammed','ext':'Extended','exp':'Expanded','nar':'Narrow','ital':'Italic','reg':'Regular','bold':'Bold','light':'Light','black':'Black','heavy':'Heavy','thin':'Thin','italic':'Italic','condensed':'Condensed','compressed':'Compressed','extended':'Extended','semibold':'Semi Bold','extrabold':'Extra Bold','extralight':'Extra Light'};
+  const label=parts.slice(1).map(p=>ABBR[p]||(p.charAt(0).toUpperCase()+p.slice(1))).join(' ').trim()||'Regular';
+  return {weight,style,label};
+}
 let alphaFilter='';let freeOnly=false;let currentPage=1;let perPage=20;
 function isNewFont(f){
   const sevenDaysAgo = Date.now() - 7*24*60*60*1000;
@@ -766,13 +788,11 @@ function renderFonts(){
   renderRecentList();
   // Vacib: grid-i ƏVVƏL göstər, hərf animasiyasını SONRA cəhd et — animasiya
   // funksiyası (app-ui.js-də) hələ yüklənməyibsə belə (script load race), səhifə
-  // ağ qalmasın. Əvvəllər bu sıra tərsinə idi və undefined funksiya xətası
-  // _revealFontGrid()-i heç vaxt çağırılmadan saxlayırdı (ReferenceError renderFonts-u yarımçıq kəsirdi).
+  // ağ qalmasın.
   if(!window._needsUrlRestore || window._urlRestoreApplied) _revealFontGrid();
   if(typeof injectAllFallingLettersDebounced==='function'){
     setTimeout(injectAllFallingLettersDebounced, 80); // debounced - prevents stacking on rapid filter changes
   } else {
-    // app-ui.js hələ yüklənməyib (script load race) — bir az gözləyib yenidən cəhd et
     setTimeout(function(){
       if(typeof injectAllFallingLettersDebounced==='function') injectAllFallingLettersDebounced();
     }, 400);
