@@ -603,21 +603,43 @@ function renderAuthorPage(authorName, authorFonts){
     grid.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:20px 0">No fonts found for this designer.</div>`;
   } else {
     grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px';
+
+    // Eyni dizaynerin səhifəsi təkrar açılanda (məs: kart üzərindən başqa fontun
+    // dizayner linkinə klikləyib sonra geri qayıdanda) HTML-i yenidən qurmaq əvəzinə
+    // keşdən birbaşa göstəririk — bu, böyük siyahılarda (Google -> 214 font) hər dəfə
+    // yenidən donmanın qarşısını alır.
+    if(!window._authorPageHtmlCache) window._authorPageHtmlCache = {};
+    const cacheKey = authorName;
+    const cached = window._authorPageHtmlCache[cacheKey];
+    if(cached){
+      grid.innerHTML = cached;
+      // Keşlənmiş kartlardakı fontlar artıq @font-face injection almış ola bilər,
+      // amma DOM yeni yarandığı üçün hər ehtimala qarşı yenidən çağırmaq ucuzdur
+      // (loadFont özü loadedFonts.has() ilə artıq yüklənmişləri sıçrayır).
+      authorFonts.forEach(loadFont);
+      return;
+    }
+
     const sorted = authorFonts.slice().sort((a,b)=>(b.popular||0)-(a.popular||0));
     // Çox sayda font (məs: Google -> 214 font) olduqda hamısını bir dəfəyə innerHTML-ə
     // yazmaq və hər biri üçün loadFont() çağırmaq main thread-i bir neçə saniyə bloklayır
     // (səhifə "donur"). Ona görə kiçik hissələrlə (chunk) render edirik ki, brauzer
-    // arada nəfəs alsın (typeof _yieldingForEach app-core.js-də artıq mövcuddur).
+    // arada nəfəs alsın.
     grid.innerHTML = '';
     const CHUNK = 8;
     const _renderToken = (window._authorPageRenderToken = (window._authorPageRenderToken||0) + 1);
+    const htmlParts = [];
     const renderChunk = (start) => {
       if(_renderToken !== window._authorPageRenderToken) return; // başqa author açılıb, dayan
       const end = Math.min(start + CHUNK, sorted.length);
       const html = sorted.slice(start, end).map(_renderAuthorFontCard).join('');
+      htmlParts.push(html);
       grid.insertAdjacentHTML('beforeend', html);
       if(end < sorted.length){
         (window.requestAnimationFrame || setTimeout)(() => renderChunk(end));
+      } else {
+        // Render bitdi — tam HTML-i keşə yaz ki, növbəti açılış ani olsun
+        window._authorPageHtmlCache[cacheKey] = htmlParts.join('');
       }
     };
     renderChunk(0);
