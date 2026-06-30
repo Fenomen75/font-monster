@@ -114,7 +114,7 @@ function _initWithFontsBase(){
   // bu render-in artıq edildiyini bildirir ki, eyni event üçün ikinci dəfə render olunmasın.
   window._urlRestoredBeforeReady = false;
   try{
-    if(location.search && document.readyState !== 'loading' && typeof restoreFromUrl === 'function' && document.getElementById('fontGrid')){
+    if(location.search && typeof restoreFromUrl === 'function' && document.getElementById('fontGrid')){
       restoreFromUrl();
       window._urlRestoredBeforeReady = true;
     }
