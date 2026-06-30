@@ -556,14 +556,18 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
 })();
 
 renderRecentList();
-// localStorage-da keş varsa dərhal render et, yoxdursa skeleton göstər
+// localStorage-da keş varsa dərhal render et (real saylara yaxın), yoxdursa skeleton göstər
+// və Firestore-dan HƏQİQİ saylar gələnə qədər gözləyib BİR DƏFƏ render et (flicker olmasın deyə)
 var _hasDlCache=!!(function(){try{return localStorage.getItem('fm_dl_counts');}catch(e){}}());
+var _firstPaintDone=false;
+function _doFirstPaint(){
+  if(_firstPaintDone) return;
+  _firstPaintDone=true;
+  if(!window._urlRestoredBeforeReady) renderFonts();
+}
 if(_hasDlCache){
-  if(_fontsBaseReady){
-    if(!window._urlRestoredBeforeReady) renderFonts();
-  } else {
-    document.addEventListener('fontsBaseReady', function(){ if(!window._urlRestoredBeforeReady) renderFonts(); }, {once:true});
-  }
+  if(_fontsBaseReady){ _doFirstPaint(); }
+  else{ document.addEventListener('fontsBaseReady', _doFirstPaint, {once:true}); }
 } else {
   (function(){
     var grid=document.getElementById('fontGrid');
@@ -577,27 +581,45 @@ if(_hasDlCache){
       document.head.appendChild(st);
     }
   }());
-  // Skeleton path: FONTS_BASE hazır olanda render et
-  if(_fontsBaseReady){ if(!window._urlRestoredBeforeReady) renderFonts(); }
-  else{ document.addEventListener('fontsBaseReady', function(){ if(!window._urlRestoredBeforeReady) renderFonts(); }, {once:true}); }
+  // Skeleton path: real Firestore statistikası gələnə qədər render etmirik (aşağıdakı
+  // _waitFbAndLoadStats bu halda ilk render-i özü edəcək) — yalnız ehtiyat olaraq, əgər
+  // Firestore heç vaxt cavab verməsə (offline və s.), FONTS_BASE hazır olan kimi
+  // təxmini saylarla məcburi render edirik ki, istifadəçi sonsuz skeleton görməsin.
+  if(_fontsBaseReady){ setTimeout(function(){ _doFirstPaint(); }, 1500); }
+  else{ document.addEventListener('fontsBaseReady', function(){ setTimeout(function(){ _doFirstPaint(); }, 1500); }, {once:true}); }
 }
-// Firebase-dən real data gəlir; keş varsa yalnız sıralama dəyişibsə render et
+// Firebase-dən real data gəlir; ilk render hələ olmayıbsa elə bu, real saylarla, ilk render olsun
+// (keş olmayan halda flicker-in qarşısı budur) — keş varsa isə yalnız aktiv sıralama download
+// sayından asılıdırsa VƏ sıra faktiki dəyişibsə yenidən render et.
 (function _waitFbAndLoadStats(attempt){
+  function _sortDependsOnDl(){
+    var ss=document.getElementById('sortSel');
+    var sort=(ss&&ss.value)||'popular';
+    return sort==='popular'||sort==='trending'||sort==='downloads';
+  }
   if(window._fbDb && window._fbFns){
-    var _orderBefore=_hasDlCache?Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join():'';
+    var _dependsOnDl=_sortDependsOnDl();
+    var _orderBefore=(_hasDlCache&&_dependsOnDl)?Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join():'';
     loadDownloadStatsCache().then(function(){
-      var _orderAfter=Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join();
-      if(!_hasDlCache||_orderBefore!==_orderAfter){
-        if(_fontsBaseReady){ renderFonts(); }
-        else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
+      if(!_firstPaintDone){
+        // Hələ heç render olunmayıb (keş yoxdur idi) — real data ilə İLK render budur
+        if(_fontsBaseReady){ _doFirstPaint(); }
+        else{ document.addEventListener('fontsBaseReady', _doFirstPaint, {once:true}); }
+      } else if(_hasDlCache && _dependsOnDl){
+        var _orderAfter=Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join();
+        if(_orderBefore!==_orderAfter){
+          if(_fontsBaseReady){ renderFonts(); }
+          else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
+        }
       }
       loadRatingsCache();
     });
   } else if(attempt < 40){
     setTimeout(function(){ _waitFbAndLoadStats(attempt+1); }, 250);
   } else {
-    if(_fontsBaseReady){ renderFonts(); }
-    else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
+    // 10 saniyədən sonra Firebase hələ hazır deyilsə, nə olur-olsun render et
+    if(_fontsBaseReady){ _doFirstPaint(); }
+    else{ document.addEventListener('fontsBaseReady', _doFirstPaint, {once:true}); }
   }
 })(0);
 // initAuth loads window.currentUser from localStorage for offline/non-Firebase fallback
