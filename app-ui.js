@@ -227,25 +227,43 @@ function _showPvScriptWarning(script, supported){
 }
 
 // ---- Glyph-level missing-character detection (no default-font fallback) ----
-const _glyphCache = {}; // fontFamily -> { char: boolean }
+const _glyphCache = {}; // fontFamily::weight -> { char: boolean }
 const _glyphDefaultWidths = {}; // char -> width rendered with a font that can never exist
 const _glyphSentinel = 'serif';
+const _glyphWarmed = {}; // fontFamily::weight -> true once document.fonts.load() has actually resolved for it
 let _glyphMeasureCanvas = null;
 function _getGlyphCanvas(){
   if(!_glyphMeasureCanvas) _glyphMeasureCanvas = document.createElement('canvas');
   return _glyphMeasureCanvas;
 }
+// Konkret family+weight kombinasiyasını məcburi yüklə (Google Fonts hər weight/subset üçün ayrı
+// fayl verdiyinə görə document.fonts.check() faylın faktiki endirilib-endirilmədiyini DƏQİQ bilmir -
+// yalnız faylın YÜKLƏNMƏSİNİ TƏSDİQLƏYƏNDƏ həmin kombinasiyanı "warmed" elan edirik).
+function _warmGlyphFont(fontFamily, fontWeight, cacheKey){
+  if(_glyphWarmed[cacheKey]) return;
+  try{
+    if(typeof document!=='undefined' && document.fonts && document.fonts.load){
+      document.fonts.load(`${fontWeight||'400'} 72px '${fontFamily}'`).then(()=>{
+        _glyphWarmed[cacheKey]=true;
+        delete _glyphCache[cacheKey]; // köhnə (etibarsız ola bilən) nəticələri at, təzədən ölç
+        if(typeof renderPvCanvas==='function') renderPvCanvas();
+      }).catch(()=>{ _glyphWarmed[cacheKey]=true; });
+    } else {
+      _glyphWarmed[cacheKey]=true;
+    }
+  }catch(e){ _glyphWarmed[cacheKey]=true; }
+}
 function _glyphSupported(fontFamily, ch, fontWeight){
   if(!ch || ch===' ' || ch==='\n' || ch==='\t' || ch==='\r') return true;
-  // Şrift hələ brauzerd? yükl?nm?yibs? (document.fonts.check yalan qaytarir),
-  // canvas test? f?rqi heç ölçm?y? bilm?z v? h?r h?rfi "yoxdur" kimi g?stər?r.
-  // Bu halda yoxlamani keç - h?rfi DƏSTƏKLƏNİR kimi qaytar (f?rz: yükl?n?nd?n sonra renderPvCanvas yenid?n ç?k?c?k).
-  try{
-    if(typeof document!=='undefined' && document.fonts && document.fonts.check){
-      if(!document.fonts.check(`${fontWeight||'400'} 16px '${fontFamily}'`)) return true;
-    }
-  }catch(e){}
-  const _cacheKey = fontFamily+'::'+( fontWeight||'400');
+  const _cacheKey = fontFamily+'::'+(fontWeight||'400');
+  // Hələ bu family+weight üçün font faylının yükləndiyi TƏSDİQLƏNMƏYİB (warmed deyil).
+  // Bu halda canvas ölçmə testi yarış vəziyyətinə (race condition) düşüb səhv "dəstəklənmir"
+  // nəticəsi verə bilər - ona görə yükləməni başlat, hələlik hərfi DƏSTƏKLƏNİR fərz et və silmə.
+  // Yükləmə bitəndə cache təmizlənib renderPvCanvas yenidən çağırılacaq, onda dəqiq test aparılacaq.
+  if(!_glyphWarmed[_cacheKey]){
+    _warmGlyphFont(fontFamily, fontWeight, _cacheKey);
+    return true;
+  }
   if(!_glyphCache[_cacheKey]) _glyphCache[_cacheKey] = {};
   if(ch in _glyphCache[_cacheKey]) return _glyphCache[_cacheKey][ch];
   const ctx = _getGlyphCanvas().getContext('2d');
