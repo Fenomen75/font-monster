@@ -106,14 +106,16 @@ function _initWithFontsBase(){
 
   // App-ı başlat — bütün digər scriptlər bu event-i dinləyir
   if(typeof window._appCoreReady === 'function') window._appCoreReady();
+  const _renderCountBefore = window._renderFontsCallCount||0;
   document.dispatchEvent(new CustomEvent('fontsBaseReady'));
 
   // EHTIYAT: əgər hər hansı səbəbdən (skript bloklanıb, ad-blocker, network) app-ui.js
   // yüklənməyib və ya 'fontsBaseReady' listener-i qeydiyyatdan keçməyibsə, ilk render
-  // hələ də baş tutsun deyə birbaşa cəhd edirik. Bu, ana səhifənin əbədi boş qalmasının
-  // qarşısını alır.
+  // hələ də baş tutsun deyə birbaşa cəhd edirik. dispatchEvent sinxron olduğu üçün,
+  // əgər yuxarıdakı listener artıq renderFonts() çağırıbsa, sayğac artmış olacaq -
+  // bu halda təkrar render etmirik (2x render-in qarşısını alır).
   try{
-    if(typeof renderFonts === 'function' && document.getElementById('fontGrid')){
+    if(typeof renderFonts === 'function' && document.getElementById('fontGrid') && (window._renderFontsCallCount||0) === _renderCountBefore){
       renderFonts();
     }
   }catch(e){ console.error('Ehtiyat renderFonts cağırışı uğursuz:', e); }
@@ -587,6 +589,7 @@ function _buildCardHTML(font, opts){
 function renderFonts(){
   console.trace('renderFonts called');
   window._lastRenderFontsAt = Date.now();
+  window._renderFontsCallCount = (window._renderFontsCallCount||0) + 1;
   const grid=document.getElementById('fontGrid');grid.innerHTML="";
   const allList=getFiltered();updateCounts();
   const pp=parseInt(perPage)||0;
