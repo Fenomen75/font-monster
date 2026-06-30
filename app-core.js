@@ -63,7 +63,7 @@ async function _loadFontsBase() {
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const resp = await _fetchWithTimeout('/fonts-data.json', TIMEOUT_MS);
+      const resp = await _fetchWithTimeout('/fonts-data.json?v=3', TIMEOUT_MS);
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       FONTS_BASE = await resp.json();
       _fontsBaseReady = true;
