@@ -106,6 +106,17 @@ function _initWithFontsBase(){
 
   // App-ı başlat — bütün digər scriptlər bu event-i dinləyir
   if(typeof window._appCoreReady === 'function') window._appCoreReady();
+
+  // URL-də kateqoriya/axtarış/səhifə kimi query param-lar varsa, ilk render-dən ƏVVƏL
+  // tətbiq edirik ki, "fontsBaseReady" event-inə qoşulan filtrsiz renderFonts() çağırışları
+  // səhv (default sıralamalı) nəticəni anlıq olaraq belə göstərməsin. restoreFromUrl() öz
+  // daxilində artıq renderFonts() çağırır.
+  try{
+    if(location.search && document.readyState !== 'loading' && typeof restoreFromUrl === 'function' && document.getElementById('fontGrid')){
+      restoreFromUrl();
+    }
+  }catch(e){ console.error('Erkən restoreFromUrl cağırışı uğursuz:', e); }
+
   const _renderCountBefore = window._renderFontsCallCount||0;
   document.dispatchEvent(new CustomEvent('fontsBaseReady'));
 
