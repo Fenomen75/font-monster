@@ -12,14 +12,21 @@ let _fontsBaseReady = false;
 window._needsUrlRestore = !!location.search;
 window._urlRestoreApplied = false;
 (function(){
+  // QEYD: bu skript <body>-nin sonunda yükləndiyi üçün #fontGrid artıq DOM-dadır —
+  // ona görə tək bu sinxron çağırış kifayətdir. Əvvəllər burada əlavə olaraq
+  // document.addEventListener('DOMContentLoaded', hideGrid) da qoyulurdu, çünki
+  // bu nöqtədə document.readyState demək olar HƏMİŞƏ 'loading' olur (parser hələ
+  // sənədin son sətirlərini bitirməyib). Nəticədə, fonts-data.json keşdən çox
+  // sürətli gələndə bütün render+reveal ardıcıllığı DOMContentLoaded-dan ƏVVƏL
+  // bitirdi, sonra gecikmiş DOMContentLoaded fire olanda köhnə hideGrid() listener-i
+  // artıq dolu və görünən grid-i YENİDƏN gizlədirdi (visibility:hidden) — və bir
+  // daha heç kim açmırdı. Bu da "5-6 reload-dan bir" təsadüfi boş grid bug-ının
+  // əsl səbəbi idi. Lazımsız ikinci çağırış silindi.
   function hideGrid(){
     var g=document.getElementById('fontGrid');
     if(g) g.style.visibility='hidden';
   }
   hideGrid();
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', hideGrid);
-  }
 })();
 function _revealFontGrid(){
   var g=document.getElementById('fontGrid');
