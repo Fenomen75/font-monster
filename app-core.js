@@ -151,6 +151,23 @@ function _initWithFontsBase(){
   }catch(e){ console.error('Ehtiyat renderFonts cağırışı uğursuz:', e); }
 }
 
+// Böyük arrayi kiçik hissələrlə emal edir, hər hissədən sonra main thread-ə
+// "nəfəs aldırır" (yield) ki, bu zaman gözləyən click/input kimi UI hadisələri
+// işlənsin — uzun forEach UI-ı bir neçə saniyə bloklamasın deyə.
+function _yieldingForEach(arr, fn, chunkSize){
+  chunkSize = chunkSize || 500;
+  return new Promise(resolve=>{
+    let i = 0;
+    function step(){
+      const end = Math.min(i+chunkSize, arr.length);
+      for(; i<end; i++) fn(arr[i], i);
+      if(i < arr.length) setTimeout(step, 0);
+      else resolve();
+    }
+    step();
+  });
+}
+
 // Load real per-font download totals from Firestore ('download_stats/{fontId}')
 // and overlay them on top of the estimated baseline.
 async function loadDownloadStatsCache(){
@@ -158,7 +175,7 @@ async function loadDownloadStatsCache(){
   try{
     const {collection, getDocs}=window._fbFns;
     const snap=await getDocs(collection(window._fbDb,'download_stats'));
-    snap.docs.forEach(d=>{
+    await _yieldingForEach(snap.docs, d=>{
       const data=d.data();
       if(typeof data.total==='number'){
         DL_COUNTS[d.id]=data.total;
@@ -185,7 +202,7 @@ async function loadRatingsCache() {
     const { collection, getDocs } = window._fbFns;
     const snap = await getDocs(collection(window._fbDb, 'comments'));
     const byFont = {};
-    snap.docs.forEach(d => {
+    await _yieldingForEach(snap.docs, d => {
       const c = d.data();
       if(!c.fontId || !c.rating) return;
       if(!byFont[c.fontId]) byFont[c.fontId] = [];
