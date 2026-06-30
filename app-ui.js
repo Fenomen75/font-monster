@@ -543,7 +543,7 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
 });
 
 // ?? HERO INIT ??
-(function(){
+function _refreshHeroStats(){
   const total = FONTS_BASE.length;
   const freeCount = FONTS_BASE.filter(f=>['free','ofl','apache'].includes(f.license)).length;
   document.getElementById('heroStatFonts').textContent = total + '+';
@@ -553,7 +553,8 @@ document.querySelectorAll('input[type=range]').forEach(r=>{
   const inner = document.getElementById('heroTickerInner');
   const separators = ['?','·','?','?','?','?','?','?'];
   inner.innerHTML = doubled.map((f,i)=>`<span class="hero-ticker-item" style="font-family:'${f.name}',sans-serif" onclick="openDetail('${f.id}')">${f.name}</span><span class="hero-ticker-item" style="font-size:10px;opacity:0.3;padding:0 8px;cursor:default;letter-spacing:0;font-style:normal;font-weight:400">${separators[i%separators.length]}</span>`).join('');
-})();
+}
+_refreshHeroStats();
 
 renderRecentList();
 // localStorage-da keş varsa dərhal render et (real saylara yaxın), yoxdursa skeleton göstər

@@ -53,27 +53,71 @@ function _showFontsLoadError() {
   }
 }
 
-async function _loadFontsBase() {
+async function _fetchJsonWithRetry(url) {
   const MAX_ATTEMPTS = 4;
   const TIMEOUT_MS = 12000;
-
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const resp = await _fetchWithTimeout('/fonts-data.json', TIMEOUT_MS);
+      const resp = await _fetchWithTimeout(url, TIMEOUT_MS);
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      FONTS_BASE = await resp.json();
-      _fontsBaseReady = true;
-      window.FONTS_BASE = FONTS_BASE;
-      _initWithFontsBase();
-      return; // ugurlu - cixiriq
+      return await resp.json();
     } catch (e) {
-      console.error(`fonts-data.json yüklənmədi (cəhd ${attempt}/${MAX_ATTEMPTS}):`, e);
+      console.error(`${url} yüklənmədi (cəhd ${attempt}/${MAX_ATTEMPTS}):`, e);
       if (attempt < MAX_ATTEMPTS) {
         await _sleep(attempt * 1000); // 1s, 2s, 3s gecikme
       } else {
-        _showFontsLoadError();
+        throw e;
       }
     }
+  }
+}
+
+// fonts-data.json 10 hissəyə (fonts-data-0.json ... fonts-data-9.json) bölünüb.
+// Hər chunk bütün kateqoriyalardan mütənasib (interleaved) fontlar daşıyır
+// (bax: build-font-chunks.py), ona görə tək chunk-0 yüklənəndə belə bütün
+// kateqoriyalarda dərhal nəticə var. Chunk-0 gələn kimi UI render olunur,
+// qalan 9 chunk arxa planda ardıcıl yüklənib FONTS_BASE-ə əlavə olunur.
+const _FONTS_CHUNK_COUNT = 10;
+let _fontsFullyLoaded = false;
+
+async function _loadFontsBase() {
+  try {
+    const chunk0 = await _fetchJsonWithRetry('/fonts-data-0.json');
+    FONTS_BASE = chunk0;
+    _fontsBaseReady = true;
+    window.FONTS_BASE = FONTS_BASE;
+    _initWithFontsBase();
+  } catch (e) {
+    _showFontsLoadError();
+    return;
+  }
+  _loadRemainingFontChunks();
+}
+
+async function _loadRemainingFontChunks() {
+  for (let i = 1; i < _FONTS_CHUNK_COUNT; i++) {
+    try {
+      const chunk = await _fetchJsonWithRetry(`/fonts-data-${i}.json`);
+      FONTS_BASE.push(...chunk);
+      FONTS.push(...chunk);
+    } catch (e) {
+      console.error(`fonts-data-${i}.json son cəhddən sonra da yüklənmədi, atlanılır:`, e);
+    }
+  }
+  _fontsFullyLoaded = true;
+  window.FONTS_BASE = FONTS_BASE;
+  // Yeni gələn fontlar üçün DL_IS_ESTIMATED-i tamamla (yalnız əskik olanlar üçün)
+  FONTS_BASE.forEach(f => { if (!(f.id in DL_IS_ESTIMATED)) DL_IS_ESTIMATED[f.id] = !(DL_COUNTS[f.id] > 0); });
+  window.DL_IS_ESTIMATED = DL_IS_ESTIMATED;
+  document.dispatchEvent(new CustomEvent('fontsFullyLoaded'));
+  // Hero statistikasını (ümumi say, free %) son rəqəmlərlə yenilə
+  if (typeof _refreshHeroStats === 'function') _refreshHeroStats();
+  // Grid-i bir dəfə, scroll mövqeyini pozmadan sakitcə yenilə ki, hələ
+  // yüklənməmiş chunk-larda olan fontlar da görünsün.
+  if (typeof renderFonts === 'function' && document.getElementById('fontGrid')) {
+    const _scrollY = window.scrollY;
+    renderFonts();
+    window.scrollTo({ top: _scrollY });
   }
 }
 
