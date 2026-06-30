@@ -169,6 +169,12 @@ function _initWithFontsBase(){
   try{
     if(typeof renderFonts === 'function' && document.getElementById('fontGrid') && (window._renderFontsCallCount||0) === _renderCountBefore){
       renderFonts();
+      // app-ui.js öz lokal _firstPaintDone dəyişəni ilə bundan xəbərsizdir və
+      // (FONTS_BASE artıq hazır olduğu üçün) öz _doFirstPaint()-ini YENİDƏN
+      // çağıra bilərdi - bu, renderFonts()-un demək olar eyni anda 2 dəfə
+      // çağırılmasına (və _fmWithObserverPaused-un növbəti çağırışı səssizcə
+      // udmasına) səbəb olurdu. Paylaşılan bayraqla qarşısını alırıq.
+      window._firstPaintDone = true;
     }
   }catch(e){ console.error('Ehtiyat renderFonts cağırışı uğursuz:', e); }
 
@@ -706,6 +712,7 @@ function _buildCardHTML(font, opts){
 function renderFonts(){
   window._lastRenderFontsAt = Date.now();
   window._renderFontsCallCount = (window._renderFontsCallCount||0) + 1;
+  console.log('[FM] renderFonts() çağırıldı, #'+window._renderFontsCallCount);
   const grid=document.getElementById('fontGrid');grid.innerHTML="";
   const allList=getFiltered();updateCounts();
   const pp=parseInt(perPage)||0;
@@ -745,6 +752,7 @@ function renderFonts(){
   } else {
     _buildCards();
   }
+  console.log('[FM] kartlar tikildi:', grid.children.length, '/ gözlənilən:', list.length, '| visibility:', grid.style.visibility||'(boş=görünür)');
 
   // Lazy font loading: əvvəllər list-dəki HƏR font üçün loadFont() səhifə açılan kimi
   // çağırılırdı (görünür-görünmür fərq etmədən) - 100/page seçimində bu, 100 TTF/woff
@@ -796,6 +804,7 @@ function renderFonts(){
   // funksiyası (app-ui.js-də) hələ yüklənməyibsə belə (script load race), səhifə
   // ağ qalmasın.
   if(!window._needsUrlRestore || window._urlRestoreApplied) _revealFontGrid();
+  console.log('[FM] renderFonts() bitdi, #'+window._renderFontsCallCount+', son grid uşaq sayı:', grid.children.length, '| needsUrlRestore:', window._needsUrlRestore, '| urlRestoreApplied:', window._urlRestoreApplied);
   if(typeof injectAllFallingLettersDebounced==='function'){
     setTimeout(injectAllFallingLettersDebounced, 80); // debounced - prevents stacking on rapid filter changes
   } else {

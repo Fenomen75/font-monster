@@ -594,10 +594,12 @@ renderRecentList();
 // localStorage-da keş varsa dərhal render et (real saylara yaxın), yoxdursa skeleton göstər
 // və Firestore-dan HƏQİQİ saylar gələnə qədər gözləyib BİR DƏFƏ render et (flicker olmasın deyə)
 var _hasDlCache=!!(function(){try{return localStorage.getItem('fm_dl_counts');}catch(e){}}());
-var _firstPaintDone=false;
+// Paylaşılan bayraq: app-core.js-in "ehtiyat" render yolu (script sırası
+// yarışmasında app-ui.js gecikəndə) artıq render edibsə, bunu burda bilməliyik -
+// yoxsa renderFonts() demək olar eyni anda 2 dəfə çağırılır.
 function _doFirstPaint(){
-  if(_firstPaintDone) return;
-  _firstPaintDone=true;
+  if(window._firstPaintDone) return;
+  window._firstPaintDone=true;
   // URL-də kateqoriya/axtarış/filtr query-si varsa, BU tez render-in özü artıq DOĞRU
   // kateqoriya ilə baş tutsun deyə, renderFonts()-dan əvvəl tətbiq edirik. Bununla
   // ayrıca, sonradan gələn "düzəldici" ikinci render artıq lazım olmur — istifadəçi
@@ -644,7 +646,7 @@ if(_hasDlCache){
     var _dependsOnDl=_sortDependsOnDl();
     var _orderBefore=(_hasDlCache&&_dependsOnDl)?Object.entries(DL_COUNTS).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]).join():'';
     loadDownloadStatsCache().then(function(){
-      if(!_firstPaintDone){
+      if(!window._firstPaintDone){
         // Hələ heç render olunmayıb (keş yoxdur idi) — real data ilə İLK render budur
         if(_fontsBaseReady){ _doFirstPaint(); }
         else{ document.addEventListener('fontsBaseReady', _doFirstPaint, {once:true}); }
