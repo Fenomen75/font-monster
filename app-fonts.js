@@ -617,6 +617,9 @@ function renderAuthorPage(authorName, authorFonts){
       // amma DOM yeni yarandığı üçün hər ehtimala qarşı yenidən çağırmaq ucuzdur
       // (loadFont özü loadedFonts.has() ilə artıq yüklənmişləri sıçrayır).
       authorFonts.forEach(loadFont);
+      // Keşlənmiş HTML-də .ch-fall boşdur (hərflər DOM-a sonradan inject olunur,
+      // cache isə xam template-i saxlayır) — ona görə hər açılışda yenidən çağırırıq.
+      setTimeout(injectAllFallingLetters, 60);
       return;
     }
 
@@ -640,6 +643,10 @@ function renderAuthorPage(authorName, authorFonts){
       } else {
         // Render bitdi — tam HTML-i keşə yaz ki, növbəti açılış ani olsun
         window._authorPageHtmlCache[cacheKey] = htmlParts.join('');
+        // Bütün kartlar DOM-dadır — indi hamısına uçan hərf animasiyasını inject et.
+        // (Əvvəllər bu çağırış heç olmurdu, ona görə animasiya yalnız başqa bir
+        // səhifədən qalmış təsadüfi timer-in tutduğu kartlarda görünürdü.)
+        setTimeout(injectAllFallingLetters, 60);
       }
     };
     renderChunk(0);
