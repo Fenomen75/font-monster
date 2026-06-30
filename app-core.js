@@ -551,7 +551,7 @@ function _buildCardHTML(font, opts){
         </div>
       </div>
       <div class="card-footer" onclick="openDetail('${font.id}')">
-        <div class="tags">${tagsHTML}</div>
+        <div class="tags"><span class="tag" style="background:var(--surface3);font-weight:600;color:var(--text2)">${cap(font.cat)}</span>${tagsHTML}</div>
         <div style="display:flex;align-items:center;gap:6px">
           ${ratingHTML}
           ${licBadge(font.license)}
