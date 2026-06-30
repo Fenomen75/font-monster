@@ -757,7 +757,13 @@ function renderFonts(){
       if(!entry.isIntersecting) return;
       const fid=entry.target.dataset.fontid;
       const f=_fontMap[fid];
-      if(f) loadFont(f);
+      if(f){
+        // Ehtiyat: əgər script sırası dəyişib/gecikibsə (app-fonts.js hələ yüklənməyib),
+        // loadFont undefined ola bilər - səssizcə partlamaq əvəzinə qısa müddətdən
+        // sonra bir dəfə təkrar cəhd edirik.
+        if(typeof loadFont==='function'){ loadFont(f); }
+        else{ setTimeout(function(){ if(typeof loadFont==='function') loadFont(f); }, 200); }
+      }
       obs.unobserve(entry.target);
     });
   },{root:null,rootMargin:'400px 0px',threshold:0.01});
