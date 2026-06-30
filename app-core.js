@@ -114,7 +114,7 @@ function _initWithFontsBase(){
   // bu render-in artıq edildiyini bildirir ki, eyni event üçün ikinci dəfə render olunmasın.
   window._urlRestoredBeforeReady = false;
   try{
-    if(location.search && typeof restoreFromUrl === 'function' && document.getElementById('fontGrid')){
+    if(location.search && document.readyState !== 'loading' && typeof restoreFromUrl === 'function' && document.getElementById('fontGrid')){
       restoreFromUrl();
       window._urlRestoredBeforeReady = true;
     }
@@ -151,6 +151,7 @@ async function loadDownloadStatsCache(){
       if(typeof data.yesterday==='number') DL_YESTERDAY[d.id]=data.yesterday;
     });
     window.DL_COUNTS=DL_COUNTS;
+    window._dlStatsLoaded=true;
     try{
       const toStore=Object.assign({},DL_COUNTS,{_cachedAt:Date.now()});
       localStorage.setItem('fm_dl_counts',JSON.stringify(toStore));
@@ -601,6 +602,7 @@ function _buildCardHTML(font, opts){
 }
 
 function renderFonts(){
+  console.log('[RENDER]', 't='+Date.now(), 'cat='+activeCategory, 'sort='+(document.getElementById('sortSel')?document.getElementById('sortSel').value:'?'), 'dlCacheLoaded='+(window._dlStatsLoaded||false), 'fontsBaseReady='+_fontsBaseReady);
   console.trace('renderFonts called');
   window._lastRenderFontsAt = Date.now();
   window._renderFontsCallCount = (window._renderFontsCallCount||0) + 1;
