@@ -107,6 +107,16 @@ function _initWithFontsBase(){
   // App-ı başlat — bütün digər scriptlər bu event-i dinləyir
   if(typeof window._appCoreReady === 'function') window._appCoreReady();
   document.dispatchEvent(new CustomEvent('fontsBaseReady'));
+
+  // EHTIYAT: əgər hər hansı səbəbdən (skript bloklanıb, ad-blocker, network) app-ui.js
+  // yüklənməyib və ya 'fontsBaseReady' listener-i qeydiyyatdan keçməyibsə, ilk render
+  // hələ də baş tutsun deyə birbaşa cəhd edirik. Bu, ana səhifənin əbədi boş qalmasının
+  // qarşısını alır.
+  try{
+    if(typeof renderFonts === 'function' && document.getElementById('fontGrid')){
+      renderFonts();
+    }
+  }catch(e){ console.error('Ehtiyat renderFonts cağırışı uğursuz:', e); }
 }
 
 // Load real per-font download totals from Firestore ('download_stats/{fontId}')
