@@ -969,15 +969,22 @@ const SUBSET_LANG_COUNT = {
   'chinese-simplified':1,'chinese-traditional':1,'japanese':1,'korean':1,
 };
 
-// Canvas-based detection: test if font renders a char differently than fallback
+// Canvas-based detection: test if font renders a char differently than fallback.
+// Uses measureText (GPU-friendly, no pixel readback) instead of getImageData,
+// which was triggering Chrome's "Multiple readback operations" warning
+// (23 tests x 2 getImageData calls x ~20 cards = ~900 sync pixel reads per category switch).
+let _ctTestCanvas = null, _ctTestCtx = null;
 function _canvasTestChar(fontName, weight, char) {
   try {
-    const c = document.createElement('canvas'); c.width = 24; c.height = 24;
-    const ctx = c.getContext('2d');
-    const draw = (fam) => { ctx.clearRect(0,0,24,24); ctx.font = `${weight} 16px ${fam}`; ctx.fillText(char, 2, 18); return ctx.getImageData(0,0,24,24).data.join(','); };
-    const withFont = draw(`'${fontName}', monospace`);
-    const fallback = draw('monospace');
-    return withFont !== fallback;
+    if (!_ctTestCtx) {
+      _ctTestCanvas = document.createElement('canvas');
+      _ctTestCtx = _ctTestCanvas.getContext('2d');
+    }
+    const ctx = _ctTestCtx;
+    const measure = (fam) => { ctx.font = `${weight} 16px ${fam}`; return ctx.measureText(char).width; };
+    const withFont = measure(`'${fontName}', monospace`);
+    const fallback = measure('monospace');
+    return Math.abs(withFont - fallback) > 0.01;
   } catch(e) { return false; }
 }
 
