@@ -171,6 +171,30 @@ function _initWithFontsBase(){
       renderFonts();
     }
   }catch(e){ console.error('Ehtiyat renderFonts cağırışı uğursuz:', e); }
+
+  // Path-based route-ları (refresh/direct-load zamanı) FONTS hazır olandan sonra tətbiq et.
+  // /author/... və /font/... kimi URL-lər yalnız in-app klikdə pushState olunur;
+  // səhifə yenilənəndə bunu burada location.pathname-dən bərpa etmək lazımdır.
+  try{ _restorePathRoute(); }catch(e){ console.error('Path route bərpası uğursuz:', e); }
+}
+
+// location.pathname-ə əsasən düzgün view-u açır (author/font detail səhifələri).
+// DOMContentLoaded zamanı deyil, FONTS_BASE/FONTS hazır olandan SONRA çağırılmalıdır,
+// çünki openAuthorPage/openDetail FONTS array-inə görə filtrasiya edir.
+function _restorePathRoute(){
+  const path = location.pathname;
+  let m;
+  if((m = path.match(/^\/author\/([^/]+)\/?$/))){
+    const authorName = decodeURIComponent(m[1]);
+    if(typeof openAuthorPage === 'function') openAuthorPage(authorName);
+    return true;
+  }
+  if((m = path.match(/^\/font\/([^/]+)\/?$/))){
+    const fontId = decodeURIComponent(m[1]);
+    if(typeof openDetail === 'function') openDetail(fontId);
+    return true;
+  }
+  return false;
 }
 
 // Böyük arrayi kiçik hissələrlə emal edir, hər hissədən sonra main thread-ə
