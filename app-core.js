@@ -884,7 +884,13 @@ function setCategory(cat){
 }
 function debouncedFilter(){
   clearTimeout(debounceTimer);
-  debounceTimer=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();currentPage=1;renderFonts();syncUrl();},155);
+  debounceTimer=setTimeout(()=>{
+    searchTerm=document.getElementById('searchInput').value.trim();
+    currentPage=1;
+    if(currentDetailFont) closeDetail(); // font detal sehifesindeyiksə, axtarış nəticəsini görmək üçün grid-ə qayıt
+    renderFonts();
+    syncUrl();
+  },155);
 }
 // ---- [app.js lines 3397-3482] ----
 const _GLYPH_COUNT_CACHE = {};
