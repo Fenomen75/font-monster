@@ -698,23 +698,36 @@ function injectFallingLetters(cardEl, fontName) {
 }
 
 function injectAllFallingLetters() {
-  document.querySelectorAll('.font-card .ch-fall').forEach(container => {
-    const card = container.closest('.font-card');
-    const nameEl = card.querySelector('.card-name');
-    const fontName = nameEl ? nameEl.textContent.replace(/Community|New/gi,'').trim() : 'Aa';
-    injectFallingLetters(card, fontName);
-  });
+  const _run = ()=>{
+    document.querySelectorAll('.font-card .ch-fall').forEach(container => {
+      const card = container.closest('.font-card');
+      const nameEl = card.querySelector('.card-name');
+      const fontName = nameEl ? nameEl.textContent.replace(/Community|New/gi,'').trim() : 'Aa';
+      injectFallingLetters(card, fontName);
+    });
+  };
+  // Hər kart üçün ayrı innerHTML yazışı qlobal tooltip MutationObserver-i dəfələrlə
+  // tetikləyirdi (20 kart × onlarla hərf span-ı) — bu da donmaya qatqı verirdi.
+  // Observer-i bütün kartlar bitənə qədər dayandırıb sonda bir dəfə skan edirik.
+  if(typeof window._fmWithObserverPaused==='function'){
+    window._fmWithObserverPaused(_run, document.getElementById('fontGrid'));
+  } else { _run(); }
 }
 
 let _fallingLettersTimer = null;
 function injectAllFallingLettersDebounced(){
   clearTimeout(_fallingLettersTimer);
   _fallingLettersTimer = setTimeout(injectAllFallingLetters, 120);
-  document.querySelectorAll('.font-card').forEach(card => {
-    const nameEl = card.querySelector('.card-name');
-    const fontName = nameEl ? nameEl.textContent.replace(/Community|New/gi,'').trim() : 'Aa';
-    injectChaoticLetters(card, fontName);
-  });
+  const _run = ()=>{
+    document.querySelectorAll('.font-card').forEach(card => {
+      const nameEl = card.querySelector('.card-name');
+      const fontName = nameEl ? nameEl.textContent.replace(/Community|New/gi,'').trim() : 'Aa';
+      injectChaoticLetters(card, fontName);
+    });
+  };
+  if(typeof window._fmWithObserverPaused==='function'){
+    window._fmWithObserverPaused(_run, document.getElementById('fontGrid'));
+  } else { _run(); }
 }
 
 // Init badges on load

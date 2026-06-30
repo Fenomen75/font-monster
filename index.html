@@ -2306,7 +2306,14 @@
     });
   }
   stripTitles(document);
-  new MutationObserver(function(muts){
+  // Render zamanı (renderFonts, falling-letters animasiyaları və s.) onlarla kart
+  // bir anda DOM-a yazılır — hər biri ayrı mutasiya kimi bura düşüb stripTitles-i
+  // dəfələrlə işlədirdi və bu da reload sonrası bir neçə saniyəlik UI donmasına
+  // səbəb olurdu. İndi bulk-yazma əməliyyatları (məs. renderFonts) əvvəlcə
+  // window._fmTooltipObserver.disconnect() çağırıb işini bitirdikdən sonra TƏK bir
+  // dəfə window._fmStripTitles(grid) çağırır və yenidən observe() edir — beləliklə
+  // 100+ kiçik mutasiya əvəzinə 1 böyük tək-keçidli skan olur.
+  const _fmObserver = new MutationObserver(function(muts){
     muts.forEach(function(m){
       m.addedNodes.forEach(function(n){
         if(n.nodeType===1){
@@ -2326,7 +2333,22 @@
         }
       }
     });
-  }).observe(document.documentElement, {childList:true, subtree:true, attributes:true, attributeFilter:['title']});
+  });
+  const _fmObserverOpts = {childList:true, subtree:true, attributes:true, attributeFilter:['title']};
+  _fmObserver.observe(document.documentElement, _fmObserverOpts);
+  window._fmStripTitles = stripTitles;
+  window._fmTooltipObserver = _fmObserver;
+  window._fmTooltipObserverOpts = _fmObserverOpts;
+  // Bulk DOM yazılarının ətrafına qoyula bilən köməkçi: observer-i müvəqqəti
+  // saxlayır, fn() icra olunur, sonra TƏK skan + yenidən observe.
+  window._fmWithObserverPaused = function(fn, scopeEl){
+    try{ _fmObserver.disconnect(); }catch(e){}
+    try{ fn(); }
+    finally{
+      stripTitles(scopeEl || document);
+      try{ _fmObserver.observe(document.documentElement, _fmObserverOpts); }catch(e){}
+    }
+  };
 
   function showTip(el, text){
     clearTimeout(_hide); clearTimeout(_show);
