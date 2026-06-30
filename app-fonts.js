@@ -609,7 +609,7 @@ function renderAuthorPage(authorName, authorFonts){
     // (səhifə "donur"). Ona görə kiçik hissələrlə (chunk) render edirik ki, brauzer
     // arada nəfəs alsın (typeof _yieldingForEach app-core.js-də artıq mövcuddur).
     grid.innerHTML = '';
-    const CHUNK = 24;
+    const CHUNK = 8;
     const _renderToken = (window._authorPageRenderToken = (window._authorPageRenderToken||0) + 1);
     const renderChunk = (start) => {
       if(_renderToken !== window._authorPageRenderToken) return; // başqa author açılıb, dayan
