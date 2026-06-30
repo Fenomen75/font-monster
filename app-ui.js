@@ -555,6 +555,10 @@ function _refreshHeroStats(){
   inner.innerHTML = doubled.map((f,i)=>`<span class="hero-ticker-item" style="font-family:'${f.name}',sans-serif" onclick="openDetail('${f.id}')">${f.name}</span><span class="hero-ticker-item" style="font-size:10px;opacity:0.3;padding:0 8px;cursor:default;letter-spacing:0;font-style:normal;font-weight:400">${separators[i%separators.length]}</span>`).join('');
 }
 _refreshHeroStats();
+// FONTS_BASE ilk çağırışda hələ boşdur (fetch hələ bitməyib) — "0+ FONTS / NaN%
+// FREE TO USE" əbədi qalırdı. Real data gələndə yenidən hesablayırıq.
+if(_fontsBaseReady){ _refreshHeroStats(); }
+else{ document.addEventListener('fontsBaseReady', _refreshHeroStats, {once:true}); }
 
 renderRecentList();
 // localStorage-da keş varsa dərhal render et (real saylara yaxın), yoxdursa skeleton göstər
