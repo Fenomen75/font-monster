@@ -772,20 +772,29 @@ function renderFonts(){
       if(!entry.isIntersecting) return;
       const fid=entry.target.dataset.fontid;
       const f=_fontMap[fid];
+      // FOUT düzəlişi: əvvəllər BÜTÜN kartların opacity-si tək bir global
+      // document.fonts.ready.then(...) ilə eyni anda 1 olunurdu. Bu, lazy-loading
+      // ilə yarışırdı: fonts.ready demək olar dərhal "bitir" (çünki həmin anda
+      // hələ heç bir yeni font sorğusu yox idi), kartlar fallback şriftlə
+      // görünürdü, sonra əsl şrift gələndə mətn sıçrayırdı ("yarım saniyə default
+      // şrift"). İndi hər kartın özü ANCAQ öz şrifti faktiki yükləndikdən sonra
+      // görünür olur.
+      const _prevEl=entry.target.querySelector('.card-preview');
+      const _reveal=function(){ if(_prevEl) _prevEl.style.opacity='1'; };
       if(f){
-        // Ehtiyat: əgər script sırası dəyişib/gecikibsə (app-fonts.js hələ yüklənməyib),
-        // loadFont undefined ola bilər - səssizcə partlamaq əvəzinə qısa müddətdən
-        // sonra bir dəfə təkrar cəhd edirik.
-        if(typeof loadFont==='function'){ loadFont(f); }
-        else{ setTimeout(function(){ if(typeof loadFont==='function') loadFont(f); }, 200); }
+        if(typeof loadFont==='function'){ loadFont(f,_reveal); }
+        else{ setTimeout(function(){ if(typeof loadFont==='function') loadFont(f,_reveal); else _reveal(); }, 200); }
+      } else {
+        _reveal();
       }
+      // Təhlükəsizlik: şəbəkə xətası/gözlənilməz halda onLoaded heç vaxt çağırılmasa
+      // belə, kart həmişəlik gizli qalmasın - 2sn sonra məcburi göstər (fallback
+      // şriftlə, amma heç olmasa boş qalmaz).
+      setTimeout(_reveal,2000);
       obs.unobserve(entry.target);
     });
   },{root:null,rootMargin:'400px 0px',threshold:0.01});
   grid.querySelectorAll('.font-card').forEach(card=>window._fontLazyObserver.observe(card));
-  document.fonts.ready.then(function(){
-    grid.querySelectorAll('.card-preview').forEach(function(el){ el.style.opacity='1'; });
-  });
 
   // Batch lang detection AFTER all cards are in DOM - prevents 20 simultaneous fetches
   const _batchFonts = list.filter(f => !_GLYPH_COUNT_CACHE[f.id]);

@@ -62,13 +62,20 @@ function showDeleteConfirm({title, message, confirmLabel, onConfirm, danger=true
 }
 
 // ---- [app.js lines 457-509] ----
-function injectCustomFontFace(fontId, name, dataUrl, ext){
-  if(!dataUrl||loadedFonts.has(fontId)) return;
+function injectCustomFontFace(fontId, name, dataUrl, ext, onLoaded){
+  if(!dataUrl||loadedFonts.has(fontId)){ if(onLoaded) onLoaded(); return; }
   loadedFonts.add(fontId);
   const fmt={'.ttf':'truetype','.otf':'opentype','.woff':'woff','.woff2':'woff2'}[ext]||'truetype';
   const s=document.createElement('style');
   s.textContent=`@font-face{font-family:'${name.replace(/'/g,"\\'")}';src:url('${dataUrl}') format('${fmt}');font-weight:100 900;font-style:normal}`;
   document.head.appendChild(s);
+  // <style> ilə inject edilən @font-face üçün native 'load' event yoxdur (FontFace API
+  // işlədilmir), ona görə brauzerin onu faktiki tətbiq etdiyini document.fonts.ready ilə
+  // gözləyirik - kartın opacity-si yalnız bundan sonra 1 olmalıdır (FOUT-un qarşısını alır).
+  if(onLoaded){
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(onLoaded);
+    else onLoaded();
+  }
 }
 
 // ?? Inject @font-face from a remote URL - FontFace API il? (yükl?ndikd?n sonra preview yenil?) ??
@@ -104,14 +111,14 @@ function injectCustomFontFaceUrl(fontId, name, url, ext, onLoaded, weight){
     if(onLoaded)onLoaded();
   }
 }
-function loadFont(f){
-  if(loadedFonts.has(f.id)) return;
+function loadFont(f, onLoaded){
+  if(loadedFonts.has(f.id)){ if(onLoaded) onLoaded(); return; }
   // Only skip if it's a pure image-preview font (DaFont) with no actual font data
-  if(f.previewImg && !f.fontData && !f.fontUrl && !f.b2Url && !f.gfamily) return;
-  if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf',null,f.weight||'400');return;}
-  if(f.b2Url){const _b2ext=f.b2Url.endsWith('.otf')?'.otf':'.ttf';const _b2path=f.b2Url.replace('https://f005.backblazeb2.com/file/font-monster/','');const _b2proxy='https://gfont-proxy.uroboros130875.workers.dev/b2/'+_b2path;injectCustomFontFaceUrl(f.id,f.name,_b2proxy,_b2ext,null,f.weight||'400');return;}
-  if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');return;}
-  if(!f.gfamily) return;
+  if(f.previewImg && !f.fontData && !f.fontUrl && !f.b2Url && !f.gfamily){ if(onLoaded) onLoaded(); return; }
+  if(f.fontUrl){injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf',onLoaded,f.weight||'400');return;}
+  if(f.b2Url){const _b2ext=f.b2Url.endsWith('.otf')?'.otf':'.ttf';const _b2path=f.b2Url.replace('https://f005.backblazeb2.com/file/font-monster/','');const _b2proxy='https://gfont-proxy.uroboros130875.workers.dev/b2/'+_b2path;injectCustomFontFaceUrl(f.id,f.name,_b2proxy,_b2ext,onLoaded,f.weight||'400');return;}
+  if(f.fontData){injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf',onLoaded);return;}
+  if(!f.gfamily){ if(onLoaded) onLoaded(); return; }
   loadedFonts.add(f.id);
   const _fname=f.name;
   const _gBase=f.gfamily.split(':')[0].replace(/\+/g,' ');
@@ -131,17 +138,17 @@ function loadFont(f){
           "';src:url("+src+") format('woff2');font-weight:"+w+";font-style:normal}";
         document.head.appendChild(s);
       }
-      document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas();});
+      document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas(); if(onLoaded) onLoaded();});
     }).catch(function(){
       var l=document.createElement('link');l.rel='stylesheet';l.href=_gUrl;
-      l.onload=function(){document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas();});};
+      l.onload=function(){document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas(); if(onLoaded) onLoaded();});};
       document.head.appendChild(l);
     });
   } else {
     var l=document.createElement('link');l.rel='stylesheet';l.href=_gUrl;
     l.onload=function(){
       if(typeof _glyphCache!=='undefined'){Object.keys(_glyphCache).filter(function(k){return k.startsWith(_fname+'::');}).forEach(function(k){delete _glyphCache[k];});}
-      document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas();});
+      document.fonts.ready.then(function(){if(typeof renderPvCanvas==='function')renderPvCanvas(); if(onLoaded) onLoaded();});
     };
     document.head.appendChild(l);
   }
