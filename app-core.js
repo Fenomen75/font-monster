@@ -36,7 +36,11 @@ setTimeout(function(){
 function _fetchWithTimeout(url, ms) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
-  return fetch(url, { signal: controller.signal, cache: 'no-store' })
+  // cache: 'no-store' əvvəllər HƏR reload-da bütün fonts-data.json-u (bir neçə MB)
+  // şəbəkədən sıfırdan yükləyirdi -> reload sonrası 5sn donma. İndi brauzerin öz
+  // HTTP keşinə icazə veririk (default), təzəliyi isə server-level Cache-Control
+  // / versioned URL ilə idarə etmək lazımdır (aşağıdakı qeyd).
+  return fetch(url, { signal: controller.signal, cache: 'default' })
     .finally(() => clearTimeout(timer));
 }
 
