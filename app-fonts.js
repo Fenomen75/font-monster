@@ -603,9 +603,24 @@ function renderAuthorPage(authorName, authorFonts){
     grid.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:20px 0">No fonts found for this designer.</div>`;
   } else {
     grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px';
-    grid.innerHTML = authorFonts
-      .slice().sort((a,b)=>(b.popular||0)-(a.popular||0))
-      .map(_renderAuthorFontCard).join('');
+    const sorted = authorFonts.slice().sort((a,b)=>(b.popular||0)-(a.popular||0));
+    // Çox sayda font (məs: Google -> 214 font) olduqda hamısını bir dəfəyə innerHTML-ə
+    // yazmaq və hər biri üçün loadFont() çağırmaq main thread-i bir neçə saniyə bloklayır
+    // (səhifə "donur"). Ona görə kiçik hissələrlə (chunk) render edirik ki, brauzer
+    // arada nəfəs alsın (typeof _yieldingForEach app-core.js-də artıq mövcuddur).
+    grid.innerHTML = '';
+    const CHUNK = 24;
+    const _renderToken = (window._authorPageRenderToken = (window._authorPageRenderToken||0) + 1);
+    const renderChunk = (start) => {
+      if(_renderToken !== window._authorPageRenderToken) return; // başqa author açılıb, dayan
+      const end = Math.min(start + CHUNK, sorted.length);
+      const html = sorted.slice(start, end).map(_renderAuthorFontCard).join('');
+      grid.insertAdjacentHTML('beforeend', html);
+      if(end < sorted.length){
+        (window.requestAnimationFrame || setTimeout)(() => renderChunk(end));
+      }
+    };
+    renderChunk(0);
   }
 }
 
