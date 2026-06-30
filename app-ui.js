@@ -560,9 +560,9 @@ renderRecentList();
 var _hasDlCache=!!(function(){try{return localStorage.getItem('fm_dl_counts');}catch(e){}}());
 if(_hasDlCache){
   if(_fontsBaseReady){
-    renderFonts();
+    if(!window._urlRestoredBeforeReady) renderFonts();
   } else {
-    document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true});
+    document.addEventListener('fontsBaseReady', function(){ if(!window._urlRestoredBeforeReady) renderFonts(); }, {once:true});
   }
 } else {
   (function(){
@@ -578,8 +578,8 @@ if(_hasDlCache){
     }
   }());
   // Skeleton path: FONTS_BASE hazır olanda render et
-  if(_fontsBaseReady){ renderFonts(); }
-  else{ document.addEventListener('fontsBaseReady', function(){ renderFonts(); }, {once:true}); }
+  if(_fontsBaseReady){ if(!window._urlRestoredBeforeReady) renderFonts(); }
+  else{ document.addEventListener('fontsBaseReady', function(){ if(!window._urlRestoredBeforeReady) renderFonts(); }, {once:true}); }
 }
 // Firebase-dən real data gəlir; keş varsa yalnız sıralama dəyişibsə render et
 (function _waitFbAndLoadStats(attempt){

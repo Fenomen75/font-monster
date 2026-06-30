@@ -110,10 +110,13 @@ function _initWithFontsBase(){
   // URL-də kateqoriya/axtarış/səhifə kimi query param-lar varsa, ilk render-dən ƏVVƏL
   // tətbiq edirik ki, "fontsBaseReady" event-inə qoşulan filtrsiz renderFonts() çağırışları
   // səhv (default sıralamalı) nəticəni anlıq olaraq belə göstərməsin. restoreFromUrl() öz
-  // daxilində artıq renderFonts() çağırır.
+  // daxilində artıq renderFonts() çağırır. window._urlRestoredBeforeReady bayrağı app-ui.js-ə
+  // bu render-in artıq edildiyini bildirir ki, eyni event üçün ikinci dəfə render olunmasın.
+  window._urlRestoredBeforeReady = false;
   try{
     if(location.search && document.readyState !== 'loading' && typeof restoreFromUrl === 'function' && document.getElementById('fontGrid')){
       restoreFromUrl();
+      window._urlRestoredBeforeReady = true;
     }
   }catch(e){ console.error('Erkən restoreFromUrl cağırışı uğursuz:', e); }
 
