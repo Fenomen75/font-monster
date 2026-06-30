@@ -563,7 +563,15 @@ var _firstPaintDone=false;
 function _doFirstPaint(){
   if(_firstPaintDone) return;
   _firstPaintDone=true;
-  renderFonts();
+  // URL-də kateqoriya/axtarış/filtr query-si varsa, BU tez render-in özü artıq DOĞRU
+  // kateqoriya ilə baş tutsun deyə, renderFonts()-dan əvvəl tətbiq edirik. Bununla
+  // ayrıca, sonradan gələn "düzəldici" ikinci render artıq lazım olmur — istifadəçi
+  // heç vaxt səhv (default) kateqoriyalı nəticəni görmür.
+  if(location.search && typeof restoreFromUrl==='function'){
+    restoreFromUrl(); // bu öz daxilində renderFonts()-u da çağırır
+  } else {
+    renderFonts();
+  }
 }
 if(_hasDlCache){
   if(_fontsBaseReady){ _doFirstPaint(); }
