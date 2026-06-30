@@ -368,26 +368,26 @@ async function saveEditFont(){
     if(!hasRealFile) updates.gfamily=null;
   }
   if(!updates.name||!updates.author||!updates.cat||!updates.license){showToast('⚠️ Please fill in all required fields');return;}
-  // Font fayli varsa PHP-y? yükl?
+  // Font fayli varsa - butun fayllari fontVariants kimi saxla (yalniz birincini yox)
   if(_efFileList.length > 0){
     const saveBtn=document.querySelector('#editFontModal .submit-btn');
     if(saveBtn){saveBtn.textContent='Uploading.';saveBtn.disabled=true;}
-    const fontId=updates.name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')||id;
-    let primarySet=false;
+    const fontVariants=[]; // butun yuklenen fontlarin URL-leri
     for(let i=0;i<_efFileList.length;i++){
       const efd=_efFileList[i];
-      // Storage Rules konfiqurasiya edilənə qədər dataUrl birbaşa işlət
       if(efd.dataUrl || efd.data){
         const dUrl = efd.dataUrl || efd.data;
-        if(!primarySet){
-          primarySet=true;
-          updates.fontData=dUrl;
-          updates.fontExt=efd.ext;
-          const _efFontName=updates.name||document.getElementById('ef-name').value.trim()||id;
-          injectCustomFontFace(id, _efFontName, dUrl, efd.ext||'.ttf');
-        }
+        fontVariants.push({url:dUrl, ext:efd.ext, name:efd.name});
         console.log('✅ Local dataUrl used for edit:', efd.name||efd.file?.name);
       }
+    }
+    if(fontVariants.length > 0){
+      updates.fontVariants=fontVariants;
+      updates.fontData=fontVariants[0].url;
+      updates.fontExt=fontVariants[0].ext;
+      const _efFontName=updates.name||document.getElementById('ef-name').value.trim()||id;
+      injectCustomFontFace(id, _efFontName, fontVariants[0].url, fontVariants[0].ext||'.ttf');
+      if(fontVariants.length > 1) injectVariantFaces({...updates, id});
     }
     if(saveBtn){saveBtn.textContent='Save Changes';saveBtn.disabled=false;}
   } else if(_efFileData && _efFileData.data){
