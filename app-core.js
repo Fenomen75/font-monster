@@ -4,17 +4,51 @@
 let FONTS_BASE = [];
 let _fontsBaseReady = false;
 
-(async function _loadFontsBase() {
-  try {
-    const resp = await fetch('/fonts-data.json');
-    FONTS_BASE = await resp.json();
-    _fontsBaseReady = true;
-    window.FONTS_BASE = FONTS_BASE;
-    _initWithFontsBase();
-  } catch(e) {
-    console.error('fonts-data.json yüklənmədi:', e);
+function _fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal, cache: 'no-store' })
+    .finally(() => clearTimeout(timer));
+}
+
+function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function _showFontsLoadError() {
+  const el = document.getElementById('resultTitle');
+  if (el) {
+    el.innerHTML = 'Yüklənmədi. <a href="#" onclick="location.reload();return false;" style="color:var(--accent,#2a7);text-decoration:underline">Yenidən cəhd et</a>';
   }
-})();
+  const grid = document.getElementById('fontGrid');
+  if (grid) {
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Fontlar yüklənmədi. Internet bağlantınızı yoxlayıb <a href="#" onclick="location.reload();return false;" style="color:var(--accent,#2a7);text-decoration:underline">səhifəni yeniləyin</a>.</div>';
+  }
+}
+
+async function _loadFontsBase() {
+  const MAX_ATTEMPTS = 4;
+  const TIMEOUT_MS = 12000;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const resp = await _fetchWithTimeout('/fonts-data.json', TIMEOUT_MS);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      FONTS_BASE = await resp.json();
+      _fontsBaseReady = true;
+      window.FONTS_BASE = FONTS_BASE;
+      _initWithFontsBase();
+      return; // ugurlu - cixiriq
+    } catch (e) {
+      console.error(`fonts-data.json yüklənmədi (cəhd ${attempt}/${MAX_ATTEMPTS}):`, e);
+      if (attempt < MAX_ATTEMPTS) {
+        await _sleep(attempt * 1000); // 1s, 2s, 3s gecikme
+      } else {
+        _showFontsLoadError();
+      }
+    }
+  }
+}
+
+_loadFontsBase();
 
 // ---- [app.js lines 199-349] ----
 function _estimatedDownloadCounts(){
