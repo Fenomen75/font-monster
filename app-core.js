@@ -772,7 +772,20 @@ function handleDownloadClick(fontId,fontName){
   } else if(font && font.gfamily){
     showToast(`⏳ ${fontName} hazırlanır...`);
     (async()=>{
-      const ttfUrls=(typeof FONT_TTF_URLS!=='undefined')?FONT_TTF_URLS[font.id]:null;
+      let ttfUrls=(typeof FONT_TTF_URLS!=='undefined')?FONT_TTF_URLS[font.id]:null;
+      // Yalnız saytda göstərilən weight-lərə uyğun faylları saxla (italic-ləri çıxar)
+      if(ttfUrls && ttfUrls.length && typeof getWeights==='function'){
+        const shownWeights=getWeights(font); // məs: ['300','400','700']
+        const weightFileNames={100:'Thin',200:'ExtraLight',300:'Light',400:'Regular',500:'Medium',600:'SemiBold',700:'Bold',800:'ExtraBold',900:'Black'};
+        const allowedNames=new Set(shownWeights.map(w=>weightFileNames[parseInt(w)]||w));
+        const filtered=ttfUrls.filter(u=>{
+          const fname=decodeURIComponent(u.split('/').pop());
+          if(/Italic/i.test(fname)) return false; // italic stilləri çıxar
+          for(const name of allowedNames){ if(fname.includes('-'+name+'.')) return true; }
+          return false;
+        });
+        if(filtered.length) ttfUrls=filtered;
+      }
       try{
         if(!ttfUrls || !ttfUrls.length) throw new Error('no-ttf-url');
         const cleanName=fontName.replace(/\s+/g,'_');
