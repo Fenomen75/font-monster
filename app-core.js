@@ -62,21 +62,39 @@ async function _loadFontsBase() {
   const TIMEOUT_MS = 12000;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    let resp;
     try {
-      const resp = await _fetchWithTimeout('/fonts-data.json?v=3', TIMEOUT_MS);
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      resp = await _fetchWithTimeout('/fonts-data.json?v=3', TIMEOUT_MS);
+    } catch (e) {
+      // Network/timeout xətası - keçici ola bilər, retry mənalıdır
+      console.error(`fonts-data.json fetch xətası (cəhd ${attempt}/${MAX_ATTEMPTS}):`, e);
+      if (attempt < MAX_ATTEMPTS) {
+        await _sleep(attempt * 1000); // 1s, 2s, 3s gecikme
+        continue;
+      } else {
+        _showFontsLoadError();
+        return;
+      }
+    }
+
+    if (!resp.ok) {
+      // 404/500 kimi HTTP xətaları - fayl serverdə yoxdur/sıradan çıxıb, retry mənasızdır
+      console.error(`fonts-data.json yüklənmədi: HTTP ${resp.status} - retry edilmir`);
+      _showFontsLoadError();
+      return;
+    }
+
+    try {
       FONTS_BASE = await resp.json();
       _fontsBaseReady = true;
       window.FONTS_BASE = FONTS_BASE;
       _initWithFontsBase();
       return; // ugurlu - cixiriq
     } catch (e) {
-      console.error(`fonts-data.json yüklənmədi (cəhd ${attempt}/${MAX_ATTEMPTS}):`, e);
-      if (attempt < MAX_ATTEMPTS) {
-        await _sleep(attempt * 1000); // 1s, 2s, 3s gecikme
-      } else {
-        _showFontsLoadError();
-      }
+      // JSON parse xətası - fayl korlanıb, retry mənasızdır
+      console.error('fonts-data.json parse xətası:', e);
+      _showFontsLoadError();
+      return;
     }
   }
 }
