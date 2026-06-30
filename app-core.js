@@ -4,6 +4,35 @@
 let FONTS_BASE = [];
 let _fontsBaseReady = false;
 
+// İlk (səhv kateqoriyalı/sırasız) render istifadəçiyə görünməsin deyə, grid-i bu skript
+// işə düşən kimi dərhal gizlədirik. Yalnız URL-dəki kateqoriya/filtr tətbiq olunub DOĞRU
+// render edildikdən sonra _revealFontGrid() onu göstərəcək.
+// Əgər URL-də heç bir filtr query-si yoxdursa (sadə ana səhifə), heç bir restore lazım
+// deyil — bu halda ilk renderFonts() çağırışı özü "doğru"dur.
+window._needsUrlRestore = !!location.search;
+window._urlRestoreApplied = false;
+(function(){
+  function hideGrid(){
+    var g=document.getElementById('fontGrid');
+    if(g) g.style.visibility='hidden';
+  }
+  hideGrid();
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', hideGrid);
+  }
+})();
+function _revealFontGrid(){
+  var g=document.getElementById('fontGrid');
+  if(g) g.style.visibility='';
+}
+setTimeout(function(){
+  if(window._needsUrlRestore && !window._urlRestoreApplied){
+    console.warn('restoreFromUrl 4 saniyə ərzində işləmədi — grid məcburi göstərilir');
+    window._urlRestoreApplied = true;
+    _revealFontGrid();
+  }
+}, 4000);
+
 function _fetchWithTimeout(url, ms) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
@@ -106,19 +135,6 @@ function _initWithFontsBase(){
 
   // App-ı başlat — bütün digər scriptlər bu event-i dinləyir
   if(typeof window._appCoreReady === 'function') window._appCoreReady();
-
-  // URL-də kateqoriya/axtarış/səhifə kimi query param-lar varsa, ilk render-dən ƏVVƏL
-  // tətbiq edirik ki, "fontsBaseReady" event-inə qoşulan filtrsiz renderFonts() çağırışları
-  // səhv (default sıralamalı) nəticəni anlıq olaraq belə göstərməsin. restoreFromUrl() öz
-  // daxilində artıq renderFonts() çağırır. window._urlRestoredBeforeReady bayrağı app-ui.js-ə
-  // bu render-in artıq edildiyini bildirir ki, eyni event üçün ikinci dəfə render olunmasın.
-  window._urlRestoredBeforeReady = false;
-  try{
-    if(location.search && document.readyState !== 'loading' && typeof restoreFromUrl === 'function' && document.getElementById('fontGrid')){
-      restoreFromUrl();
-      window._urlRestoredBeforeReady = true;
-    }
-  }catch(e){ console.error('Erkən restoreFromUrl cağırışı uğursuz:', e); }
 
   const _renderCountBefore = window._renderFontsCallCount||0;
   document.dispatchEvent(new CustomEvent('fontsBaseReady'));
@@ -493,6 +509,7 @@ function restoreFromUrl(){
   document.querySelectorAll('.cat').forEach(b=>b.classList.toggle('active',b.dataset.cat===activeCategory));
   document.querySelectorAll('.sb-item[data-scat]').forEach(b=>b.classList.toggle('active',b.dataset.scat===activeCategory));
   document.querySelectorAll('.alpha-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(alphaFilter===''?'All':alphaFilter==='#'?'0-9':alphaFilter)));
+  window._urlRestoreApplied = true;
   if(typeof renderFonts==='function') renderFonts();
 }
 
@@ -602,8 +619,6 @@ function _buildCardHTML(font, opts){
 }
 
 function renderFonts(){
-  console.log('[RENDER]', 't='+Date.now(), 'cat='+activeCategory, 'sort='+(document.getElementById('sortSel')?document.getElementById('sortSel').value:'?'), 'dlCacheLoaded='+(window._dlStatsLoaded||false), 'fontsBaseReady='+_fontsBaseReady);
-  console.trace('renderFonts called');
   window._lastRenderFontsAt = Date.now();
   window._renderFontsCallCount = (window._renderFontsCallCount||0) + 1;
   const grid=document.getElementById('fontGrid');grid.innerHTML="";
@@ -614,7 +629,7 @@ function renderFonts(){
   if(currentPage>maxPage)currentPage=1;
   const list=pp>0?allList.slice((currentPage-1)*pp,currentPage*pp):allList;
   const title=document.getElementById('resultTitle');
-  if(!total){document.getElementById('emptyState').classList.add('show');title.innerHTML='<strong>0</strong> fonts';renderPagination(0,1,pp);return;}
+  if(!total){document.getElementById('emptyState').classList.add('show');title.innerHTML='<strong>0</strong> fonts';renderPagination(0,1,pp);if(!window._needsUrlRestore||window._urlRestoreApplied)_revealFontGrid();return;}
   document.getElementById('emptyState').classList.remove('show');
   const from=pp>0?(currentPage-1)*pp+1:1,to=pp>0?Math.min(currentPage*pp,total):total;
   title.innerHTML=`<strong>${total}</strong> font${total!==1?'s':''}${pp>0&&total>pp?` <span style="color:var(--text3);font-size:.78em">· showing ${from}-${to}</span>`:''}${activeLicenseFilter?` · <span style="color:var(--text3)">${LICENSE_META[activeLicenseFilter]?.label||''} only</span>`:''}`;
@@ -662,6 +677,7 @@ function renderFonts(){
   renderPagination(total,currentPage,pp);
   renderRecentList();
   setTimeout(injectAllFallingLettersDebounced, 80); // debounced - prevents stacking on rapid filter changes
+  if(!window._needsUrlRestore || window._urlRestoreApplied) _revealFontGrid();
 }
 
 function handleDownloadClick(fontId,fontName){

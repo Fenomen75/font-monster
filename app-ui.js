@@ -563,7 +563,7 @@ var _firstPaintDone=false;
 function _doFirstPaint(){
   if(_firstPaintDone) return;
   _firstPaintDone=true;
-  if(!window._urlRestoredBeforeReady) renderFonts();
+  renderFonts();
 }
 if(_hasDlCache){
   if(_fontsBaseReady){ _doFirstPaint(); }
