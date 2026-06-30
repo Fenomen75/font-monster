@@ -520,7 +520,7 @@ function _buildCardHTML(font, opts){
         <div class="card-header-shimmer"></div>
         <div class="ch-fall"></div>
         <div style="position:relative;z-index:2;flex:1;min-width:0">
-          <div class="card-name">${esc(font.name)}${isCom?'<span class="community-badge">Community</span>':''}${isNew?'<span class="new-badge"><i class="new-badge-star">✦</i>New</span>':''}${isHot?'<span class="hot-badge"><i class="hot-badge-fire">🔥</i>Hot</span>':''}</div>
+          <div class="card-name">${esc(font.name)}<span style="cursor:pointer;margin-left:6px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:980px;background:rgba(255,255,255,0.15);color:inherit;border:1px solid rgba(255,255,255,0.25);letter-spacing:.02em" onclick="event.stopPropagation();setCategory('${font.cat}')" data-tip="${cap(font.cat)} kateqoriyasına bax">${cap(font.cat)}</span>${isCom?'<span class="community-badge">Community</span>':''}${isNew?'<span class="new-badge"><i class="new-badge-star">✦</i>New</span>':''}${isHot?'<span class="hot-badge"><i class="hot-badge-fire">🔥</i>Hot</span>':''}</div>
           <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(font.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(font.author)}</span> · ${font.year}</div>
         </div>
         <div class="card-actions" style="position:relative;z-index:2">
@@ -540,7 +540,7 @@ function _buildCardHTML(font, opts){
           <a href="#" class="dl-btn"
             onclick="event.stopPropagation();event.preventDefault();handleDownloadClick('${font.id}','${esc(font.name)}');return false;">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            ${(font.fontData||font.fontUrl)?'Get Font':'Download'}
+            ${(font.fontData||font.fontUrl)?'Download Font':'Download'}
           </a>
         </div>
       </div>
@@ -551,7 +551,7 @@ function _buildCardHTML(font, opts){
         </div>
       </div>
       <div class="card-footer" onclick="openDetail('${font.id}')">
-        <div class="tags"><span class="tag" style="background:var(--surface3);font-weight:600;color:var(--text2)">${cap(font.cat)}</span>${tagsHTML}</div>
+        <div class="tags">${tagsHTML}</div>
         <div style="display:flex;align-items:center;gap:6px">
           ${ratingHTML}
           ${licBadge(font.license)}
