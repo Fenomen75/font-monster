@@ -54,10 +54,7 @@ async function _sha256(str){
 
 function initAuth(){
   window.currentUser=getCurrentUser();
-  if(window.currentUser){
-    updateNavForUser(window.currentUser);
-    applyProfilePhoto(window.currentUser.photo||null);
-  }
+  if(window.currentUser){updateNavForUser(window.currentUser);}
   // Sync likedFonts from user account
   if(window.currentUser){
     likedFonts=new Set(window.currentUser.saved||[]);
@@ -573,27 +570,46 @@ function uploadProfilePhoto(input){
   const file=input.files[0];if(!file)return;
   _resizeImageDataUrl(file,320,0.8).then(dataUrl=>{
     if(!window.currentUser)return;
-    window.currentUser.photo=dataUrl;
-    let saved=true;
+    window._pendingProfilePhoto=dataUrl;
+    applyProfilePhoto(dataUrl); // yalnız önizləmə - hələ saxlanmayıb
+    const btn=document.getElementById('profilePhotoSaveBtn');
+    if(btn){btn.style.display='inline-flex';btn.textContent='💾 Save photo';btn.disabled=false;}
+  }).catch(()=>showToast('❌ Şəkil yüklənmədi'));
+}
+
+async function saveProfilePhoto(){
+  const dataUrl=window._pendingProfilePhoto;
+  if(!dataUrl||!window.currentUser)return;
+  const btn=document.getElementById('profilePhotoSaveBtn');
+  if(btn){btn.textContent='Saving…';btn.disabled=true;}
+  window.currentUser.photo=dataUrl;
+  let localOk=true,remoteOk=true;
+  try{
+    const safe={...window.currentUser};
+    delete safe.password;delete safe.isAdmin;delete safe.isModerator;
+    localStorage.setItem('fn_current_user',JSON.stringify(safe));
+  }catch(e){localOk=false;console.warn('Profile photo localStorage save failed:',e);}
+  if(window._fbFns && window._fbAuth && window._fbDb){
     try{
-      const safe={...window.currentUser};
-      delete safe.password;delete safe.isAdmin;delete safe.isModerator;
-      localStorage.setItem('fn_current_user',JSON.stringify(safe));
-    }catch(e){saved=false;console.warn('Profile photo localStorage save failed:',e);}
-    // Sync to Firestore if available
-    if(window._fbFns && window._fbAuth && window._fbDb){
       const {doc, updateDoc} = window._fbFns;
-      const db = window._fbDb;
-      const uid = window.currentUser.id;
-      updateDoc(doc(db,'users',uid),{photo:dataUrl}).catch(e=>console.warn('Photo Firestore update:',e));
-    } else {
+      await updateDoc(doc(window._fbDb,'users',window.currentUser.id),{photo:dataUrl});
+    }catch(e){remoteOk=false;console.warn('Photo Firestore update:',e);}
+  } else {
+    try{
       const users=getUsers();
       const idx=users.findIndex(u=>u.id===window.currentUser.id);
       if(idx>=0){users[idx].photo=dataUrl;saveUsers(users);}
-    }
-    applyProfilePhoto(dataUrl);
-    showToast(saved?'✅ Profile photo updated':'⚠️ Photo shown but may not persist — storage full');
-  }).catch(()=>showToast('❌ Şəkil yüklənmədi'));
+    }catch(e){remoteOk=false;}
+  }
+  applyProfilePhoto(dataUrl);
+  window._pendingProfilePhoto=null;
+  if(localOk&&remoteOk){
+    showToast('✅ Profile photo saved');
+    if(btn){btn.style.display='none';}
+  } else {
+    showToast('⚠️ Save failed — try again');
+    if(btn){btn.textContent='💾 Retry save';btn.disabled=false;}
+  }
 }
 function applyProfilePhoto(url){
   const el=document.getElementById('profileAvatarLg');
@@ -607,6 +623,7 @@ function applyProfilePhoto(url){
     else nav.innerHTML=navSvg;
   }
 }
+
 
 function heroBannerHueChange(val,type){
   val=parseInt(val);
