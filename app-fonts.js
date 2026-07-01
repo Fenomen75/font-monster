@@ -621,6 +621,7 @@ function renderAuthorPage(authorName, authorFonts){
 
   renderAuthorFontsGrid(authorFonts);
   renderAuthorSidePanel(authorName, authorFonts);
+  renderAuthorMoreFonts(authorName, authorFonts);
 }
 
 // Sağ paneldə (boş qalan sahədə) sayta aid məzmun göstərir: sayt üzrə trend fontlar
@@ -730,6 +731,66 @@ function applyAuthorFilters(){
   document.getElementById('authorFontsLabel').textContent =
     `${filtered.length} font${filtered.length!==1?'s':''} by ${authorName}`;
   renderAuthorFontsGrid(filtered);
+  renderAuthorMoreFonts(authorName, filtered);
+}
+
+// Bir font kartını (author səhifəsi üslubunda) DOM elementi kimi qurur - həm
+// öz grid-də, həm də "You might also like" bölməsində istifadə olunur.
+function _buildAuthorGridCard(font, top5ids, animDelay){
+  const card=document.createElement('div');card.className='font-card';card.dataset.fontid=font.id;
+  card.style.animationDelay=`${animDelay}s`;
+  const isLiked=likedFonts.has(font.id),isCom=!FONTS_BASE.find(f=>f.id===font.id);
+  const isNew=isNewFont(font);
+  const isHot=!isNew && !isCom && top5ids.includes(font.id);
+  const txt=previewText||font.name;
+  const _cardVariant=(font.fontVariants&&font.fontVariants.length>0)?font.fontVariants[0]:null;
+  const _cardFamily=_cardVariant?(_cardVariant._familyName||(font.name+' '+parseVariantStyle(_cardVariant.name||'').label)):font.name;
+  const _cardWeight=_cardVariant?String(parseVariantStyle(_cardVariant.name||'').weight||font.weight||'400'):(font.weight||'400');
+  const _authorPreviewSize=Math.min(fontSize,48);
+  const fs=`font-family:'${_cardFamily}',sans-serif;font-weight:${_cardWeight};font-size:${_authorPreviewSize}px;`;
+  const dlCount=DL_COUNTS[font.id]||0,isInCmp=compareFonts.includes(font.id);
+  card.innerHTML=_buildCardHTML(font,{isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp});
+  return card;
+}
+
+// Dizaynerin fontları az olanda əsas sütun (grid) qısa qalır, sağdakı sidebar isə
+// daha uzun olduğu üçün "yetim" görünür. Bunun qarşısını almaq üçün grid-in altında
+// əlaqəli kateqoriyalardan olan fontlarla "You might also like" bölməsi göstərilir -
+// beləliklə sol sütun da sidebar-ın hündürlüyünə yaxınlaşır.
+function renderAuthorMoreFonts(authorName, authorFonts){
+  const section = document.getElementById('authorMoreFontsSection');
+  if(!section) return;
+  const MIN_OWN = 4; // dizaynerin bundan az fontu varsa bölmə göstərilir
+  if(authorFonts.length >= MIN_OWN){ section.innerHTML=''; section.style.display='none'; return; }
+
+  const myCats = new Set(authorFonts.map(f=>f.cat));
+  const ownIds = new Set(authorFonts.map(f=>f.id));
+  const candidates = FONTS_BASE
+    .filter(f => f.author!==authorName && !ownIds.has(f.id) && myCats.has(f.cat))
+    .sort((a,b) => (DL_COUNTS[b.id]||0) - (DL_COUNTS[a.id]||0));
+  const picks = candidates.slice(0, 6);
+
+  if(picks.length === 0){ section.innerHTML=''; section.style.display='none'; return; }
+
+  section.style.display='block';
+  section.innerHTML = `
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:36px 0 16px;padding-top:24px;border-top:1px solid var(--border)">You might also like</div>
+    <div id="authorMoreFontsGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px"></div>`;
+
+  const grid = document.getElementById('authorMoreFontsGrid');
+  const top5ids = FONTS_BASE.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0)).slice(0,5).map(f=>f.id);
+  picks.forEach((font, i) => {
+    grid.appendChild(_buildAuthorGridCard(font, top5ids, Math.min(i*0.03, 0.28)));
+  });
+
+  // Kiçik sayda kart olduğu üçün lazy-observer lazım deyil - fontları birbaşa yüklə.
+  picks.forEach(font => {
+    const cardEl = grid.querySelector(`[data-fontid="${font.id}"]`);
+    const _prevEl = cardEl && cardEl.querySelector('.card-preview');
+    const _reveal = () => { if(_prevEl) _prevEl.style.opacity='1'; };
+    if(typeof loadFont === 'function'){ loadFont(font, _reveal); } else { _reveal(); }
+    setTimeout(_reveal, 2000);
+  });
 }
 
 // Author səhifəsindəki font grid-inin faktiki render məntiqi (chunk-lı, lazy-load-lu)
@@ -764,20 +825,7 @@ function renderAuthorFontsGrid(authorFonts){
     if(_renderToken !== window._authorPageRenderToken) return; // başqa author açılıb, dayan
     const end = Math.min(start + CHUNK, sorted.length);
     sorted.slice(start, end).forEach((font, i)=>{
-      const card=document.createElement('div');card.className='font-card';card.dataset.fontid=font.id;
-      card.style.animationDelay=`${Math.min((start+i)*0.03,0.28)}s`;
-      const isLiked=likedFonts.has(font.id),isCom=!FONTS_BASE.find(f=>f.id===font.id);
-      const isNew=isNewFont(font);
-      const isHot=!isNew && !isCom && top5ids.includes(font.id);
-      const txt=previewText||font.name;
-      const _cardVariant=(font.fontVariants&&font.fontVariants.length>0)?font.fontVariants[0]:null;
-      const _cardFamily=_cardVariant?(_cardVariant._familyName||(font.name+' '+parseVariantStyle(_cardVariant.name||'').label)):font.name;
-      const _cardWeight=_cardVariant?String(parseVariantStyle(_cardVariant.name||'').weight||font.weight||'400'):(font.weight||'400');
-      const _authorPreviewSize=Math.min(fontSize,48);
-      const fs=`font-family:'${_cardFamily}',sans-serif;font-weight:${_cardWeight};font-size:${_authorPreviewSize}px;`;
-      const dlCount=DL_COUNTS[font.id]||0,isInCmp=compareFonts.includes(font.id);
-      card.innerHTML=_buildCardHTML(font,{isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp});
-      grid.appendChild(card);
+      grid.appendChild(_buildAuthorGridCard(font, top5ids, Math.min((start+i)*0.03,0.28)));
     });
     if(end < sorted.length){
       (window.requestAnimationFrame || setTimeout)(() => renderChunk(end));
