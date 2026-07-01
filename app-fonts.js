@@ -774,13 +774,15 @@ function renderAuthorMoreFonts(authorName, authorFonts){
 
   section.style.display='block';
   section.innerHTML = `
-    <div style="margin-top:40px;padding:24px;background:var(--surface2);border:1px solid var(--border);border-radius:16px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <div style="font-size:13px;font-weight:700;color:var(--text)">You might also like</div>
+    <div style="margin-top:40px;border-radius:16px;overflow:hidden;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+      <div style="background:linear-gradient(135deg,var(--accent) 0%,#be123c 100%);padding:14px 20px;display:flex;align-items:center;gap:10px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <div style="font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.01em">You might also like</div>
       </div>
-      <div style="font-size:11.5px;color:var(--text3);margin-bottom:18px">Related fonts from other designers</div>
-      <div id="authorMoreFontsGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px"></div>
+      <div style="background:var(--surface2);padding:20px">
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:16px">Related fonts from other designers</div>
+        <div id="authorMoreFontsGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px"></div>
+      </div>
     </div>`;
 
   const grid = document.getElementById('authorMoreFontsGrid');
