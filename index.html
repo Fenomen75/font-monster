@@ -265,12 +265,20 @@
       if (fbUser.emailVerified && extra.emailVerified !== true) {
         updateDoc(doc(db, 'users', fbUser.uid), { emailVerified: true }).catch(()=>{});
       }
+      // Firestore-dakı photo hələ yenilənməyibsə (upload edib dərhal refresh edəndə
+      // fire-and-forget Firestore yazısı bitməmiş qala bilər) - localStorage cache-dəki
+      // şəkli fallback kimi istifadə et ki, doğru foto səhvən null-a yazılmasın.
+      let _cachedPhoto = null;
+      try{
+        const _cached = JSON.parse(localStorage.getItem('fn_current_user')||'null');
+        if(_cached && _cached.id === fbUser.uid) _cachedPhoto = _cached.photo || null;
+      }catch(e){}
       const user = {
         id: fbUser.uid,
         name: fbUser.displayName || extra.name || fbUser.email.split('@')[0],
         email: fbUser.email,
         emailVerified: fbUser.emailVerified === true,
-        photo: fbUser.photoURL || extra.photo || null,
+        photo: fbUser.photoURL || extra.photo || _cachedPhoto || null,
         saved: extra.saved || [],
         joined: extra.joined || fbUser.metadata.creationTime,
         isAdmin: extra.isAdmin === true,
@@ -290,6 +298,7 @@
         localStorage.setItem('tv_liked', JSON.stringify(user.saved));
       }catch(e){}
       if(typeof updateNavForUser === 'function') updateNavForUser(user);
+      if(typeof applyProfilePhoto === 'function') applyProfilePhoto(user.photo);
       if(typeof syncSubmittedFonts === 'function') syncSubmittedFonts();
       if(typeof syncSubmittedFontsFromFirestore === 'function') syncSubmittedFontsFromFirestore();
       // Sayğacı admin girişinə görə yenilə
