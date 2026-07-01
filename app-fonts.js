@@ -682,6 +682,11 @@ function renderAuthorSidePanel(authorName, authorFonts){
   }).join('');
 
   panel.innerHTML = `
+    <div style="background:linear-gradient(135deg,var(--accent) 0%,#be123c 100%);border-radius:14px;padding:20px;color:#fff;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em">Are you a designer?</div>
+      <div style="font-size:12.5px;opacity:.9;line-height:1.5;margin-bottom:14px">Share your fonts with thousands of creators on Font·Monster.</div>
+      <button onclick="openSubmit()" style="background:#fff;color:var(--accent);border:none;border-radius:980px;padding:9px 16px;font-size:12.5px;font-weight:700;cursor:pointer;width:100%">+ Submit Font</button>
+    </div>
     ${spotlightHTML}
     <div style="background:var(--surface-solid);border:1px solid var(--border);border-radius:14px;padding:16px;">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
@@ -695,11 +700,6 @@ function renderAuthorSidePanel(authorName, authorFonts){
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px">Similar Designers</div>
       <div style="display:flex;flex-direction:column;gap:2px">${similarHTML}</div>
     </div>` : ''}
-    <div style="background:linear-gradient(135deg,var(--accent) 0%,#be123c 100%);border-radius:14px;padding:20px;color:#fff;">
-      <div style="font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em">Are you a designer?</div>
-      <div style="font-size:12.5px;opacity:.9;line-height:1.5;margin-bottom:14px">Share your fonts with thousands of creators on Font·Monster.</div>
-      <button onclick="openSubmit()" style="background:#fff;color:var(--accent);border:none;border-radius:980px;padding:9px 16px;font-size:12.5px;font-weight:700;cursor:pointer;width:100%">+ Submit Font</button>
-    </div>
   `;
 }
 
