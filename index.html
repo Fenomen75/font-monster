@@ -284,6 +284,7 @@
         isAdmin: extra.isAdmin === true,
         isModerator: extra.isModerator === true
       };
+      console.log('[PHOTO DEBUG] onAuthStateChanged: extra.photo uzunluğu=',(extra.photo||'').length,'_cachedPhoto uzunluğu=',(_cachedPhoto||'').length,'seçilən photo uzunluğu=',(user.photo||'').length);
       window.currentUser = user;
       window.currentUser = window.currentUser;
       window.likedFonts = new Set(user.saved);
