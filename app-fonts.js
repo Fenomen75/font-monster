@@ -620,6 +620,44 @@ function renderAuthorPage(authorName, authorFonts){
   if(_acatBar) _acatBar.querySelectorAll('.acat').forEach(b=>b.classList.toggle('active', b.dataset.acat==='all'));
 
   renderAuthorFontsGrid(authorFonts);
+  renderAuthorSidePanel(authorName, authorFonts);
+}
+
+// Sağ paneldə (boş qalan sahədə) sayta aid məzmun göstərir: sayt üzrə trend fontlar
+// və "Submit Font" çağırışı. Yalnız author səhifəsi açılanda bir dəfə render olunur -
+// kateqoriya/axtarış filtri dəyişəndə yenilənmir, çünki məzmun ümumi sayt statistikasıdır.
+function renderAuthorSidePanel(authorName, authorFonts){
+  const panel = document.getElementById('authorSidePanel');
+  if(!panel) return;
+
+  const top = FONTS_BASE.slice()
+    .filter(f => f.author !== authorName)
+    .sort((a,b) => (DL_COUNTS[b.id]||0) - (DL_COUNTS[a.id]||0))
+    .slice(0, 5);
+
+  const trendingHTML = top.map(f => `
+    <div onclick="openDetail('${f.id}')" style="display:flex;align-items:center;gap:10px;padding:7px;border-radius:10px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-family:'${f.name}',sans-serif;font-size:15px;flex-shrink:0;color:var(--text2);overflow:hidden">Aa</div>
+      <div style="min-width:0;flex:1">
+        <div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
+        <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.author)} · ${fmtDlCountFor(f.id)} downloads</div>
+      </div>
+    </div>`).join('');
+
+  panel.innerHTML = `
+    <div style="background:var(--surface-solid);border:1px solid var(--border);border-radius:14px;padding:16px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Trending on Font·Monster
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">${trendingHTML || '<div style="font-size:12px;color:var(--text3)">No data yet.</div>'}</div>
+    </div>
+    <div style="background:linear-gradient(135deg,var(--accent) 0%,#be123c 100%);border-radius:14px;padding:20px;color:#fff;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em">Are you a designer?</div>
+      <div style="font-size:12.5px;opacity:.9;line-height:1.5;margin-bottom:14px">Share your fonts with thousands of creators on Font·Monster.</div>
+      <button onclick="openSubmit()" style="background:#fff;color:var(--accent);border:none;border-radius:980px;padding:9px 16px;font-size:12.5px;font-weight:700;cursor:pointer;width:100%">+ Submit Font</button>
+    </div>
+  `;
 }
 
 // Kateqoriya düyməsinə klik olunanda - author səhifəsindəki fontları
@@ -890,7 +928,7 @@ function _detailRenderHeader(font, dlCount, licM){
   document.getElementById('fdpHero').innerHTML=`
     <div>
       <h1 class="fdp-name" style="font-family:'${font.name}',sans-serif;margin:0;font-size:inherit;font-weight:inherit">${esc(font.name)}</h1>
-      <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year}</div>
+      <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year} · <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);font-size:12px;text-decoration:underline;text-underline-offset:2px;opacity:.85;transition:opacity .15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.85'">${esc(font.author)}'s Author Page →</span></div>
       <div class="fdp-meta-row">
         <span class="fdp-chip">${cap(font.cat)}</span>
         <span class="lic-badge ${licM.cls}" style="border-radius:100px;padding:3px 11px">${licM.label}</span>

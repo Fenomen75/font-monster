@@ -2144,10 +2144,13 @@
     <button class="acat" data-acat="other" onclick="setAuthorCategory('other')">Other</button>
   </div>
 
-  <!-- Author fonts grid -->
-  <div style="padding:24px 28px 80px;max-width:1440px">
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:16px" id="authorFontsLabel">Fonts</div>
-    <div id="authorFontsGrid"></div>
+  <!-- Author fonts grid + side panel -->
+  <div style="padding:24px 28px 80px;max-width:1720px;display:flex;gap:28px;align-items:flex-start">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:16px" id="authorFontsLabel">Fonts</div>
+      <div id="authorFontsGrid"></div>
+    </div>
+    <aside id="authorSidePanel" style="width:300px;flex-shrink:0;position:sticky;top:24px;display:flex;flex-direction:column;gap:16px"></aside>
   </div>
 </div>
 
