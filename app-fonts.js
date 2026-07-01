@@ -790,6 +790,10 @@ function renderAuthorMoreFonts(authorName, authorFonts){
   picks.forEach((font, i) => {
     grid.appendChild(_buildAuthorGridCard(font, top5ids, Math.min(i*0.03, 0.28)));
   });
+  if(picks.length % 2 === 1){
+    const lastCard = grid.querySelector('.font-card:last-child');
+    if(lastCard) lastCard.style.gridColumn = '1 / -1';
+  }
 
   // Kiçik sayda kart olduğu üçün lazy-observer lazım deyil - fontları birbaşa yüklə.
   picks.forEach(font => {
@@ -838,6 +842,12 @@ function renderAuthorFontsGrid(authorFonts){
     if(end < sorted.length){
       (window.requestAnimationFrame || setTimeout)(() => renderChunk(end));
     } else {
+      // Tək sayda font olanda (məs: 1 və ya 7) son kart 2-sütunlu grid-də tək qalıb
+      // yanında boş xana buraxır - onu tam enə yayaraq boşluğu aradan qaldırırıq.
+      if(sorted.length % 2 === 1){
+        const lastCard = grid.querySelector('.font-card:last-child');
+        if(lastCard) lastCard.style.gridColumn = '1 / -1';
+      }
       // Bütün kartlar DOM-dadır — FOUT-safe lazy font loading tətbiq et (ana səhifə
       // ilə eyni məntiq: hər kartın opacity-si YALNIZ öz şrifti faktiki yükləndikdən
       // sonra 1 olur, ümumi/tək document.fonts.ready ilə deyil).
