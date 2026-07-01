@@ -668,7 +668,7 @@ function renderAuthorFontsGrid(authorFonts){
   // özü artıq ana səhifə ilə TAM eyni _buildCardHTML() ilə qurulur - badge-lər
   // (New/Hot/Community), tag-lar, glyph strip, reytinq, dil badge-ləri, compare/like,
   // download sayı, charmap - hamısı ana səhifədəki kimi işləyir.
-  grid.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,420px));justify-content:center;gap:16px';
+  grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px';
   grid.innerHTML = '';
 
   const top5ids = FONTS_BASE.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0)).slice(0,5).map(f=>f.id);
