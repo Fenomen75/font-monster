@@ -668,7 +668,7 @@ function renderAuthorFontsGrid(authorFonts){
   // özü artıq ana səhifə ilə TAM eyni _buildCardHTML() ilə qurulur - badge-lər
   // (New/Hot/Community), tag-lar, glyph strip, reytinq, dil badge-ləri, compare/like,
   // download sayı, charmap - hamısı ana səhifədəki kimi işləyir.
-  grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px';
+  grid.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,420px));justify-content:center;gap:16px';
   grid.innerHTML = '';
 
   const top5ids = FONTS_BASE.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0)).slice(0,5).map(f=>f.id);
@@ -692,7 +692,8 @@ function renderAuthorFontsGrid(authorFonts){
       const _cardVariant=(font.fontVariants&&font.fontVariants.length>0)?font.fontVariants[0]:null;
       const _cardFamily=_cardVariant?(_cardVariant._familyName||(font.name+' '+parseVariantStyle(_cardVariant.name||'').label)):font.name;
       const _cardWeight=_cardVariant?String(parseVariantStyle(_cardVariant.name||'').weight||font.weight||'400'):(font.weight||'400');
-      const fs=`font-family:'${_cardFamily}',sans-serif;font-weight:${_cardWeight};font-size:${fontSize}px;`;
+      const _authorPreviewSize=Math.min(fontSize,48);
+      const fs=`font-family:'${_cardFamily}',sans-serif;font-weight:${_cardWeight};font-size:${_authorPreviewSize}px;`;
       const dlCount=DL_COUNTS[font.id]||0,isInCmp=compareFonts.includes(font.id);
       card.innerHTML=_buildCardHTML(font,{isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp});
       grid.appendChild(card);
