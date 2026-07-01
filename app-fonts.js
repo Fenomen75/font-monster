@@ -609,94 +609,75 @@ function renderAuthorPage(authorName, authorFonts){
     `${authorFonts.length} font${authorFonts.length!==1?'s':''} by ${authorName}`;
 
   const grid = document.getElementById('authorFontsGrid');
+  // Köhnə lazy observer aktivdirsə dayandır (başqa author səhifəsi açılmış ola bilər)
+  if(window._authorFontLazyObserver){ window._authorFontLazyObserver.disconnect(); window._authorFontLazyObserver=null; }
+  // Başqa author render-i davam edirdisə onu ləğv et (aşağıdakı token yoxlaması dayandırır)
+  const _renderToken = (window._authorPageRenderToken = (window._authorPageRenderToken||0) + 1);
+
   if(authorFonts.length === 0){
     grid.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:20px 0">No fonts found for this designer.</div>`;
-  } else {
-    grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px';
-
-    // Eyni dizaynerin səhifəsi təkrar açılanda (məs: kart üzərindən başqa fontun
-    // dizayner linkinə klikləyib sonra geri qayıdanda) HTML-i yenidən qurmaq əvəzinə
-    // keşdən birbaşa göstəririk — bu, böyük siyahılarda (Google -> 214 font) hər dəfə
-    // yenidən donmanın qarşısını alır.
-    if(!window._authorPageHtmlCache) window._authorPageHtmlCache = {};
-    const cacheKey = authorName;
-    const cached = window._authorPageHtmlCache[cacheKey];
-    if(cached){
-      grid.innerHTML = cached;
-      // Keşlənmiş kartlardakı fontlar artıq @font-face injection almış ola bilər,
-      // amma DOM yeni yarandığı üçün hər ehtimala qarşı yenidən çağırmaq ucuzdur
-      // (loadFont özü loadedFonts.has() ilə artıq yüklənmişləri sıçrayır).
-      authorFonts.forEach(loadFont);
-      // Keşlənmiş HTML-də .ch-fall boşdur (hərflər DOM-a sonradan inject olunur,
-      // cache isə xam template-i saxlayır) — ona görə hər açılışda yenidən çağırırıq.
-      setTimeout(injectAllFallingLetters, 60);
-      return;
-    }
-
-    const sorted = authorFonts.slice().sort((a,b)=>(b.popular||0)-(a.popular||0));
-    // Çox sayda font (məs: Google -> 214 font) olduqda hamısını bir dəfəyə innerHTML-ə
-    // yazmaq və hər biri üçün loadFont() çağırmaq main thread-i bir neçə saniyə bloklayır
-    // (səhifə "donur"). Ona görə kiçik hissələrlə (chunk) render edirik ki, brauzer
-    // arada nəfəs alsın.
-    grid.innerHTML = '';
-    const CHUNK = 8;
-    const _renderToken = (window._authorPageRenderToken = (window._authorPageRenderToken||0) + 1);
-    const htmlParts = [];
-    const renderChunk = (start) => {
-      if(_renderToken !== window._authorPageRenderToken) return; // başqa author açılıb, dayan
-      const end = Math.min(start + CHUNK, sorted.length);
-      const html = sorted.slice(start, end).map(_renderAuthorFontCard).join('');
-      htmlParts.push(html);
-      grid.insertAdjacentHTML('beforeend', html);
-      if(end < sorted.length){
-        (window.requestAnimationFrame || setTimeout)(() => renderChunk(end));
-      } else {
-        // Render bitdi — tam HTML-i keşə yaz ki, növbəti açılış ani olsun
-        window._authorPageHtmlCache[cacheKey] = htmlParts.join('');
-        // Bütün kartlar DOM-dadır — indi hamısına uçan hərf animasiyasını inject et.
-        // (Əvvəllər bu çağırış heç olmurdu, ona görə animasiya yalnız başqa bir
-        // səhifədən qalmış təsadüfi timer-in tutduğu kartlarda görünürdü.)
-        setTimeout(injectAllFallingLetters, 60);
-      }
-    };
-    renderChunk(0);
+    return;
   }
-}
 
-// Single font card used in the author page grid
-function _renderAuthorFontCard(font){
-  loadFont(font);
-  const lic = LICENSE_META[font.license]||{label:font.license,cls:'lic-demo'};
-  const isLiked = likedFonts.has(font.id);
-  const isOwner = window.currentUser && (font.submittedById === window.currentUser.id || _isAdmin(window.currentUser));
-  return `<div class="font-card" style="margin-bottom:0;cursor:pointer" onclick="openDetail('${font.id}')">
-    <div class="card-header">
-      <div class="card-header-shimmer"></div>
-      <div class="ch-fall"></div>
-      <div style="position:relative;z-index:2;flex:1;min-width:0">
-        <div class="card-name">${esc(font.name)}</div>
-        <div class="card-author"><span onclick="event.stopPropagation();openAuthorPage('${esc(font.author)}')" style="cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${esc(font.author)}</span> · ${font.year}</div>
-      </div>
-      <div class="card-actions" style="position:relative;z-index:2">
-        ${isOwner?`<button class="icon-btn" onclick="event.stopPropagation();openEditFont('${font.id}')" title="Edit font" style="color:var(--accent);background:var(--blue-dim);border:1px solid var(--border2);border-radius:8px;width:30px;height:30px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:''}
-        <button class="icon-btn ${isLiked?'liked':''}" onclick="event.stopPropagation();toggleLike('${font.id}',this)" aria-label="${isLiked?'Saved – click to unsave':'Save font'}" aria-pressed="${isLiked?'true':'false'}">
-          ${isLiked?'♥':'♡'}
-        </button>
-        <a class="dl-btn" href="#"
-          onclick="event.stopPropagation();event.preventDefault();handleDownloadClick('${font.id}','${esc(font.name)}');return false;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Get
-        </a>
-      </div>
-    </div>
-    <div class="card-preview-area">
-      <div class="card-preview" style="font-family:'${font.name}',sans-serif;font-size:clamp(18px,3.5vw,40px);word-break:break-word;overflow-wrap:break-word;white-space:normal;line-height:1.1">${esc(font.name)}</div>
-    </div>
-    <div class="card-footer">
-      <div class="tags">${font.tags.slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
-      <span class="lic-badge ${lic.cls}">${lic.label}</span>
-    </div>
-  </div>`;
+  // 2 sütunlu grid saxlanılır (author səhifəsinin öz strukturu), amma kartların
+  // özü artıq ana səhifə ilə TAM eyni _buildCardHTML() ilə qurulur - badge-lər
+  // (New/Hot/Community), tag-lar, glyph strip, reytinq, dil badge-ləri, compare/like,
+  // download sayı, charmap - hamısı ana səhifədəki kimi işləyir.
+  grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px';
+  grid.innerHTML = '';
+
+  const top5ids = FONTS_BASE.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0)).slice(0,5).map(f=>f.id);
+  const sorted = authorFonts.slice().sort((a,b)=>(b.popular||0)-(a.popular||0));
+  const _fontMap = {}; sorted.forEach(f=>{ _fontMap[f.id]=f; });
+
+  // Çox sayda font (məs: Google -> 214 font) olduqda hamısını bir dəfəyə DOM-a
+  // yazmaq main thread-i bir neçə saniyə bloklayır (səhifə "donur"). Ona görə
+  // kiçik hissələrlə (chunk) render edirik ki, brauzer arada nəfəs alsın.
+  const CHUNK = 8;
+  const renderChunk = (start) => {
+    if(_renderToken !== window._authorPageRenderToken) return; // başqa author açılıb, dayan
+    const end = Math.min(start + CHUNK, sorted.length);
+    sorted.slice(start, end).forEach((font, i)=>{
+      const card=document.createElement('div');card.className='font-card';card.dataset.fontid=font.id;
+      card.style.animationDelay=`${Math.min((start+i)*0.03,0.28)}s`;
+      const isLiked=likedFonts.has(font.id),isCom=!FONTS_BASE.find(f=>f.id===font.id);
+      const isNew=isNewFont(font);
+      const isHot=!isNew && !isCom && top5ids.includes(font.id);
+      const txt=previewText||font.name;
+      const _cardVariant=(font.fontVariants&&font.fontVariants.length>0)?font.fontVariants[0]:null;
+      const _cardFamily=_cardVariant?(_cardVariant._familyName||(font.name+' '+parseVariantStyle(_cardVariant.name||'').label)):font.name;
+      const _cardWeight=_cardVariant?String(parseVariantStyle(_cardVariant.name||'').weight||font.weight||'400'):(font.weight||'400');
+      const fs=`font-family:'${_cardFamily}',sans-serif;font-weight:${_cardWeight};font-size:${fontSize}px;`;
+      const dlCount=DL_COUNTS[font.id]||0,isInCmp=compareFonts.includes(font.id);
+      card.innerHTML=_buildCardHTML(font,{isLiked,isCom,isNew,isHot,txt,fs,dlCount,isInCmp});
+      grid.appendChild(card);
+    });
+    if(end < sorted.length){
+      (window.requestAnimationFrame || setTimeout)(() => renderChunk(end));
+    } else {
+      // Bütün kartlar DOM-dadır — FOUT-safe lazy font loading tətbiq et (ana səhifə
+      // ilə eyni məntiq: hər kartın opacity-si YALNIZ öz şrifti faktiki yükləndikdən
+      // sonra 1 olur, ümumi/tək document.fonts.ready ilə deyil).
+      window._authorFontLazyObserver = new IntersectionObserver((entries,obs)=>{
+        entries.forEach(entry=>{
+          if(!entry.isIntersecting) return;
+          const fid=entry.target.dataset.fontid;
+          const f=_fontMap[fid];
+          const _prevEl=entry.target.querySelector('.card-preview');
+          const _reveal=function(){ if(_prevEl) _prevEl.style.opacity='1'; };
+          if(f){
+            if(typeof loadFont==='function'){ loadFont(f,_reveal); }
+            else{ setTimeout(function(){ if(typeof loadFont==='function') loadFont(f,_reveal); else _reveal(); }, 200); }
+          } else { _reveal(); }
+          setTimeout(_reveal,2000); // təhlükəsizlik: heç vaxt həmişəlik gizli qalmasın
+          obs.unobserve(entry.target);
+        });
+      },{root:null,rootMargin:'400px 0px',threshold:0.01});
+      grid.querySelectorAll('.font-card').forEach(c=>window._authorFontLazyObserver.observe(c));
+      setTimeout(injectAllFallingLetters, 60);
+    }
+  };
+  renderChunk(0);
 }
 function openDetail(fontId){
   const font=FONTS.find(f=>f.id===fontId);if(!font)return;

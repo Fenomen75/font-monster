@@ -130,7 +130,6 @@ async function syncSubmittedFontsFromFirestore(){
           if(authorUser && f.submittedById === authorUser.id) return true;
           return false;
         });
-        if(window._authorPageHtmlCache) delete window._authorPageHtmlCache[window._currentAuthorName];
         if(typeof renderAuthorPage==='function') renderAuthorPage(window._currentAuthorName, authorFonts);
       } else {
         renderFonts();
