@@ -54,7 +54,6 @@ async function _sha256(str){
 
 function initAuth(){
   window.currentUser=getCurrentUser();
-  console.log('[PHOTO DEBUG] initAuth() işə düşdü. localStorage-dan oxunan photo uzunluğu=',(window.currentUser&&window.currentUser.photo||'').length,'user=',window.currentUser&&window.currentUser.id);
   if(window.currentUser){
     updateNavForUser(window.currentUser);
     applyProfilePhoto(window.currentUser.photo||null);
@@ -103,7 +102,7 @@ async function socialLogin(provider) {
       name: fbUser.displayName || extra.name || fbUser.email.split('@')[0],
       email: fbUser.email,
       emailVerified: true,
-      photo: fbUser.photoURL || extra.photo || null,
+      photo: extra.photo || fbUser.photoURL || null,
       saved: extra.saved || [],
       joined: extra.joined || fbUser.metadata.creationTime,
       isAdmin: extra.isAdmin === true,
@@ -584,7 +583,6 @@ function uploadProfilePhoto(input){
 async function saveProfilePhoto(){
   const dataUrl=window._pendingProfilePhoto;
   if(!dataUrl||!window.currentUser)return;
-  console.log('[PHOTO DEBUG] save başladı. uid=',window.currentUser.id,'dataUrl uzunluğu=',dataUrl.length);
   const btn=document.getElementById('profilePhotoSaveBtn');
   if(btn){btn.textContent='Saving…';btn.disabled=true;}
   window.currentUser.photo=dataUrl;
@@ -594,16 +592,13 @@ async function saveProfilePhoto(){
     delete safe.password;delete safe.isAdmin;delete safe.isModerator;
     localStorage.setItem('fn_current_user',JSON.stringify(safe));
     const verify=JSON.parse(localStorage.getItem('fn_current_user'));
-    console.log('[PHOTO DEBUG] localStorage yazıldı, geri oxunan photo uzunluğu=',(verify.photo||'').length);
-  }catch(e){localOk=false;console.warn('[PHOTO DEBUG] localStorage save failed:',e);}
+  }catch(e){localOk=false;console.warn('localStorage save failed:',e);}
   if(window._fbFns && window._fbAuth && window._fbDb){
     try{
       const {doc, updateDoc} = window._fbFns;
       await updateDoc(doc(window._fbDb,'users',window.currentUser.id),{photo:dataUrl});
-      console.log('[PHOTO DEBUG] Firestore updateDoc uğurlu oldu');
-    }catch(e){remoteOk=false;console.warn('[PHOTO DEBUG] Firestore update FAILED:',e);}
+    }catch(e){remoteOk=false;console.warn('Firestore update FAILED:',e);}
   } else {
-    console.log('[PHOTO DEBUG] Firebase hazır deyil, localStorage fallback (fn_users) işlədilir');
     try{
       const users=getUsers();
       const idx=users.findIndex(u=>u.id===window.currentUser.id);
@@ -622,9 +617,8 @@ async function saveProfilePhoto(){
   }
 }
 function applyProfilePhoto(url){
-  console.log('[PHOTO DEBUG] applyProfilePhoto çağırıldı, url uzunluğu=',(url||'').length);
   const el=document.getElementById('profileAvatarLg');
-  if(!el){console.warn('[PHOTO DEBUG] #profileAvatarLg DOM-da tapılmadı!');}
+  if(!el){console.warn('#profileAvatarLg DOM-da tapılmadı!');}
   const avatarSvg=`<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
   if(el){
     if(url){el.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;}
