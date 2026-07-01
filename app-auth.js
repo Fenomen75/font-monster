@@ -54,7 +54,10 @@ async function _sha256(str){
 
 function initAuth(){
   window.currentUser=getCurrentUser();
-  if(window.currentUser){updateNavForUser(window.currentUser);}
+  if(window.currentUser){
+    updateNavForUser(window.currentUser);
+    applyProfilePhoto(window.currentUser.photo||null);
+  }
   // Sync likedFonts from user account
   if(window.currentUser){
     likedFonts=new Set(window.currentUser.saved||[]);
@@ -543,14 +546,40 @@ function closeProfile(){
 
 // ?? EDIT FONT - file/image helpers ??
 // ---- [app.js lines 3617-3791] ----
+function _resizeImageDataUrl(file,maxSize,quality){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>h){if(w>maxSize){h=Math.round(h*maxSize/w);w=maxSize;}}
+        else{if(h>maxSize){w=Math.round(w*maxSize/h);h=maxSize;}}
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=reject;
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function uploadProfilePhoto(input){
   const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const dataUrl=e.target.result;
+  _resizeImageDataUrl(file,320,0.8).then(dataUrl=>{
     if(!window.currentUser)return;
     window.currentUser.photo=dataUrl;
-    saveCurrentUser(window.currentUser);
+    let saved=true;
+    try{
+      const safe={...window.currentUser};
+      delete safe.password;delete safe.isAdmin;delete safe.isModerator;
+      localStorage.setItem('fn_current_user',JSON.stringify(safe));
+    }catch(e){saved=false;console.warn('Profile photo localStorage save failed:',e);}
     // Sync to Firestore if available
     if(window._fbFns && window._fbAuth && window._fbDb){
       const {doc, updateDoc} = window._fbFns;
@@ -563,9 +592,8 @@ function uploadProfilePhoto(input){
       if(idx>=0){users[idx].photo=dataUrl;saveUsers(users);}
     }
     applyProfilePhoto(dataUrl);
-    showToast('✅ Profile photo updated');
-  };
-  reader.readAsDataURL(file);
+    showToast(saved?'✅ Profile photo updated':'⚠️ Photo shown but may not persist — storage full');
+  }).catch(()=>showToast('❌ Şəkil yüklənmədi'));
 }
 function applyProfilePhoto(url){
   const el=document.getElementById('profileAvatarLg');
