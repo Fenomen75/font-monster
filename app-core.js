@@ -1085,6 +1085,11 @@ function debouncedFilter(){
   debounceTimer=setTimeout(()=>{
     searchTerm=document.getElementById('searchInput').value.trim();
     currentPage=1;
+    const _ap=document.getElementById('authorPage');
+    if(_ap && _ap.style.display!=='none' && _ap.style.display!==''){
+      if(typeof applyAuthorFilters==='function') applyAuthorFilters();
+      return;
+    }
     if(currentDetailFont) closeDetail(); // font detal sehifesindeyiksə, axtarış nəticəsini görmək üçün grid-ə qayıt
     renderFonts();
     syncUrl();

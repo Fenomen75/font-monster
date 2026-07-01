@@ -485,6 +485,8 @@ function closeAuthorPage(){
   document.getElementById('gridLayout').style.display='';
   document.getElementById('toolbarBar').style.display='';
   document.getElementById('heroSection').style.display='';
+  searchTerm='';
+  const _closeSi=document.getElementById('searchInput'); if(_closeSi) _closeSi.value='';
   try{ history.replaceState({page:'grid'},'','/'); } catch(e){}
   syncUrl(true);
   renderFonts();
@@ -556,6 +558,9 @@ function openAuthorPage(authorName){
   // Cari açıq author səhifəsini qlobal saxlayırıq - syncSubmittedFontsFromFirestore
   // gecikmiş cavab gələndə (admin/istifadəçi fontu) məhz bu səhifəni yeniləyə bilsin deyə.
   window._currentAuthorName = authorName;
+  // Axtarış qutusunu sıfırla - ana grid-dən qalma söz author səhifəsini gizli filtrləməsin
+  searchTerm='';
+  const _authSi=document.getElementById('searchInput'); if(_authSi) _authSi.value='';
   // Grid scroll mövqeyini yadda saxla
   if(typeof window._saveGridScroll === 'function') window._saveGridScroll();
   // Açıq modalları bağla
@@ -623,8 +628,23 @@ function setAuthorCategory(cat){
   window._authorActiveCat = cat;
   const bar = document.getElementById('authorCatBar');
   if(bar) bar.querySelectorAll('.acat').forEach(b=>b.classList.toggle('active', b.dataset.acat===cat));
+  applyAuthorFilters();
+}
+
+// Header axtarış qutusu ilə author səhifəsindəki fontları (aktiv kateqoriya ilə
+// birgə) filtrləyir. debouncedFilter() author səhifəsi açıq olanda bunu çağırır.
+function applyAuthorFilters(){
   const all = window._authorAllFonts || [];
-  const filtered = cat==='all' ? all : all.filter(f=>f.cat===cat);
+  const cat = window._authorActiveCat || 'all';
+  const term = (searchTerm||'').trim().toLowerCase();
+  let filtered = cat==='all' ? all : all.filter(f=>f.cat===cat);
+  if(term){
+    filtered = filtered.filter(f=>{
+      const name=(f.name||'').toLowerCase();
+      const tags=(f.tags||[]).join(' ').toLowerCase();
+      return name.includes(term) || tags.includes(term);
+    });
+  }
   const authorName = window._currentAuthorName || '';
   document.getElementById('authorFontsLabel').textContent =
     `${filtered.length} font${filtered.length!==1?'s':''} by ${authorName}`;
@@ -648,7 +668,7 @@ function renderAuthorFontsGrid(authorFonts){
   // özü artıq ana səhifə ilə TAM eyni _buildCardHTML() ilə qurulur - badge-lər
   // (New/Hot/Community), tag-lar, glyph strip, reytinq, dil badge-ləri, compare/like,
   // download sayı, charmap - hamısı ana səhifədəki kimi işləyir.
-  grid.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:16px';
+  grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px';
   grid.innerHTML = '';
 
   const top5ids = FONTS_BASE.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0)).slice(0,5).map(f=>f.id);
