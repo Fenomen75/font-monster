@@ -630,6 +630,21 @@ function renderAuthorSidePanel(authorName, authorFonts){
   const panel = document.getElementById('authorSidePanel');
   if(!panel) return;
 
+  // 1) Bu dizaynerin ən populyar fontu (spotlight)
+  const topOwn = authorFonts.slice().sort((a,b)=>(DL_COUNTS[b.id]||0)-(DL_COUNTS[a.id]||0))[0];
+  const spotlightHTML = topOwn ? `
+    <div style="background:var(--surface-solid);border:1px solid var(--border);border-radius:14px;padding:16px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px">Most Popular by ${esc(authorName)}</div>
+      <div onclick="openDetail('${topOwn.id}')" style="cursor:pointer;background:var(--surface3);border-radius:10px;padding:18px 14px;text-align:center;margin-bottom:10px;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface3)'">
+        <div style="font-family:'${topOwn.name}',sans-serif;font-size:32px;color:var(--text);line-height:1.15;word-break:break-word">${esc(topOwn.name)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--text3)">
+        <span>${cap(topOwn.cat)}</span>
+        <span>${fmtDlCountFor(topOwn.id)} downloads</span>
+      </div>
+    </div>` : '';
+
+  // 2) Sayt üzrə trend fontlar (bu dizaynerdən başqa)
   const top = FONTS_BASE.slice()
     .filter(f => f.author !== authorName)
     .sort((a,b) => (DL_COUNTS[b.id]||0) - (DL_COUNTS[a.id]||0))
@@ -644,7 +659,30 @@ function renderAuthorSidePanel(authorName, authorFonts){
       </div>
     </div>`).join('');
 
+  // 3) Oxşar dizaynerlər - bu müəlliflə eyni kateqoriyalarda fontu olan digər dizaynerlər
+  const myCats = new Set(authorFonts.map(f=>f.cat));
+  const otherAuthors = {};
+  FONTS_BASE.forEach(f=>{
+    if(f.author === authorName || !myCats.has(f.cat)) return;
+    if(!otherAuthors[f.author]) otherAuthors[f.author] = {count:0, dl:0};
+    otherAuthors[f.author].count++;
+    otherAuthors[f.author].dl += (DL_COUNTS[f.id]||0);
+  });
+  const similarList = Object.entries(otherAuthors).sort((a,b)=>b[1].dl-a[1].dl).slice(0,4);
+  const similarHTML = similarList.map(([name, info])=>{
+    const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    return `
+    <div onclick="openAuthorPage('${esc(name)}')" style="display:flex;align-items:center;gap:10px;padding:7px;border-radius:10px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
+      <div style="width:34px;height:34px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--accent) 0%,#be123c 100%);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${esc(initials)}</div>
+      <div style="min-width:0;flex:1">
+        <div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(name)}</div>
+        <div style="font-size:11px;color:var(--text3)">${info.count} font${info.count!==1?'s':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
   panel.innerHTML = `
+    ${spotlightHTML}
     <div style="background:var(--surface-solid);border:1px solid var(--border);border-radius:14px;padding:16px;">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
@@ -652,6 +690,11 @@ function renderAuthorSidePanel(authorName, authorFonts){
       </div>
       <div style="display:flex;flex-direction:column;gap:2px">${trendingHTML || '<div style="font-size:12px;color:var(--text3)">No data yet.</div>'}</div>
     </div>
+    ${similarList.length ? `
+    <div style="background:var(--surface-solid);border:1px solid var(--border);border-radius:14px;padding:16px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px">Similar Designers</div>
+      <div style="display:flex;flex-direction:column;gap:2px">${similarHTML}</div>
+    </div>` : ''}
     <div style="background:linear-gradient(135deg,var(--accent) 0%,#be123c 100%);border-radius:14px;padding:20px;color:#fff;">
       <div style="font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em">Are you a designer?</div>
       <div style="font-size:12.5px;opacity:.9;line-height:1.5;margin-bottom:14px">Share your fonts with thousands of creators on Font·Monster.</div>
@@ -927,8 +970,8 @@ function _detailRenderHeader(font, dlCount, licM){
   document.getElementById('fdpHero').removeAttribute('style');
   document.getElementById('fdpHero').innerHTML=`
     <div>
-      <h1 class="fdp-name" style="font-family:'${font.name}',sans-serif;margin:0;font-size:inherit;font-weight:inherit">${esc(font.name)}</h1>
-      <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year} · <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);font-size:12px;text-decoration:underline;text-underline-offset:2px;opacity:.85;transition:opacity .15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.85'">${esc(font.author)}'s Author Page →</span></div>
+      <h1 class="fdp-name" style="font-family:'${font.name}',sans-serif;margin:0 0 6px;font-size:40px;line-height:1.15;font-weight:800;letter-spacing:-0.02em;color:var(--text);word-break:break-word">${esc(font.name)}</h1>
+      <div class="fdp-author">by <span onclick="openAuthorPage('${esc(font.author)}')" style="cursor:pointer;color:var(--accent);transition:opacity .15s" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${esc(font.author)}</span> · ${font.year}</div>
       <div class="fdp-meta-row">
         <span class="fdp-chip">${cap(font.cat)}</span>
         <span class="lic-badge ${licM.cls}" style="border-radius:100px;padding:3px 11px">${licM.label}</span>
