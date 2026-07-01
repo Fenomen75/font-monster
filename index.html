@@ -586,6 +586,15 @@
 </script>
 
 <link rel="stylesheet" href="/styles.css?v=2">
+<!-- Sticky footer: qısa səhifələrdə (məs. boş "Saved Fonts") footer aşağıda qalsın,
+     ekranın ortasına "yuxarı çıxmasın" - body-ni flex-column edib əsas səhifə
+     konteynerlərinə flex:1 veririk ki, məzmun az olanda belə footer-i aşağı itələsinlər. -->
+<style>
+  html, body { min-height: 100%; }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  #gridLayout, #profilePage, #authorPage, #fontDetailPage { flex: 1 0 auto; }
+  #siteFooter { flex-shrink: 0; margin-top: auto; }
+</style>
 </head>
 <body>
 
