@@ -574,24 +574,19 @@ function uploadProfilePhoto(input){
   _resizeImageDataUrl(file,320,0.8).then(dataUrl=>{
     if(!window.currentUser)return;
     window._pendingProfilePhoto=dataUrl;
-    applyProfilePhoto(dataUrl); // yalnız önizləmə - hələ saxlanmayıb
-    const btn=document.getElementById('profilePhotoSaveBtn');
-    if(btn){btn.style.display='inline-flex';btn.textContent='💾 Save photo';btn.disabled=false;}
+    saveProfilePhoto();
   }).catch(()=>showToast('❌ Şəkil yüklənmədi'));
 }
 
 async function saveProfilePhoto(){
   const dataUrl=window._pendingProfilePhoto;
   if(!dataUrl||!window.currentUser)return;
-  const btn=document.getElementById('profilePhotoSaveBtn');
-  if(btn){btn.textContent='Saving…';btn.disabled=true;}
   window.currentUser.photo=dataUrl;
   let localOk=true,remoteOk=true;
   try{
     const safe={...window.currentUser};
     delete safe.password;delete safe.isAdmin;delete safe.isModerator;
     localStorage.setItem('fn_current_user',JSON.stringify(safe));
-    const verify=JSON.parse(localStorage.getItem('fn_current_user'));
   }catch(e){localOk=false;console.warn('localStorage save failed:',e);}
   if(window._fbFns && window._fbAuth && window._fbDb){
     try{
@@ -608,12 +603,9 @@ async function saveProfilePhoto(){
   applyProfilePhoto(dataUrl);
   window._pendingProfilePhoto=null;
   if(localOk&&remoteOk){
-    showToast('✅ Profile photo saved');
-    if(btn){btn.style.display='none';}
+    showToast('✅ Profile photo updated');
   } else {
     showToast('⚠️ Save failed — try again');
-    if(btn){btn.textContent='💾 Retry save';btn.disabled=false;}
-
   }
 }
 function applyProfilePhoto(url){
