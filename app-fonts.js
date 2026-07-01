@@ -553,6 +553,9 @@ function showGrid(){
 }
 
 function openAuthorPage(authorName){
+  // Cari açıq author səhifəsini qlobal saxlayırıq - syncSubmittedFontsFromFirestore
+  // gecikmiş cavab gələndə (admin/istifadəçi fontu) məhz bu səhifəni yeniləyə bilsin deyə.
+  window._currentAuthorName = authorName;
   // Grid scroll mövqeyini yadda saxla
   if(typeof window._saveGridScroll === 'function') window._saveGridScroll();
   // Açıq modalları bağla

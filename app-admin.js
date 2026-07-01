@@ -117,33 +117,72 @@ async function syncSubmittedFontsFromFirestore(){
     const newCount = FONTS.length;
     // Re-render only if the font list actually changed (new fonts arrived from Firestore)
     if(newCount !== prevCount){
-      renderFonts();
+      // Hansı görünüş açıqdırsa, ONU yenilə. Əvvəllər yalnız renderFonts() (əsas grid)
+      // çağırılırdı - istifadəçi məhz o an bir author səhifəsindəydisə (məs. reload
+      // sonrası düz /author/... URL-inə düşübsə), grid görünməzdi (display:none) və
+      // author səhifəsi köhnə/əskik siyahı ilə qalırdı - "font itir" kimi görünürdü.
+      const authorPageEl = document.getElementById('authorPage');
+      if(authorPageEl && authorPageEl.style.display!=='none' && window._currentAuthorName){
+        const authorUser = window.currentUser && (window.currentUser.name === window._currentAuthorName) ? window.currentUser : null;
+        const authorFonts = FONTS.filter(f => {
+          if(f.pending && !(window.currentUser && f.submittedById === window.currentUser.id)) return false;
+          if(f.author === window._currentAuthorName) return true;
+          if(authorUser && f.submittedById === authorUser.id) return true;
+          return false;
+        });
+        if(window._authorPageHtmlCache) delete window._authorPageHtmlCache[window._currentAuthorName];
+        if(typeof renderAuthorPage==='function') renderAuthorPage(window._currentAuthorName, authorFonts);
+      } else {
+        renderFonts();
+      }
     }
   }catch(e){console.warn('Firestore submitted fonts sync error:',e);}
 }
 
+// Approved submitted fontları FONTS-a əlavə edir + base font-lara admin edit override tətbiq edir.
+// KÖK SƏBƏB (fix): bu məntiq əvvəllər aşağıdakı top-level try{}-in İÇİNDƏ idi və skript
+// parse olunan kimi DƏRHAL işə düşürdü. Amma fonts-data.json hələ async fetch edilir
+// (_loadFontsBase() app-core.js-də) - bu blok işləyəndə FONTS_BASE demək olar HƏMİŞƏ
+// hələ boş []-dir. Nəticədə FONTS.push(f) boş massivə əlavə olunurdu, sonra fetch
+// bitəndə app-core.js-də `FONTS=[...FONTS_BASE]` FONTS-u TAM ƏVƏZ EDİRDİ - yəni bu
+// blokun etdiyi bütün iş (admin-approved/istifadəçi yüklədiyi fontlar) səssizcə itirdi.
+// Author səhifəsi (openAuthorPage) məhz bu itmiş FONTS üzərində işlədiyi üçün, reload-da
+// admin/istifadəçi fontları boş görünürdü. İndi bu funksiya FONTS_BASE HAZIR OLANDAN
+// SONRA (fontsBaseReady event-i ilə) çağırılır - aşağıya bax.
+function _mergeApprovedSubmittedFontsSync(){
+  try{
+    const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
+    sub.forEach(f=>{
+      const baseMatch=FONTS_BASE.find(b=>b.id===f.id);
+      if(baseMatch){
+        // Admin edit override for a built-in font - apply onto runtime copy
+        if(f.adminEditedAt){
+          const fi=FONTS.findIndex(x=>x.id===f.id);
+          if(fi>=0) Object.assign(FONTS[fi],f);
+        }
+        return;
+      }
+      if(!f.pending){
+        if(f._hasFontData && !f.fontData){const stored=localStorage.getItem('fn_fontdata_'+f.id);if(stored)f.fontData=stored;}
+        if(!FONTS.find(x=>x.id===f.id)) FONTS.push(f);
+        if(f.fontVariants&&f.fontVariants.length>0) injectVariantFaces(f);
+        else if(f.fontUrl) injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');
+        else if(f.fontData) injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');
+      }
+    });
+  }catch(e){ console.error('_mergeApprovedSubmittedFontsSync uğursuz:',e); }
+}
+// FONTS_BASE artıq hazırdırsa (skript sırası gecikibsə) dərhal çağır, yoxsa
+// 'fontsBaseReady' event-ini gözlə (app-core.js -> _initWithFontsBase() bunu
+// FONTS=[...FONTS_BASE]-dan DƏRHAL SONRA, render/restorePathRoute-dan ƏVVƏL dispatch edir).
+if(typeof _fontsBaseReady!=='undefined' && _fontsBaseReady){
+  _mergeApprovedSubmittedFontsSync();
+} else {
+  document.addEventListener('fontsBaseReady', _mergeApprovedSubmittedFontsSync, {once:true});
+}
+
 try{
   likedFonts=new Set(JSON.parse(localStorage.getItem("tv_liked")||"[]"));
-  // Only load APPROVED submitted fonts at init; pending loaded after auth
-  const sub=JSON.parse(localStorage.getItem("tv_submitted")||"[]");
-  sub.forEach(f=>{
-    const baseMatch=FONTS_BASE.find(b=>b.id===f.id);
-    if(baseMatch){
-      // Admin edit override for a built-in font - apply onto runtime copy
-      if(f.adminEditedAt){
-        const fi=FONTS.findIndex(x=>x.id===f.id);
-        if(fi>=0) Object.assign(FONTS[fi],f);
-      }
-      return;
-    }
-    if(!f.pending){
-      if(f._hasFontData && !f.fontData){const stored=localStorage.getItem('fn_fontdata_'+f.id);if(stored)f.fontData=stored;}
-      FONTS.push(f);
-      if(f.fontVariants&&f.fontVariants.length>0) injectVariantFaces(f);
-      else if(f.fontUrl) injectCustomFontFaceUrl(f.id,f.name,f.fontUrl,f.fontExt||'.ttf');
-      else if(f.fontData) injectCustomFontFace(f.id,f.name,f.fontData,f.fontExt||'.ttf');
-    }
-  });
   recentlyViewed=JSON.parse(localStorage.getItem("tv_recent")||"[]");
   darkMode=localStorage.getItem("tv_dark")==='1';
   if(darkMode){document.documentElement.setAttribute('data-theme','dark');}
