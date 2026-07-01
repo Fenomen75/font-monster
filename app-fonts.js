@@ -608,6 +608,31 @@ function renderAuthorPage(authorName, authorFonts){
   document.getElementById('authorFontsLabel').textContent =
     `${authorFonts.length} font${authorFonts.length!==1?'s':''} by ${authorName}`;
 
+  // Bütün fontlar (kateqoriya filtri üçün) və filtri sıfırla
+  window._authorAllFonts = authorFonts;
+  window._authorActiveCat = 'all';
+  const _acatBar = document.getElementById('authorCatBar');
+  if(_acatBar) _acatBar.querySelectorAll('.acat').forEach(b=>b.classList.toggle('active', b.dataset.acat==='all'));
+
+  renderAuthorFontsGrid(authorFonts);
+}
+
+// Kateqoriya düyməsinə klik olunanda - author səhifəsindəki fontları
+// kateqoriyaya görə filtrləyir, header/stats-a toxunmur, sadəcə grid-i yenidən qurur.
+function setAuthorCategory(cat){
+  window._authorActiveCat = cat;
+  const bar = document.getElementById('authorCatBar');
+  if(bar) bar.querySelectorAll('.acat').forEach(b=>b.classList.toggle('active', b.dataset.acat===cat));
+  const all = window._authorAllFonts || [];
+  const filtered = cat==='all' ? all : all.filter(f=>f.cat===cat);
+  const authorName = window._currentAuthorName || '';
+  document.getElementById('authorFontsLabel').textContent =
+    `${filtered.length} font${filtered.length!==1?'s':''} by ${authorName}`;
+  renderAuthorFontsGrid(filtered);
+}
+
+// Author səhifəsindəki font grid-inin faktiki render məntiqi (chunk-lı, lazy-load-lu)
+function renderAuthorFontsGrid(authorFonts){
   const grid = document.getElementById('authorFontsGrid');
   // Köhnə lazy observer aktivdirsə dayandır (başqa author səhifəsi açılmış ola bilər)
   if(window._authorFontLazyObserver){ window._authorFontLazyObserver.disconnect(); window._authorFontLazyObserver=null; }
